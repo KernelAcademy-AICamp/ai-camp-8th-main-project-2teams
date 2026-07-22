@@ -35,10 +35,6 @@ const COLOR_WORDS: Record<string, ColorKey> = {
   퍼플: "보라",
 };
 
-function isBaseHint(s: string) {
-  return /바탕|티셔츠|티$|무지|셔츠/.test(s);
-}
-
 export function parseQuery(q: string): { intent: Intent; chips: IntentChip[] } {
   const text = q.toLowerCase();
   const intent: Intent = { functional: [] };
@@ -53,13 +49,20 @@ export function parseQuery(q: string): { intent: Intent; chips: IntentChip[] } {
     chips.push({ label: "앞면", kind: "position" });
   }
 
-  // 색 — "프린팅/글씨/레터링 색" vs "바탕/티 색" 구분 시도
+  // 색 — 색 바로 뒤의 토큰으로 "프린팅색" vs "바탕색"을 판정.
   for (const [word, color] of Object.entries(COLOR_WORDS)) {
     if (!text.includes(word)) continue;
     const idx = text.indexOf(word);
-    const after = text.slice(idx, idx + 12);
-    const isPrint = /프린|글씨|레터|로고|그래픽|프린팅/.test(after);
-    if (isPrint || (intent.printPosition && !intent.printColor && !isBaseHint(after))) {
+    const nextToken =
+      text
+        .slice(idx + word.length)
+        .trimStart()
+        .split(/\s+/)[0] ?? "";
+    const printHint = /프린|글씨|레터|로고|그래픽|프린팅/.test(nextToken);
+    const baseHint = /바탕|몸판|티|셔츠|무지/.test(nextToken);
+    const isPrint =
+      printHint || (!!intent.printPosition && !intent.printColor && !baseHint);
+    if (isPrint) {
       if (!intent.printColor) {
         intent.printColor = color;
         chips.push({ label: `${color} 프린팅`, kind: "print", color });
