@@ -51,3 +51,15 @@ def test_run_multiple_keywords():
     stats = run(naver, ["a", "b"], lambda rows: len(rows))
     assert stats["kept"] == 2
     assert stats["upserted"] == 2
+
+
+def test_run_isolates_keyword_failure():
+    class ExplodingNaver:
+        def search(self, query, **kwargs):
+            if query == "bad":
+                raise RuntimeError("boom")
+            return [SAMPLE_OK]
+
+    stats = run(ExplodingNaver(), ["bad", "good"], lambda rows: len(rows))
+    assert stats["kept"] == 1  # 실패한 'bad'는 건너뛰고 'good'는 계속 진행
+    assert stats["upserted"] == 1

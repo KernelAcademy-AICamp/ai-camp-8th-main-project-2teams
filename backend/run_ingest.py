@@ -13,12 +13,15 @@ def run(naver, keywords: list[str], upsert_fn) -> dict:
     kept = 0
     upserted = 0
     for kw in keywords:
-        items = naver.search(kw)
-        collected += len(items)
-        rows = [row for row in (normalize_item(it) for it in items) if row]
-        kept += len(rows)
-        upserted += upsert_fn(rows)
-        print(f"[{kw}] 수집 {len(items)} → 적재 {len(rows)}")
+        try:
+            items = naver.search(kw)
+            collected += len(items)
+            rows = [row for row in (normalize_item(it) for it in items) if row]
+            kept += len(rows)
+            upserted += upsert_fn(rows)
+            print(f"[{kw}] 수집 {len(items)} → 적재 {len(rows)}")
+        except Exception as e:  # 개별 키워드 실패 격리 — 로그만 남기고 다음 키워드로
+            print(f"[{kw}] 실패, 건너뜀: {e}")
     return {"collected": collected, "kept": kept, "upserted": upserted}
 
 

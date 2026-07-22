@@ -56,3 +56,9 @@ drop trigger if exists products_set_updated_at on products;
 create trigger products_set_updated_at
   before update on products
   for each row execute function set_updated_at();
+
+-- RLS: 백엔드(secret 키)만 쓰기. client가 anon/publishable 키로 붙을 때 공개 쓰기 차단(읽기만 허용).
+-- secret 키는 RLS를 우회하므로 수집 파이프라인엔 영향 없음.
+alter table products enable row level security;
+drop policy if exists products_public_read on products;
+create policy products_public_read on products for select using (true);
