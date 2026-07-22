@@ -3,9 +3,9 @@
 // ViewModel (MVVM) — 상세 화면. id로 단건 로드.
 import { useEffect, useState } from "react";
 
-import { mockTeeRepository } from "@/lib/data/mock-tee-repository";
-import type { TeeRepository } from "@/lib/data/tee-repository";
-import type { Tee } from "@/lib/domain/tee";
+import { mockTeeRepository } from "@/features/catalog/data/mock-tee-repository";
+import type { TeeRepository } from "@/features/catalog/data/tee-repository";
+import type { Tee } from "@/features/catalog/domain/tee";
 
 export interface TeeDetailViewModel {
   loading: boolean;

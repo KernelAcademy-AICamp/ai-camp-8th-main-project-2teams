@@ -1,7 +1,7 @@
 // 유스케이스: 자연어 쿼리 → 검색 의도(Intent) 파싱.
 // ⚠️ 규칙 기반 임시 구현. 실제로는 LLM 파싱으로 교체된다 (인터페이스는 유지).
-import type { Intent, IntentChip } from "@/lib/domain/intent";
-import type { ColorKey, GraphicType } from "@/lib/domain/tee";
+import type { ColorKey, GraphicType } from "@/features/catalog/domain/tee";
+import type { Intent, IntentChip } from "@/features/search/domain/intent";
 
 const COLOR_WORDS: Record<string, ColorKey> = {
   흰: "흰",

@@ -1,10 +1,8 @@
-// View: 간략 결과 리스트 — 행마다 작은 스와치 + 핵심 정보 + 찜. 클릭 시 상세로.
+// View: 간략 결과 리스트 — 행마다 작은 스와치 + 핵심 정보. 클릭 시 상세로.
 import Link from "next/link";
 
-import SaveButton from "@/features/saved/SaveButton";
-import { COLOR_HEX, type Tee } from "@/lib/domain/tee";
-
-import TeeSwatch from "./TeeSwatch";
+import { COLOR_HEX, type Tee } from "@/features/catalog/domain/tee";
+import TeeSwatch from "@/features/catalog/presentation/TeeSwatch";
 
 function Dot({ color }: { color: Tee["baseColor"] }) {
   return (
@@ -51,12 +49,12 @@ export default function ResultList({ tees }: { tees: Tee[] }) {
               </div>
             </div>
 
-            <div className="flex shrink-0 flex-col items-end gap-2">
+            <div className="flex shrink-0 items-center gap-3">
               <span className="font-display text-[15px] font-bold text-ink">
                 {tee.price.toLocaleString()}
                 <span className="text-[11px] font-medium text-ink-soft">원</span>
               </span>
-              <SaveButton id={tee.id} className="size-7 text-base" />
+              <span className="font-mono text-[12px] text-ink-soft">→</span>
             </div>
           </Link>
         </li>

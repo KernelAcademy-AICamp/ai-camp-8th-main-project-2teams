@@ -1,5 +1,10 @@
 // 검색 의도 — 자연어 쿼리가 파싱된 결과. 도메인 타입.
-import type { ColorKey, Fit, GraphicType, PrintPosition } from "./tee";
+import type {
+  ColorKey,
+  Fit,
+  GraphicType,
+  PrintPosition,
+} from "@/features/catalog/domain/tee";
 
 export interface Intent {
   baseColor?: ColorKey;

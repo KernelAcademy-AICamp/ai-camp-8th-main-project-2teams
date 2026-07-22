@@ -1,5 +1,5 @@
 // View: 티 색 패널 (목업 이미지) — 바탕색 배경 + 프린팅색 블록 + BACK 태그. 리스트/상세 공용.
-import { COLOR_HEX, type ColorKey, type Tee } from "@/lib/domain/tee";
+import { COLOR_HEX, type ColorKey, type Tee } from "@/features/catalog/domain/tee";
 
 const LIGHT_COLORS: ColorKey[] = ["흰", "노랑", "회색"];
 const inkOn = (c: ColorKey) => (LIGHT_COLORS.includes(c) ? "#17181c" : "#ffffff");

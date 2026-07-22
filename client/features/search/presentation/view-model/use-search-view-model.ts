@@ -4,12 +4,12 @@
 // repository 주입(기본=목업)으로 데이터소스를 UI 손 안 대고 교체 가능.
 import { useEffect, useMemo, useState } from "react";
 
-import { mockTeeRepository } from "@/lib/data/mock-tee-repository";
-import type { TeeRepository } from "@/lib/data/tee-repository";
-import type { IntentChip } from "@/lib/domain/intent";
-import type { Tee } from "@/lib/domain/tee";
-import { parseQuery } from "@/lib/usecases/parse-query";
-import { searchTees } from "@/lib/usecases/search-tees";
+import { mockTeeRepository } from "@/features/catalog/data/mock-tee-repository";
+import type { TeeRepository } from "@/features/catalog/data/tee-repository";
+import type { Tee } from "@/features/catalog/domain/tee";
+import type { IntentChip } from "@/features/search/domain/intent";
+import { parseQuery } from "@/features/search/domain/parse-query";
+import { searchTees } from "@/features/search/domain/search-tees";
 
 export interface SearchViewModel {
   loading: boolean;

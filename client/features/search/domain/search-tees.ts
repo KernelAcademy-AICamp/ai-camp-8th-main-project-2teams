@@ -1,6 +1,6 @@
 // 유스케이스: 의도(Intent)로 상품 필터 + 매칭 점수 랭킹. 순수 함수.
-import type { Intent } from "@/lib/domain/intent";
-import type { Tee } from "@/lib/domain/tee";
+import type { Tee } from "@/features/catalog/domain/tee";
+import type { Intent } from "@/features/search/domain/intent";
 
 export function searchTees(tees: Tee[], intent: Intent): Tee[] {
   const anyConstraint =

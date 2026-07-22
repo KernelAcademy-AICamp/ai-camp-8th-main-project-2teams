@@ -1,6 +1,6 @@
 // View(시그니처): LLM이 "이해한 조건"을 홀드색 칩으로. 핵심 가치를 눈으로 증명.
-import type { IntentChip } from "@/lib/domain/intent";
-import { COLOR_HEX } from "@/lib/domain/tee";
+import { COLOR_HEX } from "@/features/catalog/domain/tee";
+import type { IntentChip } from "@/features/search/domain/intent";
 
 export default function IntentChips({ chips }: { chips: IntentChip[] }) {
   if (chips.length === 0) {

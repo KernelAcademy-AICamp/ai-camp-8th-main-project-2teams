@@ -38,6 +38,7 @@ export interface Tee {
   brand: string;
   price: number;
   mall: string;
+  link: string; // 상품 페이지(몰) URL — 구매 진입(outbound) 대상
   baseColor: ColorKey;
   printColor: ColorKey;
   printPosition: PrintPosition;

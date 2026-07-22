@@ -3,8 +3,8 @@
 // 페이지 1 — 구글형 검색 랜딩. 검색창 하나에 집중. 검색 시 /search 로 이동.
 import { useRouter } from "next/navigation";
 
-import ExampleChips from "@/features/search/components/ExampleChips";
-import SearchBar from "@/features/search/components/SearchBar";
+import ExampleChips from "@/features/search/presentation/components/ExampleChips";
+import SearchBar from "@/features/search/presentation/components/SearchBar";
 
 export default function LandingPage() {
   const router = useRouter();

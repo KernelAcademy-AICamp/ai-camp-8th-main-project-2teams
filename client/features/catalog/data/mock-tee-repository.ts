@@ -1,9 +1,9 @@
 // 목업 구현 — Loop 1 UI 시연용. 나중에 naver-tee-repository / supabase-tee-repository로 교체.
-import type { Tee } from "@/lib/domain/tee";
+import type { Tee } from "@/features/catalog/domain/tee";
 
 import type { TeeRepository } from "./tee-repository";
 
-const TEES: Tee[] = [
+const RAW: Omit<Tee, "link">[] = [
   {
     id: "t1",
     name: "SEND IT 백프린팅 티",
@@ -155,6 +155,12 @@ const TEES: Tee[] = [
     sizes: ["S", "M", "L", "XL"],
   },
 ];
+
+// 목업이라 몰 링크는 상품명 기반 네이버 쇼핑 검색으로 대체. 실데이터는 네이버 API의 link 사용.
+const TEES: Tee[] = RAW.map((t) => ({
+  ...t,
+  link: `https://search.shopping.naver.com/search/all?query=${encodeURIComponent(t.name)}`,
+}));
 
 export const mockTeeRepository: TeeRepository = {
   getAll() {
