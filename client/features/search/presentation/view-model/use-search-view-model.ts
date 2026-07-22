@@ -4,7 +4,7 @@
 // 파싱은 서버 라우트(/api/parse)의 LLM으로 수행하므로 비동기. repository 주입(기본=목업).
 import { useEffect, useMemo, useState } from "react";
 
-import { mockTeeRepository } from "@/features/catalog/data/mock-tee-repository";
+import { supabaseTeeRepository } from "@/features/catalog/data/supabase-tee-repository";
 import type { TeeRepository } from "@/features/catalog/data/tee-repository";
 import type { Tee } from "@/features/catalog/domain/tee";
 import { parseQueryRemote } from "@/features/search/data/parse-query-remote";
@@ -22,7 +22,7 @@ const EMPTY_INTENT: Intent = { functional: [] };
 
 export function useSearchViewModel(
   query: string,
-  repository: TeeRepository = mockTeeRepository,
+  repository: TeeRepository = supabaseTeeRepository,
 ): SearchViewModel {
   const [tees, setTees] = useState<Tee[]>([]);
   const [teesLoading, setTeesLoading] = useState(true);
