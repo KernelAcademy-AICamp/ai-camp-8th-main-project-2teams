@@ -1,3 +1,8 @@
+## [0.2.1](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/compare/v0.2.0...v0.2.1) (2026-07-22)
+
+### Features
+
+* **backend:** 네이버 쇼핑 수집 → Supabase 뼈대 DB ([#13](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/issues/13)) ([9b24b40](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/commit/9b24b40d142f0a00788cbc53fc0ddc45dd1fb303))
 ## 0.2.0 (2026-07-22)
 
 ### Features
