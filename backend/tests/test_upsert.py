@@ -27,7 +27,7 @@ class FakeClient:
 
 def test_upsert_returns_count_and_uses_conflict_key():
     client = FakeClient()
-    rows = [{"source_product_id": str(i)} for i in range(5)]
+    rows = [{"source": "naver_shopping", "source_product_id": str(i)} for i in range(5)]
 
     n = upsert_products(client, rows, chunk_size=2)
 
@@ -44,3 +44,23 @@ def test_upsert_empty_is_noop():
     client = FakeClient()
     assert upsert_products(client, []) == 0
     assert client.calls == []
+
+
+def test_upsert_dedupes_duplicate_conflict_keys_in_batch():
+    # 같은 (source, source_product_id)가 배치에 두 번 들어오면 하나로 접어야 한다
+    # (Postgres ON CONFLICT는 한 명령에서 같은 행을 두 번 갱신 못 함 → 21000).
+    client = FakeClient()
+    rows = [
+        {"source": "naver_shopping", "source_product_id": "1", "lprice": 100},
+        {"source": "naver_shopping", "source_product_id": "1", "lprice": 200},
+        {"source": "naver_shopping", "source_product_id": "2", "lprice": 300},
+    ]
+
+    n = upsert_products(client, rows)
+
+    assert n == 2  # id 1 중복 접힘 → 2건
+    sent = client.calls[0]["rows"]
+    assert len(sent) == 2
+    # 마지막 항목 유지
+    by_id = {r["source_product_id"]: r for r in sent}
+    assert by_id["1"]["lprice"] == 200
