@@ -6,7 +6,9 @@
 
 **Architecture:** GitHub Actions 3개(CI, Release+Promote, Slack) + CodeRabbit GitHub App + release-please(Conventional Commits→SemVer) + gh api 브랜치 보호. develop이 리뷰받는 통합/스테이징 브랜치, main은 promote Action만 갱신하는 프로덕션 미러. Vercel은 이미 main=프로덕션·root=client·framework=Next.js로 연동됨.
 
-**Tech Stack:** GitHub Actions(YAML), release-please-action@v4, CodeRabbit, Slack Incoming Webhook, GitHub REST(branch protection) via `gh`.
+**Tech Stack:** GitHub Actions(YAML), CodeRabbit, Slack Incoming Webhook, GitHub REST(branch protection) via `gh`.
+
+> **⚠️ 실행 중 설계 변경 (2026-07-22):** KernelAcademy org가 "GitHub Actions의 PR 생성"을 정책으로 금지(409)해서 **release-please 방식(Release PR 자동생성)은 이 org에서 불가**. 대신 **수동 `workflow_dispatch` "Release" 워크플로우**(`.github/workflows/release.yml`)로 교체함: Actions 탭에서 버튼 실행 → conventional commits로 버전 산정 → `client/package.json`·`client/CHANGELOG.md`·태그·GitHub Release → develop→main 승격(merge) → 배포 → Slack. GITHUB_TOKEN만 사용(쓰기·태그·릴리즈·push는 허용, PR 생성만 금지). PAT/RELEASE_PLEASE_TOKEN 불필요. release-please 관련 Task(4) 및 매니페스트/config는 폐기. **부트스트랩 주의:** workflow_dispatch "Run workflow" 버튼은 워크플로우 파일이 **기본 브랜치(main)** 에 있어야 UI에 뜨므로, 최초 1회 develop→main 초기 승격으로 main에 워크플로우들을 심어야 함(첫 프로덕션 배포 겸).
 
 ## Global Constraints
 
