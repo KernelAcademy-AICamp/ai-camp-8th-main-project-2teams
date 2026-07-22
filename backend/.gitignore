@@ -1,0 +1,12 @@
+# 환경변수 — 실제 키는 커밋 금지, 팀 공유 템플릿만 허용
+.env*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
