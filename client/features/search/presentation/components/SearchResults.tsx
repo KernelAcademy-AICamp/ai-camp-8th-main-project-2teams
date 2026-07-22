@@ -29,7 +29,7 @@ export default function SearchResults() {
 
         {query && (
           <div className="rise mt-5">
-            <IntentChips chips={vm.chips} />
+            <IntentChips chips={vm.chips} onRemove={vm.removeConstraint} />
           </div>
         )}
 

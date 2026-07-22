@@ -1,8 +1,15 @@
 // View(시그니처): LLM이 "이해한 조건"을 홀드색 칩으로. 핵심 가치를 눈으로 증명.
+// onRemove가 주어지면 각 칩에 × 삭제 버튼을 노출한다(표시 전용 사용처는 미제공).
 import { COLOR_HEX } from "@/features/catalog/domain/tee";
 import type { IntentChip } from "@/features/search/domain/intent";
 
-export default function IntentChips({ chips }: { chips: IntentChip[] }) {
+export default function IntentChips({
+  chips,
+  onRemove,
+}: {
+  chips: IntentChip[];
+  onRemove?: (chip: IntentChip) => void;
+}) {
   if (chips.length === 0) {
     return (
       <p className="font-mono text-[12px] text-ink-soft">
@@ -31,6 +38,18 @@ export default function IntentChips({ chips }: { chips: IntentChip[] }) {
               />
             )}
             {c.label}
+            {onRemove && (
+              <button
+                type="button"
+                onClick={() => {
+                  onRemove(c);
+                }}
+                aria-label={`${c.label} 조건 제거`}
+                className="-mr-1 ml-0.5 grid size-4 place-items-center rounded-full text-ink-soft transition hover:bg-line hover:text-ink"
+              >
+                ×
+              </button>
+            )}
           </span>
         );
       })}
