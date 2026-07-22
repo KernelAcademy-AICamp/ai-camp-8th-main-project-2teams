@@ -246,6 +246,8 @@ jobs:
 ```
 
 > ff가 아니라 merge라서 main/develop 분기 상태에서도 항상 성공한다. main tip의 트리는 develop과 동일해지고, Vercel이 main push를 감지해 프로덕션 배포한다.
+>
+> **토큰**: fine-grained PAT가 org repo에서 쓰기 403(Contents write 미승인)을 내서, release-please·promote 모두 내장 `GITHUB_TOKEN`으로 전환함(워크플로우 `permissions: contents/pull-requests: write`). RELEASE_PLEASE_TOKEN 시크릿은 불필요(제거 가능). 대신 **Task 10에서 main 보호 시 promote가 push할 수 있도록 github-actions 봇 bypass**를 넣어야 함.
 
 - [ ] **Step 4: 세 파일 YAML/JSON 문법 검증**
 
