@@ -33,25 +33,43 @@ export default function SearchResults() {
           </div>
         )}
 
-        <div className="mb-3 mt-6 flex items-baseline justify-between">
-          <h2 className="font-display text-lg font-bold text-ink">검색 결과</h2>
-          <span className="font-mono text-[12px] text-ink-soft">
-            {vm.results.length}개
-          </span>
-        </div>
+        {(() => {
+          const { exact, partial } = vm.results;
+          const showing = exact.length > 0 ? exact : partial;
+          const isPartial = exact.length === 0 && partial.length > 0;
 
-        {vm.results.length > 0 ? (
-          <ResultList tees={vm.results} />
-        ) : (
-          <div className="grid place-items-center rounded-2xl border border-dashed border-line py-16 text-center">
-            <p className="font-display text-lg font-bold text-ink">
-              딱 맞는 티가 없어요
-            </p>
-            <p className="mt-1 max-w-xs text-[13px] text-ink-soft">
-              조건을 조금 줄이거나 다른 색·핏으로 다시 찾아보세요.
-            </p>
-          </div>
-        )}
+          if (showing.length === 0) {
+            return (
+              <div className="mt-6 grid place-items-center rounded-2xl border border-dashed border-line py-16 text-center">
+                <p className="font-display text-lg font-bold text-ink">
+                  딱 맞는 티가 없어요
+                </p>
+                <p className="mt-1 max-w-xs text-[13px] text-ink-soft">
+                  조건을 조금 줄이거나 다른 색·핏으로 다시 찾아보세요.
+                </p>
+              </div>
+            );
+          }
+
+          return (
+            <>
+              <div className="mb-3 mt-6 flex items-baseline justify-between">
+                <h2 className="font-display text-lg font-bold text-ink">
+                  {isPartial ? "비슷한 결과" : "검색 결과"}
+                </h2>
+                <span className="font-mono text-[12px] text-ink-soft">
+                  {showing.length}개
+                </span>
+              </div>
+              {isPartial && (
+                <p className="mb-3 text-[13px] text-ink-soft">
+                  딱 맞는 티는 없어서, 조건에 가까운 상품을 보여드려요.
+                </p>
+              )}
+              <ResultList tees={showing} />
+            </>
+          );
+        })()}
       </main>
 
       <footer className="border-t border-line px-5 py-6">

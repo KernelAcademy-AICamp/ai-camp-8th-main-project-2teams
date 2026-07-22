@@ -10,12 +10,12 @@ import type { Tee } from "@/features/catalog/domain/tee";
 import { parseQueryRemote } from "@/features/search/data/parse-query-remote";
 import type { Intent, IntentChip } from "@/features/search/domain/intent";
 import { intentToChips } from "@/features/search/domain/intent-chips";
-import { searchTees } from "@/features/search/domain/search-tees";
+import { type SearchResult, searchTees } from "@/features/search/domain/search-tees";
 
 export interface SearchViewModel {
   loading: boolean;
   chips: IntentChip[];
-  results: Tee[];
+  results: SearchResult;
 }
 
 const EMPTY_INTENT: Intent = { functional: [] };
@@ -64,8 +64,9 @@ export function useSearchViewModel(
     [query, parsed.intent],
   );
 
-  const results = useMemo(
-    () => (query.trim() ? searchTees(tees, parsed.intent) : tees),
+  const results = useMemo<SearchResult>(
+    () =>
+      query.trim() ? searchTees(tees, parsed.intent) : { exact: tees, partial: [] },
     [query, tees, parsed.intent],
   );
 
