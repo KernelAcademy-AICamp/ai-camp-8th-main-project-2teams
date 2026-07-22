@@ -58,8 +58,9 @@ jobs:
         run: |
           git add client/package.json client/CHANGELOG.md
           git commit -m "chore(release): ${{ steps.ver.outputs.tag }}"
-          git tag "${{ steps.ver.outputs.tag }}"
-          git push origin develop --follow-tags
+          git tag -a "${{ steps.ver.outputs.tag }}" -m "release ${{ steps.ver.outputs.tag }}"
+          git push origin develop
+          git push origin "${{ steps.ver.outputs.tag }}"
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}

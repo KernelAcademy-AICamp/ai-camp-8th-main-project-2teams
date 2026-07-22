@@ -32,6 +32,19 @@ export type GraphicType = "레터링" | "캐릭터" | "로고" | "패턴" | "그
 export type Fit = "오버" | "레귤러" | "슬림";
 export type Material = "면" | "폴리" | "기능성";
 
+// 런타임 검증용 상수 — LLM 출력이 허용값인지 확인할 때 사용 (타입은 컴파일 시 소거되므로 별도 필요).
+export const COLOR_KEYS = Object.keys(COLOR_HEX) as ColorKey[];
+export const PRINT_POSITIONS: readonly PrintPosition[] = ["앞", "뒤", "양면"];
+export const GRAPHIC_TYPES: readonly GraphicType[] = [
+  "레터링",
+  "캐릭터",
+  "로고",
+  "패턴",
+  "그래픽",
+];
+export const FITS: readonly Fit[] = ["오버", "레귤러", "슬림"];
+export const FUNCTIONALS: readonly string[] = ["냉감", "통풍", "신축", "흡습속건"];
+
 export interface Tee {
   id: string;
   name: string;
