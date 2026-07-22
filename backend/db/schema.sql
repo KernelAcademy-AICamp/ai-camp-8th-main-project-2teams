@@ -42,3 +42,17 @@ create table if not exists products (
 
 create index if not exists products_color_idx on products (base_color, print_color);
 create index if not exists products_lprice_idx on products (lprice);
+
+-- updated_at 자동 갱신: 행이 UPDATE(재수집 upsert)될 때마다 now()로 갱신.
+create or replace function set_updated_at()
+returns trigger language plpgsql as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+drop trigger if exists products_set_updated_at on products;
+create trigger products_set_updated_at
+  before update on products
+  for each row execute function set_updated_at();
