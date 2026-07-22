@@ -73,3 +73,33 @@ def test_keeps_tshirt_by_category3_when_category4_empty():
     # category4가 비어도 category3가 '티셔츠'면 유지
     item = {**SAMPLE, "productId": "p3", "category3": "티셔츠", "category4": ""}
     assert normalize_item(item) is not None
+
+
+def test_rescues_short_sleeve_miscategorized_as_long():
+    # category4=긴팔티셔츠지만 제목이 '반팔'이면 반팔로 보고 유지(네이버 오분류 구제)
+    item = {
+        **SAMPLE,
+        "productId": "s1",
+        "title": "온사이트 클라이밍 반팔 볼더링티",
+        "category4": "긴팔티셔츠",
+    }
+    assert normalize_item(item) is not None
+
+
+def test_drops_real_long_sleeve():
+    # category4=긴팔티셔츠이고 제목에 소매 단서 없음 → 진짜 긴팔로 보고 제외
+    silent = {
+        **SAMPLE,
+        "productId": "s2",
+        "title": "블랙야크 볼더링 라운드티",
+        "category4": "긴팔티셔츠",
+    }
+    assert normalize_item(silent) is None
+    # 제목에 '긴팔' 명시 → 카테고리 무관 제외
+    explicit = {
+        **SAMPLE,
+        "productId": "s3",
+        "title": "마운티아 긴팔 볼더링 티셔츠",
+        "category4": "반팔티셔츠",
+    }
+    assert normalize_item(explicit) is None

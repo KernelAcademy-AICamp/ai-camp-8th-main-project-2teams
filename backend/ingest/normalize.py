@@ -35,6 +35,18 @@ def _is_tshirt(item: dict) -> bool:
     return "티셔츠" in cats
 
 
+def _is_short_sleeve(item: dict) -> bool:
+    """소매 스코프 = 반팔만. 소매 판단은 제목 우선 — 네이버 category4의 '긴팔티셔츠'
+    분류는 ≈24%가 실제로는 반팔이라 신뢰 불가. 규칙: 제목에 '긴팔'이 있으면 긴팔(제외),
+    '반팔/반소매'가 있으면 반팔(유지), 둘 다 없으면 category4로 폴백(긴팔티셔츠면 제외)."""
+    title = _clean_title(item.get("title", ""))
+    if "긴팔" in title:
+        return False
+    if "반팔" in title or "반소매" in title:
+        return True
+    return str(item.get("category4") or "") != "긴팔티셔츠"
+
+
 def normalize_item(item: dict, source: str = "naver_shopping") -> dict | None:
     product_id = _text_or_none(item.get("productId"))
     title = _clean_title(item.get("title", ""))
@@ -46,6 +58,9 @@ def normalize_item(item: dict, source: str = "naver_shopping") -> dict | None:
         return None
 
     if not _is_tshirt(item):
+        return None
+
+    if not _is_short_sleeve(item):
         return None
 
     return {
