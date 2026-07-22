@@ -73,18 +73,19 @@ export function useSearchViewModel(
     };
   }, [query]);
 
+  const hasQuery = query.trim().length > 0;
+  // 빈 쿼리는 파싱 대상이 아니므로 로딩에서 제외(전체 목록을 로딩 UI로 가리지 않기).
   // 현재 query가 아직 파싱 반영 전이면 파싱 중 → 로딩.
-  const parsing = parsed.query !== query;
+  const parsing = hasQuery && parsed.query !== query;
 
   const chips = useMemo(
-    () => (query.trim() ? intentToChips(workingIntent) : []),
-    [query, workingIntent],
+    () => (hasQuery ? intentToChips(workingIntent) : []),
+    [hasQuery, workingIntent],
   );
 
   const results = useMemo<SearchResult>(
-    () =>
-      query.trim() ? searchTees(tees, workingIntent) : { exact: tees, partial: [] },
-    [query, tees, workingIntent],
+    () => (hasQuery ? searchTees(tees, workingIntent) : { exact: tees, partial: [] }),
+    [hasQuery, tees, workingIntent],
   );
 
   return { loading: teesLoading || parsing, chips, results, removeConstraint };

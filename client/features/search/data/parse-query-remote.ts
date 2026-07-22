@@ -31,7 +31,10 @@ export async function parseQueryRemote(query: string): Promise<Intent> {
     if (!res.ok) throw new Error(`parse route ${String(res.status)}`);
 
     const data = (await res.json()) as ParseResponse;
-    if (!data.intent) throw new Error("no intent in response");
+    // functional이 배열이 아니면(빈/불완전 intent) 폴백 — 이후 intent.functional 접근 크래시 방지.
+    if (!data.intent || !Array.isArray(data.intent.functional)) {
+      throw new Error("invalid intent in response");
+    }
     return data.intent;
   } catch {
     // 폴백: 규칙 기반(타임아웃·오프라인·키 없음에서도 검색이 멈추지 않게).

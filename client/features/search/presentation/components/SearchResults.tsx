@@ -27,7 +27,7 @@ export default function SearchResults() {
       <main className="mx-auto w-full max-w-5xl flex-1 px-5 py-6">
         <SearchBar initialValue={query} onSearch={go} />
 
-        {query && (
+        {query && !vm.loading && (
           <div className="rise mt-5">
             <IntentChips chips={vm.chips} onRemove={vm.removeConstraint} />
           </div>
