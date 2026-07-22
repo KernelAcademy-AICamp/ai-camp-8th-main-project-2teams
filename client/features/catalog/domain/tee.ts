@@ -44,6 +44,7 @@ export const GRAPHIC_TYPES: readonly GraphicType[] = [
 ];
 export const FITS: readonly Fit[] = ["오버", "레귤러", "슬림"];
 export const FUNCTIONALS: readonly string[] = ["냉감", "통풍", "신축", "흡습속건"];
+export const MATERIALS: readonly Material[] = ["면", "폴리", "기능성"];
 
 export interface Tee {
   id: string;
@@ -52,12 +53,14 @@ export interface Tee {
   price: number;
   mall: string;
   link: string; // 상품 페이지(몰) URL — 구매 진입(outbound) 대상
-  baseColor: ColorKey;
-  printColor: ColorKey;
-  printPosition: PrintPosition;
-  graphicType: GraphicType;
-  fit: Fit;
-  material: Material;
-  functional: string[]; // 냉감 · 통풍 · 신축 · 흡습속건
-  sizes: string[]; // ["S","M","L","XL"] 또는 ["프리"]
+  image?: string; // 실상품 사진 URL(Supabase image_url). 없으면 합성 swatch로 폴백.
+  // ── 추출 속성: 추출 파이프라인 전이라 NULL일 수 있음 → optional. 값 있을 때만 UI 표기. ──
+  baseColor?: ColorKey;
+  printColor?: ColorKey;
+  printPosition?: PrintPosition;
+  graphicType?: GraphicType;
+  fit?: Fit;
+  material?: Material;
+  functional: string[]; // 냉감 · 통풍 · 신축 · 흡습속건 (없으면 [])
+  sizes: string[]; // ["S","M","L","XL"] 또는 ["프리"] (없으면 [])
 }

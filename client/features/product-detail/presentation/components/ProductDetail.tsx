@@ -10,7 +10,8 @@ import { track } from "@/shared/analytics";
 
 import { useTeeDetailViewModel } from "../view-model/use-tee-detail-view-model";
 
-function ColorRow({ label, color }: { label: string; color: ColorKey }) {
+function ColorRow({ label, color }: { label: string; color?: ColorKey }) {
+  if (!color) return null;
   return (
     <div className="flex items-center gap-2">
       <span
@@ -88,21 +89,29 @@ export default function ProductDetail({ id }: { id: string }) {
                 <span className="text-sm font-medium text-ink-soft">원</span>
               </p>
 
-              <div className="mt-6 flex flex-col gap-2">
-                <ColorRow label="바탕" color={tee.baseColor} />
-                <ColorRow label="프린팅" color={tee.printColor} />
-              </div>
+              {(tee.baseColor ?? tee.printColor) && (
+                <div className="mt-6 flex flex-col gap-2">
+                  <ColorRow label="바탕" color={tee.baseColor} />
+                  <ColorRow label="프린팅" color={tee.printColor} />
+                </div>
+              )}
 
               <div className="mt-6">
-                <Spec label="프린팅 위치" value={`${tee.printPosition}면`} />
-                <Spec label="그래픽" value={tee.graphicType} />
-                <Spec label="핏" value={`${tee.fit}핏`} />
-                <Spec label="소재" value={tee.material} />
+                <Spec
+                  label="프린팅 위치"
+                  value={tee.printPosition ? `${tee.printPosition}면` : "—"}
+                />
+                <Spec label="그래픽" value={tee.graphicType ?? "—"} />
+                <Spec label="핏" value={tee.fit ? `${tee.fit}핏` : "—"} />
+                <Spec label="소재" value={tee.material ?? "—"} />
                 <Spec
                   label="기능성"
                   value={tee.functional.length ? tee.functional.join(" · ") : "—"}
                 />
-                <Spec label="사이즈" value={tee.sizes.join(" · ")} />
+                <Spec
+                  label="사이즈"
+                  value={tee.sizes.length ? tee.sizes.join(" · ") : "—"}
+                />
               </div>
 
               {/* 구매 진입(outbound) — 이 클릭이 북극성 전환 이벤트 */}
