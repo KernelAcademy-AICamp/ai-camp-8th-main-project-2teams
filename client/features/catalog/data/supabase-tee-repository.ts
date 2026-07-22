@@ -76,14 +76,13 @@ export const supabaseTeeRepository: TeeRepository = {
     const { data, error } = await supabase
       .from("products")
       .select(COLUMNS)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .overrideTypes<ProductRow[], { merge: false }>();
     if (error) {
       console.warn("[supabaseTeeRepository] getAll 실패:", error.message);
       return [];
     }
-    // supabase-js는 Database 제네릭 없이는 콤마 문자열 select를 파싱하지 못해
-    // GenericStringError로 추론한다. unknown을 거쳐 우리가 아는 행 타입으로 좁힌다.
-    return (data as unknown as ProductRow[]).map(mapRowToTee);
+    return data.map(mapRowToTee);
   },
 
   async getById(id: string): Promise<Tee | null> {
@@ -91,11 +90,12 @@ export const supabaseTeeRepository: TeeRepository = {
       .from("products")
       .select(COLUMNS)
       .eq("id", id)
-      .maybeSingle();
+      .maybeSingle()
+      .overrideTypes<ProductRow, { merge: false }>();
     if (error) {
       console.warn("[supabaseTeeRepository] getById 실패:", error.message);
       return null;
     }
-    return data ? mapRowToTee(data as unknown as ProductRow) : null;
+    return data ? mapRowToTee(data) : null;
   },
 };
