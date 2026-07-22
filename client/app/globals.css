@@ -1,0 +1,63 @@
+@import "tailwindcss";
+
+/* ── Chalk & Holds 디자인 토큰 ────────────────────────────
+   무채색 '초크 벽' 위에 선명한 '홀드' 색. 홀드 색은 속성 칩/색 스와치에만 강하게. */
+@theme {
+  --color-chalk: #f3f4f1; /* 배경: 쿨한 초크 화이트 (크림 아님) */
+  --color-wall: #ffffff; /* 카드/표면 */
+  --color-ink: #17181c; /* 텍스트 */
+  --color-ink-soft: #565962; /* 보조 텍스트 */
+  --color-line: #e5e6e1; /* 경계선 */
+
+  --color-hold-yellow: #f5c518;
+  --color-hold-coral: #ff4d6d;
+  --color-hold-cyan: #14b8c6;
+  --color-hold-orange: #ff7a2f;
+}
+
+@theme inline {
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-archivo);
+  --font-mono: var(--font-plex-mono);
+}
+
+:root {
+  color-scheme: light;
+}
+
+* {
+  border-color: var(--color-line);
+}
+
+body {
+  background: var(--color-chalk);
+  color: var(--color-ink);
+  font-family: var(--font-sans), "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 초크 벽 질감 — 아주 미세한 그레인 (배경에만) */
+.chalk-grain {
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    rgba(23, 24, 28, 0.035) 1px,
+    transparent 0
+  );
+  background-size: 22px 22px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .rise {
+    animation: rise 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}

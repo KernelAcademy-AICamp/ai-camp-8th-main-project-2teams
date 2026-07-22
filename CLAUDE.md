@@ -48,6 +48,34 @@
 
 ---
 
+## 코드 품질 (lint · format · 타입)
+
+프론트엔드(`client/`)는 엄격하게 강제된다. 비개발자도 vibe 코딩을 하므로 **기계가 자동으로 고치고, 못 고치는 문제는 커밋을 막는다.**
+
+### 스택
+- **ESLint** (`strictTypeChecked`, 타입 기반) — floating promise·`any`·unsafe 등 실제 버그 차단
+- **simple-import-sort** — import 자동 정렬(auto-fix)
+- **unused-imports** — 미사용 import 자동 제거(auto-fix)
+- **Prettier** — 포맷 자동 통일 (스타일 논쟁 제거)
+- **husky + lint-staged** — pre-commit에서 스테이징 파일 자동 수정 + 실패 시 커밋 차단
+
+### 명령 (`client/`에서)
+```
+npm run lint        # 검사 (경고도 0이어야 통과)
+npm run lint:fix    # 자동 수정
+npm run format      # 포맷 정리
+npm run typecheck   # 타입 검사 (tsc --noEmit)
+npm run check       # lint + typecheck + format 한 번에
+```
+
+### 규칙
+- **커밋하면 자동으로** 스테이징한 파일이 정리되고, 못 고치는 문제(예: `any`, 미사용 변수)면 **커밋이 막힌다.** 막히면 메시지를 읽고 고치거나 `npm run lint:fix` 실행.
+- 훅을 켜려면 각자 클론 후 **프로젝트 루트에서 `npm install`을 한 번** 실행(husky 설치). `client/`에서만 install하면 훅이 안 켜진다.
+- 규칙을 무시(`eslint-disable`)하는 건 지양. 정말 필요하면 이유를 주석으로 남긴다.
+- Claude는 `client/` 코드를 만들거나 고친 뒤 커밋 전 `npm run check`가 통과하는지 확인한다.
+
+---
+
 ## Claude 작업 지침
 - 사용자가 **명시적으로 요청할 때만** 커밋/푸시/PR을 만든다.
 - 현재 브랜치가 `main`이면, 먼저 작업 브랜치를 파고 시작한다.
