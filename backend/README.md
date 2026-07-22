@@ -12,7 +12,12 @@
 2. 환경변수: `cp .env.example .env.local` 후 값 채우기
    - `NAVER_CLIENT_ID` / `NAVER_CLIENT_SECRET` — 네이버 개발자센터(검색 API)
    - `SUPABASE_URL` / `SUPABASE_SECRET_KEY` — Supabase Settings→API Keys의 secret 키(`sb_secret_...`)
-3. 스키마 생성: `db/schema.sql`을 Supabase 대시보드 → SQL Editor에 붙여 실행
+3. 스키마 적용 (Supabase CLI, 버전관리형 마이그레이션):
+   ```
+   supabase login                              # 최초 1회(브라우저 인증)
+   supabase link --project-ref <project-ref>   # SUPABASE_URL의 서브도메인, DB 비밀번호 필요
+   supabase db push                            # supabase/migrations/ 적용
+   ```
 
 ## 사용
 
@@ -34,5 +39,6 @@ pytest -v
 ## 구조
 
 - `ingest/` — 네이버 호출(`naver_client`)·정제(`normalize`)·키워드(`keywords`)·수율측정(`probe`)
-- `db/` — 스키마(`schema.sql`)·연결(`client`)·적재(`upsert`)
+- `db/` — 연결(`client`)·적재(`upsert`)
+- `supabase/migrations/` — DB 스키마(버전관리형 마이그레이션). `supabase db push`로 적용
 - `run_ingest.py` — 엔트리포인트

@@ -1,4 +1,4 @@
--- Supabase 대시보드 → SQL Editor 에 붙여넣고 실행.
+-- 초기 스키마: products 테이블 + pgvector + updated_at 트리거 + RLS 정책. supabase db push 로 적용.
 create extension if not exists vector;  -- pgvector: 이번엔 켜두기만(임베딩 컬럼은 추출 단계에서 추가)
 
 create table if not exists products (
