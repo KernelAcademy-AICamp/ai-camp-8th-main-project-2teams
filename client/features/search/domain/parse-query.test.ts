@@ -29,6 +29,12 @@ describe("parseQuery — 색 분리", () => {
     expect(intent.graphicType).toBe("로고");
   });
 
+  it("1글자 별칭이 긴 색 이름 안에 묻혀도 다른 색을 잃지 않는다", () => {
+    const { intent } = parseQuery("검정 프린팅 빨간 바탕");
+    expect(intent.printColor).toBe("검정");
+    expect(intent.baseColor).toBe("빨강");
+  });
+
   it("기능성 표현을 정규화한다", () => {
     const { intent } = parseQuery("시원한 오버핏");
     expect(intent.functional).toContain("냉감");

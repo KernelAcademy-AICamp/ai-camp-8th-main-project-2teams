@@ -50,9 +50,16 @@ export function parseQuery(q: string): { intent: Intent; chips: IntentChip[] } {
   }
 
   // 색 — 색 바로 뒤의 토큰으로 "프린팅색" vs "바탕색"을 판정.
-  for (const [word, color] of Object.entries(COLOR_WORDS)) {
-    if (!text.includes(word)) continue;
+  // 긴 색 이름 우선(검정>검) + 이미 매칭된 색 단어 범위 안의 짧은 별칭은 건너뛴다.
+  const colorEntries = Object.entries(COLOR_WORDS).sort(
+    (a, b) => b[0].length - a[0].length,
+  );
+  const usedRanges: [number, number][] = [];
+  for (const [word, color] of colorEntries) {
     const idx = text.indexOf(word);
+    if (idx < 0) continue;
+    if (usedRanges.some(([s, e]) => idx >= s && idx < e)) continue;
+    usedRanges.push([idx, idx + word.length]);
     const nextToken =
       text
         .slice(idx + word.length)
