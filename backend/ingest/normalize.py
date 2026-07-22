@@ -27,6 +27,14 @@ def _text_or_none(value) -> str | None:
     return text or None
 
 
+def _is_tshirt(item: dict) -> bool:
+    """카테고리로 티셔츠만 통과. 네이버 검색은 키워드만 맞으면 키링·바지·모자·아우터·
+    등산장비(카라비너 등)까지 섞어 주므로, category2~4 중 하나라도 '티셔츠'를 포함할
+    때만 상품으로 인정한다(반팔/긴팔/민소매 티셔츠 등)."""
+    cats = " ".join(str(item.get(f) or "") for f in ("category2", "category3", "category4"))
+    return "티셔츠" in cats
+
+
 def normalize_item(item: dict, source: str = "naver_shopping") -> dict | None:
     product_id = _text_or_none(item.get("productId"))
     title = _clean_title(item.get("title", ""))
@@ -35,6 +43,9 @@ def normalize_item(item: dict, source: str = "naver_shopping") -> dict | None:
         return None
 
     if str(item.get("productType", "")) not in ALLOWED_PRODUCT_TYPES:
+        return None
+
+    if not _is_tshirt(item):
         return None
 
     return {

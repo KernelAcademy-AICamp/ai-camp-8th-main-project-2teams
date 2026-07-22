@@ -54,3 +54,22 @@ def test_missing_required_returns_none():
     no_id = {**SAMPLE}
     del no_id["productId"]
     assert normalize_item(no_id) is None
+
+
+def test_filters_non_tshirt_category():
+    # 키워드는 맞아도 티셔츠가 아닌 카테고리(바지·카라비너·모자 등)는 제외
+    pants = {**SAMPLE, "productId": "p1", "category3": "등산의류", "category4": "바지"}
+    assert normalize_item(pants) is None
+    carabiner = {
+        **SAMPLE,
+        "productId": "p2",
+        "category3": "기타등산장비",
+        "category4": "카라비너",
+    }
+    assert normalize_item(carabiner) is None
+
+
+def test_keeps_tshirt_by_category3_when_category4_empty():
+    # category4가 비어도 category3가 '티셔츠'면 유지
+    item = {**SAMPLE, "productId": "p3", "category3": "티셔츠", "category4": ""}
+    assert normalize_item(item) is not None
