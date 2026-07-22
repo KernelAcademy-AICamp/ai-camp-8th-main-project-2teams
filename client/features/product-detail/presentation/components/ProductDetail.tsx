@@ -131,7 +131,7 @@ export default function ProductDetail({ id }: { id: string }) {
                 {tee.mall}에서 보기 →
               </a>
               <p className="mt-2 text-center font-mono text-[11px] text-ink-soft">
-                목업 링크(네이버 쇼핑 검색) — 실데이터 연동 시 실제 상품 페이지로
+                네이버 쇼핑 상품 페이지로 이동합니다
               </p>
             </div>
           </div>

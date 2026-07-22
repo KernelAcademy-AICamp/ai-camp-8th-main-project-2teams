@@ -3,7 +3,7 @@
 // ViewModel (MVVM) — 상세 화면. id로 단건 로드.
 import { useEffect, useState } from "react";
 
-import { mockTeeRepository } from "@/features/catalog/data/mock-tee-repository";
+import { supabaseTeeRepository } from "@/features/catalog/data/supabase-tee-repository";
 import type { TeeRepository } from "@/features/catalog/data/tee-repository";
 import type { Tee } from "@/features/catalog/domain/tee";
 
@@ -14,7 +14,7 @@ export interface TeeDetailViewModel {
 
 export function useTeeDetailViewModel(
   id: string,
-  repository: TeeRepository = mockTeeRepository,
+  repository: TeeRepository = supabaseTeeRepository,
 ): TeeDetailViewModel {
   const [tee, setTee] = useState<Tee | null>(null);
   const [loading, setLoading] = useState(true);
