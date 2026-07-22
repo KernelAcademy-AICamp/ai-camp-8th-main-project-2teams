@@ -48,6 +48,25 @@
 
 ---
 
+## 배포·버전·리뷰 파이프라인 (자동화)
+
+전체 흐름:
+```
+feature/*  ──PR──▶  develop  ──[Actions "Release" 버튼]──▶  main  ──▶  Vercel 프로덕션 배포 ──▶ Slack 알림
+```
+
+- **develop PR 게이트**: PR을 열면 자동으로 **CI**(`client` lint·typecheck·build)와 **CodeRabbit**(자동 코드리뷰)가 돈다. 초록불 + 리뷰 반영 후 작성자가 **squash 병합**. develop은 Vercel **preview URL**이 자동 생성되는 스테이징이다.
+- **릴리즈 = 프로덕션 배포**: 준비되면 GitHub **Actions 탭 → "Release" → Run workflow** 실행. `release_type`(auto/patch/minor/major, 기본 auto)을 고르면:
+  - Conventional Commits로 버전 산정 → `client/package.json`·`client/CHANGELOG.md` 갱신 → 태그 `vX.Y.Z` + GitHub Release
+  - `develop`을 `main`으로 승격(merge) → **Vercel 프로덕션 배포** → 완료되면 **Slack 알림**
+  - ⚠️ 릴리즈를 실행해야만 프로덕션에 반영된다(develop 병합만으로는 배포 안 됨).
+- **main**: 사람이 직접 push하지 않는다. Release 워크플로우(promote)만 갱신하며 Vercel 프로덕션 = `main`.
+- **브랜치 보호**: `develop`·`main` 모두 **force-push·삭제 차단**. (일반 push는 허용 — Release 봇 동작용. 직접 push는 지양하고 PR 사용.)
+- **필요한 저장소 설정**: GitHub Secret `SLACK_WEBHOOK_URL`(배포 알림), Actions가 워크플로우 파일을 통해 GITHUB_TOKEN으로 태그·릴리즈·승격 수행. CodeRabbit GitHub App 설치.
+- 참고: 이 org는 "GitHub Actions의 PR 자동생성"을 금지하므로 release-please 대신 **수동 Release 버튼** 방식을 쓴다.
+
+---
+
 ## 코드 품질 (lint · format · 타입)
 
 프론트엔드(`client/`)는 엄격하게 강제된다. 비개발자도 vibe 코딩을 하므로 **기계가 자동으로 고치고, 못 고치는 문제는 커밋을 막는다.**
