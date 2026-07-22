@@ -34,6 +34,19 @@ export default function SearchResults() {
         )}
 
         {(() => {
+          // 파싱·카탈로그 로딩 중엔 이전 결과를 그대로 두지 않고 즉시 로딩 표시.
+          // (LLM 파싱이 1~2초 걸려, 피드백이 없으면 "찾기 눌러도 반응 없음"으로 보인다.)
+          if (vm.loading) {
+            return (
+              <div className="mt-6 grid place-items-center rounded-2xl border border-dashed border-line py-16 text-center">
+                <p className="font-display text-lg font-bold text-ink">검색 중…</p>
+                <p className="mt-1 text-[13px] text-ink-soft">
+                  조건을 분석하고 있어요.
+                </p>
+              </div>
+            );
+          }
+
           const { exact, partial } = vm.results;
           const showing = exact.length > 0 ? exact : partial;
           const isPartial = exact.length === 0 && partial.length > 0;
