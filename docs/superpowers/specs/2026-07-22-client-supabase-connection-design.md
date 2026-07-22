@@ -43,7 +43,7 @@
 
 기존 clean-architecture 경계(`TeeRepository`)를 그대로 활용한다. 구현체 하나를 추가하고 기본 주입만 바꾼다.
 
-```
+```text
 브라우저
   └ supabaseTeeRepository (신규)
        └ supabase-client.ts (싱글턴, publishable 키)
@@ -67,7 +67,7 @@ view model(`use-search-view-model`, `use-tee-detail-view-model`)은 `TeeReposito
 ### 2. `features/catalog/data/supabase-client.ts` (신규)
 
 - publishable 키로 브라우저 Supabase 클라이언트 싱글턴 생성·export.
-- 두 환경변수 미설정 시 명확한 에러 메시지(개발자가 원인 즉시 파악).
+- 두 환경변수 미설정 시 명확한 에러 메시지(개발자가 원인 즉시 파악). 단 **throw는 브라우저에서만**(`typeof window !== "undefined"`) — 빌드/SSR 프리렌더가 env 없이 크래시하지 않도록. env 없으면 `createClient`에 placeholder를 넘겨 생성하고, 실제 조회는 repository의 `[]`/`null` 에러 처리로 degrade한다.
 
 ### 3. `features/catalog/data/supabase-tee-repository.ts` (신규)
 

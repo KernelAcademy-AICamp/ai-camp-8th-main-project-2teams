@@ -69,21 +69,26 @@ import { createClient } from "@supabase/supabase-js";
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
-if (!url || !publishableKey) {
+// 빌드/SSR(프리렌더)에선 throw 금지 — 브라우저에서만 명확한 에러(개발자 DX).
+// env 없으면 placeholder로 생성 → repository의 []/null 에러 처리로 degrade.
+if (typeof window !== "undefined" && (!url || !publishableKey)) {
   throw new Error(
     "Supabase 환경변수 누락: client/.env.local 에 NEXT_PUBLIC_SUPABASE_URL 과 " +
       "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY 를 설정하세요 (.env.example 참고).",
   );
 }
 
-export const supabase = createClient(url, publishableKey);
+export const supabase = createClient(
+  url ?? "https://placeholder.supabase.co",
+  publishableKey ?? "placeholder-anon-key",
+);
 ```
 
 - [ ] **Step 3: `.env.example`에 Supabase 항목 추가**
 
 `client/.env.example` 끝에 append:
 
-```
+```dotenv
 # ── Supabase (읽기 전용, 브라우저 노출) ─────────────────────────────
 # 대시보드 → Project Settings → API Keys → "Publishable key"(sb_publishable_...) 복사.
 # publishable 키는 RLS를 우회하지 않음 → products는 public read만 허용되어 안전.
