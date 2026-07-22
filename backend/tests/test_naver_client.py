@@ -42,3 +42,34 @@ def test_search_handles_empty():
     client = NaverClient("id", "secret")
     client._request = lambda params: {"items": []}
     assert client.search("없는키워드") == []
+
+
+def test_request_retries_on_any_5xx(monkeypatch):
+    import ingest.naver_client as nc
+
+    class FakeResp:
+        def __init__(self, status, payload=None):
+            self.status_code = status
+            self._payload = payload or {}
+
+        def json(self):
+            return self._payload
+
+        def raise_for_status(self):
+            if self.status_code >= 400:
+                raise AssertionError(f"raise_for_status on {self.status_code}")
+
+    responses = [FakeResp(503), FakeResp(504), FakeResp(200, {"items": []})]
+    calls = []
+
+    def fake_get(url, headers=None, params=None, timeout=None):
+        calls.append(params)
+        return responses.pop(0)
+
+    monkeypatch.setattr(nc.requests, "get", fake_get)
+    monkeypatch.setattr(nc.time, "sleep", lambda s: None)
+
+    client = nc.NaverClient("id", "secret")
+    result = client._request({"query": "x"})
+    assert result == {"items": []}
+    assert len(calls) == 3  # 503·504 재시도 후 200

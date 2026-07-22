@@ -23,13 +23,16 @@ class NaverClient:
 
     def _request(self, params: dict) -> dict:
         """HTTP 호출(테스트에서 monkeypatch하는 seam). 429/5xx는 백오프 재시도."""
+        res = None
         for attempt in range(3):
             res = requests.get(
                 self._base_url, headers=self._headers, params=params, timeout=15
             )
-            if res.status_code in (429, 500, 502, 503):
-                time.sleep(2**attempt)  # 1s, 2s, 4s
-                continue
+            if res.status_code == 429 or res.status_code >= 500:
+                if attempt < 2:
+                    time.sleep(2**attempt)  # 1s, 2s
+                    continue
+                break  # 마지막 시도까지 실패 → 아래에서 raise
             res.raise_for_status()
             return res.json()
         res.raise_for_status()
