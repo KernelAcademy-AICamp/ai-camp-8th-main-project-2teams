@@ -1,3 +1,13 @@
+## [0.2.2](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/compare/v0.2.1...v0.2.2) (2026-07-23)
+
+### Features
+
+* client↔Supabase 연결 (실상품 데이터 소스 전환) ([#14](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/issues/14)) ([3198a6e](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/commit/3198a6e46b63d9b9405944751570b4db3d75c937))
+* DB 백업 스크립트 추가 (로컬 전용 pg_dump 덤프) ([#16](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/issues/16)) ([d1e7968](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/commit/d1e7968e799f4c516eceeb899e665310acde9e08))
+* 검색 UX 마무리 — 정확/부분 일치·의도칩 삭제·파싱 지연 대응 ([#15](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/issues/15)) ([60d0ac4](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/commit/60d0ac4d8c5c784bbf479025b66e1aeee5a182c1))
+* 브랜드 사전·검색축 추가 (수집 확장·brand_id FK) ([#18](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/issues/18)) ([d395752](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/commit/d395752177174d379b8f8ea194e4d6592f263bc6))
+* 브랜드 칩 즉시 표시 (+ 사전 문서 최신화) ([#19](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/issues/19)) ([ee798a0](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/commit/ee798a0b1d57ba284f014b933edccae2c73c1216))
+* 상품 성별(gender) 분류 컬럼·검색축 + 파스 모델 교체 ([#20](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/issues/20)) ([57db271](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/commit/57db271a057f15b425e29a9044b119780404223a))
 ## [0.2.1](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/compare/v0.2.0...v0.2.1) (2026-07-22)
 
 ### Features
