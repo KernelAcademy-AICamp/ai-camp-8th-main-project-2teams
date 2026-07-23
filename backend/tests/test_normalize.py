@@ -1,5 +1,18 @@
 from ingest.normalize import normalize_item
 
+
+def test_brand_canonical_none_without_resolver():
+    row = normalize_item(SAMPLE)
+    assert row["brand_canonical"] is None
+
+
+def test_brand_canonical_uses_resolver():
+    def resolver(title, brand, maker, mall_name):
+        return "블랙야크" if brand == "블랙야크" else None
+
+    row = normalize_item(SAMPLE, brand_resolver=resolver)
+    assert row["brand_canonical"] == "블랙야크"
+
 SAMPLE = {
     "title": "블랙야크 반팔 <b>티셔츠</b> 남성 &amp; 여성",
     "link": "https://smartstore.naver.com/main/products/13347585855",

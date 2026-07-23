@@ -47,7 +47,7 @@ def _is_short_sleeve(item: dict) -> bool:
     return str(item.get("category4") or "") != "긴팔티셔츠"
 
 
-def normalize_item(item: dict, source: str = "naver_shopping") -> dict | None:
+def normalize_item(item: dict, source: str = "naver_shopping", brand_resolver=None) -> dict | None:
     product_id = _text_or_none(item.get("productId"))
     title = _clean_title(item.get("title", ""))
     link = _text_or_none(item.get("link"))
@@ -63,21 +63,27 @@ def normalize_item(item: dict, source: str = "naver_shopping") -> dict | None:
     if not _is_short_sleeve(item):
         return None
 
+    mall_name = _text_or_none(item.get("mallName"))
+    brand = _text_or_none(item.get("brand"))
+    maker = _text_or_none(item.get("maker"))
+    brand_canonical = brand_resolver(title, brand, maker, mall_name) if brand_resolver else None
+
     return {
         "source": source,
         "source_product_id": product_id,
-        "mall_name": _text_or_none(item.get("mallName")),
+        "mall_name": mall_name,
         "product_type": _text_or_none(item.get("productType")),
         "title": title,
         "link": link,
         "image_url": _text_or_none(item.get("image")),
         "lprice": _to_int(item.get("lprice")),
         "hprice": _to_int(item.get("hprice")),
-        "brand": _text_or_none(item.get("brand")),
-        "maker": _text_or_none(item.get("maker")),
+        "brand": brand,
+        "maker": maker,
         "category1": _text_or_none(item.get("category1")),
         "category2": _text_or_none(item.get("category2")),
         "category3": _text_or_none(item.get("category3")),
         "category4": _text_or_none(item.get("category4")),
+        "brand_canonical": brand_canonical,
         "raw": item,
     }
