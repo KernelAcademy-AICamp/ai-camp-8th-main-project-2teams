@@ -33,4 +33,13 @@ describe("removeConstraintFromIntent", () => {
     removeConstraintFromIntent(base, chip);
     expect(base.baseColor).toBe("흰");
   });
+
+  it("브랜드 칩을 제거한다", () => {
+    const chip: IntentChip = { label: "온사이트", kind: "brand" };
+    const next = removeConstraintFromIntent(
+      { functional: [], brand: "온사이트" },
+      chip,
+    );
+    expect(next.brand).toBeUndefined();
+  });
 });

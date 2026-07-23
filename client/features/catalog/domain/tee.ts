@@ -50,6 +50,7 @@ export interface Tee {
   id: string;
   name: string;
   brand: string;
+  brandCanonical?: string; // 사전 매칭된 통합 브랜드(검색축). 없으면 미상.
   price: number;
   mall: string;
   link: string; // 상품 페이지(몰) URL — 구매 진입(outbound) 대상

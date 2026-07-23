@@ -15,6 +15,7 @@ export function searchTees(tees: Tee[], intent: Intent): SearchResult {
     intent.printPosition !== undefined ||
     intent.fit !== undefined ||
     intent.graphicType !== undefined ||
+    intent.brand !== undefined ||
     intent.functional.length > 0;
 
   if (!anyConstraint) return { exact: tees, partial: [] };
@@ -24,6 +25,7 @@ export function searchTees(tees: Tee[], intent: Intent): SearchResult {
     let miss = 0;
     const bump = (cond: boolean, w = 1) => (cond ? (score += w) : (miss += 1));
 
+    if (intent.brand) bump(t.brandCanonical === intent.brand, 2);
     if (intent.baseColor) bump(t.baseColor === intent.baseColor, 2);
     if (intent.printColor) bump(t.printColor === intent.printColor, 2);
     if (intent.printPosition)

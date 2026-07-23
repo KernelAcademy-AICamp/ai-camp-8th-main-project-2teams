@@ -37,6 +37,9 @@ export function intentToChips(intent: Intent): IntentChip[] {
   if (intent.graphicType) {
     chips.push({ label: intent.graphicType, kind: "graphic" });
   }
+  if (intent.brand) {
+    chips.push({ label: intent.brand, kind: "brand" });
+  }
   for (const fn of intent.functional) {
     chips.push({ label: fn, kind: "functional" });
   }

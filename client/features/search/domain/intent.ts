@@ -13,10 +13,11 @@ export interface Intent {
   fit?: Fit;
   functional: string[];
   graphicType?: GraphicType;
+  brand?: string; // 사전 매칭된 canonical 브랜드
 }
 
 export interface IntentChip {
   label: string;
-  kind: "base" | "print" | "position" | "fit" | "functional" | "graphic";
+  kind: "base" | "print" | "position" | "fit" | "functional" | "graphic" | "brand";
   color?: ColorKey;
 }

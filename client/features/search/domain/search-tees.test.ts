@@ -62,4 +62,21 @@ describe("searchTees", () => {
     const r = searchTees(tees, { ...EMPTY, baseColor: "흰", printColor: "검정" });
     expect(r.exact[0]?.id).toBe("high");
   });
+
+  it("브랜드가 일치하면 exact, 불일치면 partial(다른 조건 있을 때)", () => {
+    const tees = [
+      tee({ id: "a", brandCanonical: "온사이트", baseColor: "흰" }),
+      tee({ id: "b", brandCanonical: "네파", baseColor: "흰" }),
+    ];
+    const r = searchTees(tees, { ...EMPTY, brand: "온사이트", baseColor: "흰" });
+    expect(r.exact.map((t) => t.id)).toEqual(["a"]);
+    expect(r.partial.map((t) => t.id)).toEqual(["b"]);
+  });
+
+  it("브랜드만 조건이면 그 브랜드만 exact", () => {
+    const tees = [tee({ id: "a", brandCanonical: "온사이트" }), tee({ id: "b" })];
+    const r = searchTees(tees, { ...EMPTY, brand: "온사이트" });
+    expect(r.exact.map((t) => t.id)).toEqual(["a"]);
+    expect(r.partial).toEqual([]);
+  });
 });
