@@ -11,7 +11,7 @@ import type { Tee } from "@/features/catalog/domain/tee";
 import { parseQueryRemote } from "@/features/search/data/parse-query-remote";
 import type { Intent, IntentChip } from "@/features/search/domain/intent";
 import { intentToChips } from "@/features/search/domain/intent-chips";
-import type { BrandEntry } from "@/features/search/domain/match-brand";
+import { type BrandEntry, matchBrand } from "@/features/search/domain/match-brand";
 import { removeConstraintFromIntent } from "@/features/search/domain/remove-constraint";
 import { type SearchResult, searchTees } from "@/features/search/domain/search-tees";
 
@@ -92,15 +92,32 @@ export function useSearchViewModel(
   // 현재 query가 아직 파싱 반영 전이면 파싱 중 → 로딩.
   const parsing = hasQuery && parsed.query !== query;
 
-  const chips = useMemo(
-    () => (hasQuery ? intentToChips(workingIntent) : []),
-    [hasQuery, workingIntent],
+  // 브랜드는 결정적 사전 매칭이라 LLM 파싱을 안 기다려도 된다 → 즉시 계산해 파싱 중에도 노출.
+  const immediateBrand = useMemo(
+    () => (hasQuery ? matchBrand(query, brands) : undefined),
+    [hasQuery, query, brands],
   );
 
-  const results = useMemo<SearchResult>(
-    () => (hasQuery ? searchTees(tees, workingIntent) : { exact: tees, partial: [] }),
-    [hasQuery, tees, workingIntent],
-  );
+  // 파싱 중엔 브랜드 칩만 즉시, 완료되면 전체(색·핏 등) 칩.
+  const chips = useMemo(() => {
+    if (!hasQuery) return [];
+    if (parsing)
+      return immediateBrand ? [{ label: immediateBrand, kind: "brand" as const }] : [];
+    return intentToChips(workingIntent);
+  }, [hasQuery, parsing, immediateBrand, workingIntent]);
 
-  return { loading: teesLoading || parsing, chips, results, removeConstraint };
+  // 파싱 중엔 브랜드로만 필터(즉시 결과), 완료되면 전체 의도로 필터.
+  const results = useMemo<SearchResult>(() => {
+    if (!hasQuery) return { exact: tees, partial: [] };
+    const intent = parsing ? { functional: [], brand: immediateBrand } : workingIntent;
+    return searchTees(tees, intent);
+  }, [hasQuery, parsing, immediateBrand, tees, workingIntent]);
+
+  // 브랜드가 즉시 잡히면 결과를 로딩으로 가리지 않는다(파싱은 뒤에서 계속 → 완료 시 정밀화).
+  return {
+    loading: teesLoading || (parsing && !immediateBrand),
+    chips,
+    results,
+    removeConstraint,
+  };
 }
