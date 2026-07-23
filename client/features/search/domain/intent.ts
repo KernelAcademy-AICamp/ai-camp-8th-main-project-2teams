@@ -2,6 +2,7 @@
 import type {
   ColorKey,
   Fit,
+  Gender,
   GraphicType,
   PrintPosition,
 } from "@/features/catalog/domain/tee";
@@ -14,10 +15,19 @@ export interface Intent {
   functional: string[];
   graphicType?: GraphicType;
   brand?: string; // 사전 매칭된 canonical 브랜드
+  gender?: Gender; // 쿼리에서 파싱된 성별 의도. 없으면 제약 없음.
 }
 
 export interface IntentChip {
   label: string;
-  kind: "base" | "print" | "position" | "fit" | "functional" | "graphic" | "brand";
+  kind:
+    | "base"
+    | "print"
+    | "position"
+    | "fit"
+    | "functional"
+    | "graphic"
+    | "brand"
+    | "gender";
   color?: ColorKey;
 }

@@ -31,6 +31,7 @@ export type PrintPosition = "앞" | "뒤" | "양면";
 export type GraphicType = "레터링" | "캐릭터" | "로고" | "패턴" | "그래픽";
 export type Fit = "오버" | "레귤러" | "슬림";
 export type Material = "면" | "폴리" | "기능성";
+export type Gender = "male" | "female" | "unisex";
 
 // 런타임 검증용 상수 — LLM 출력이 허용값인지 확인할 때 사용 (타입은 컴파일 시 소거되므로 별도 필요).
 export const COLOR_KEYS = Object.keys(COLOR_HEX) as ColorKey[];
@@ -45,12 +46,19 @@ export const GRAPHIC_TYPES: readonly GraphicType[] = [
 export const FITS: readonly Fit[] = ["오버", "레귤러", "슬림"];
 export const FUNCTIONALS: readonly string[] = ["냉감", "통풍", "신축", "흡습속건"];
 export const MATERIALS: readonly Material[] = ["면", "폴리", "기능성"];
+export const GENDERS: readonly Gender[] = ["male", "female", "unisex"];
+export const GENDER_LABEL: Record<Gender, string> = {
+  male: "남성",
+  female: "여성",
+  unisex: "공용",
+};
 
 export interface Tee {
   id: string;
   name: string;
   brand: string;
   brandCanonical?: string; // 사전 매칭된 통합 브랜드(검색축). 없으면 미상.
+  gender: Gender; // 제목 규칙 판정. DB NOT NULL default라 항상 존재(신호 없으면 unisex).
   price: number;
   mall: string;
   link: string; // 상품 페이지(몰) URL — 구매 진입(outbound) 대상
