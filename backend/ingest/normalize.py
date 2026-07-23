@@ -2,6 +2,8 @@
 import html
 import re
 
+from ingest.gender import classify_gender
+
 ALLOWED_PRODUCT_TYPES = {"1", "2"}  # 일반 단일상품만(중고·단종·카탈로그 제외)
 
 _B_TAG = re.compile(r"</?b>")
@@ -86,5 +88,6 @@ def normalize_item(item: dict, source: str = "naver_shopping", brand_resolver=No
         "category3": _text_or_none(item.get("category3")),
         "category4": _text_or_none(item.get("category4")),
         "brand_id": brand_id,
+        "gender": classify_gender(title),
         "raw": item,
     }

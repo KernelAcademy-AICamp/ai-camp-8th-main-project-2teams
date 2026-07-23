@@ -116,3 +116,29 @@ def test_drops_real_long_sleeve():
         "category4": "반팔티셔츠",
     }
     assert normalize_item(explicit) is None
+
+
+def test_normalize_sets_gender_male():
+    item = {
+        "productId": "1",
+        "title": "K2 남성 반팔 클라이밍 티셔츠",
+        "link": "http://x",
+        "productType": "1",
+        "category2": "티셔츠",
+    }
+    row = normalize_item(item)
+    assert row is not None
+    assert row["gender"] == "male"
+
+
+def test_normalize_sets_gender_unisex_when_no_signal():
+    item = {
+        "productId": "2",
+        "title": "온사이트 후지산 클라이밍 반팔 티셔츠",
+        "link": "http://x",
+        "productType": "1",
+        "category2": "티셔츠",
+    }
+    row = normalize_item(item)
+    assert row is not None
+    assert row["gender"] == "unisex"
