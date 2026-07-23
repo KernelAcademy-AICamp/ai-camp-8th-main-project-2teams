@@ -66,7 +66,8 @@ def normalize_item(item: dict, source: str = "naver_shopping", brand_resolver=No
     mall_name = _text_or_none(item.get("mallName"))
     brand = _text_or_none(item.get("brand"))
     maker = _text_or_none(item.get("maker"))
-    brand_canonical = brand_resolver(title, brand, maker, mall_name) if brand_resolver else None
+    # brand_resolver: (title, brand, maker, mall_name) -> brand_id(uuid)|None. 없으면 None.
+    brand_id = brand_resolver(title, brand, maker, mall_name) if brand_resolver else None
 
     return {
         "source": source,
@@ -84,6 +85,6 @@ def normalize_item(item: dict, source: str = "naver_shopping", brand_resolver=No
         "category2": _text_or_none(item.get("category2")),
         "category3": _text_or_none(item.get("category3")),
         "category4": _text_or_none(item.get("category4")),
-        "brand_canonical": brand_canonical,
+        "brand_id": brand_id,
         "raw": item,
     }

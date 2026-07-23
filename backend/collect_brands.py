@@ -14,12 +14,14 @@ MAX_ITEMS = 200
 
 def main() -> None:
     client = get_client()
-    entries = client.table("brands").select("canonical,aliases").execute().data
+    entries = client.table("brands").select("id,canonical,aliases").execute().data
     brands = [{"canonical": e["canonical"]} for e in entries]
     matcher = build_matcher(entries)
+    id_by_canonical = {e["canonical"]: e["id"] for e in entries}
 
     def resolver(title, brand, maker, mall):
-        return resolve_brand(title, brand, maker, mall, matcher)
+        canonical = resolve_brand(title, brand, maker, mall, matcher)
+        return id_by_canonical.get(canonical) if canonical else None
 
     naver = NaverClient(*naver_credentials())
 

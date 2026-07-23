@@ -31,10 +31,16 @@ def run(naver, keywords: list[str], upsert_fn, brand_resolver=None) -> dict:
 
 
 def _load_brand_resolver(client):
-    """brands 사전으로 (title, brand, maker, mall_name) -> canonical|None 리졸버 구성."""
-    entries = client.table("brands").select("canonical,aliases").execute().data
+    """brands 사전으로 (title, brand, maker, mall_name) -> brand_id(uuid)|None 리졸버 구성."""
+    entries = client.table("brands").select("id,canonical,aliases").execute().data
     matcher = build_matcher(entries)
-    return lambda title, brand, maker, mall: resolve_brand(title, brand, maker, mall, matcher)
+    id_by_canonical = {e["canonical"]: e["id"] for e in entries}
+
+    def resolver(title, brand, maker, mall):
+        canonical = resolve_brand(title, brand, maker, mall, matcher)
+        return id_by_canonical.get(canonical) if canonical else None
+
+    return resolver
 
 
 def main() -> None:
