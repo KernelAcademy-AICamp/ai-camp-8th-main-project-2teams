@@ -23,6 +23,7 @@ interface ProductRow {
   title: string;
   brand: string | null;
   maker: string | null;
+  brands: { canonical: string } | null; // brand_id FK 조인(통합 브랜드)
   mall_name: string | null;
   lprice: number | null;
   link: string;
@@ -39,7 +40,8 @@ interface ProductRow {
 
 const COLUMNS =
   "id,title,brand,maker,mall_name,lprice,link,image_url," +
-  "base_color,print_color,print_position,graphic_type,fit,material,functional,sizes";
+  "base_color,print_color,print_position,graphic_type,fit,material,functional,sizes," +
+  "brands(canonical)";
 
 // 허용값 배열 안이면 그 값, 아니면 undefined. (NULL·오타·미상 흡수)
 function asEnum<T extends string>(
@@ -56,6 +58,7 @@ export function mapRowToTee(row: ProductRow): Tee {
     id: row.id,
     name: row.title,
     brand: row.brand ?? row.maker ?? "",
+    brandCanonical: row.brands?.canonical ?? undefined,
     price: row.lprice ?? 0,
     mall: row.mall_name ?? "네이버",
     link: row.link,

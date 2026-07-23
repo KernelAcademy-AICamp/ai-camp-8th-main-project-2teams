@@ -4,12 +4,14 @@
 // 파싱은 서버 라우트(/api/parse)의 LLM으로 수행하므로 비동기. repository 주입(기본=목업).
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { getBrands } from "@/features/catalog/data/brand-repository";
 import { supabaseTeeRepository } from "@/features/catalog/data/supabase-tee-repository";
 import type { TeeRepository } from "@/features/catalog/data/tee-repository";
 import type { Tee } from "@/features/catalog/domain/tee";
 import { parseQueryRemote } from "@/features/search/data/parse-query-remote";
 import type { Intent, IntentChip } from "@/features/search/domain/intent";
 import { intentToChips } from "@/features/search/domain/intent-chips";
+import type { BrandEntry } from "@/features/search/domain/match-brand";
 import { removeConstraintFromIntent } from "@/features/search/domain/remove-constraint";
 import { type SearchResult, searchTees } from "@/features/search/domain/search-tees";
 
@@ -28,6 +30,7 @@ export function useSearchViewModel(
 ): SearchViewModel {
   const [tees, setTees] = useState<Tee[]>([]);
   const [teesLoading, setTeesLoading] = useState(true);
+  const [brands, setBrands] = useState<BrandEntry[]>([]);
   // 마지막으로 파싱을 끝낸 (쿼리, 의도) 쌍. parsed.query가 현재 query와 다르면 아직 파싱 중.
   const [parsed, setParsed] = useState<{ query: string; intent: Intent }>({
     query: "",
@@ -62,16 +65,27 @@ export function useSearchViewModel(
     };
   }, [repository]);
 
-  // 쿼리 변경 시 LLM 파싱(비동기). 결과는 .then 콜백에서만 반영(동기 setState 회피).
+  // 브랜드 사전 로드(검색 시 결정적 브랜드 매칭에 사용).
   useEffect(() => {
     let active = true;
-    void parseQueryRemote(query).then((intent) => {
+    void getBrands().then((data) => {
+      if (active) setBrands(data);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // 쿼리 변경 시 LLM 파싱(비동기) + 브랜드 사전 매칭. 결과는 .then 콜백에서만 반영(동기 setState 회피).
+  useEffect(() => {
+    let active = true;
+    void parseQueryRemote(query, brands).then((intent) => {
       if (active) setParsed({ query, intent });
     });
     return () => {
       active = false;
     };
-  }, [query]);
+  }, [query, brands]);
 
   const hasQuery = query.trim().length > 0;
   // 빈 쿼리는 파싱 대상이 아니므로 로딩에서 제외(전체 목록을 로딩 UI로 가리지 않기).
