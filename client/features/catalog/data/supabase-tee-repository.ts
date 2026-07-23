@@ -5,6 +5,8 @@ import {
   type ColorKey,
   type Fit,
   FITS,
+  type Gender,
+  GENDERS,
   GRAPHIC_TYPES,
   type GraphicType,
   type Material,
@@ -24,6 +26,7 @@ interface ProductRow {
   brand: string | null;
   maker: string | null;
   brands: { canonical: string } | null; // brand_id FK 조인(통합 브랜드)
+  gender: string | null;
   mall_name: string | null;
   lprice: number | null;
   link: string;
@@ -39,7 +42,7 @@ interface ProductRow {
 }
 
 const COLUMNS =
-  "id,title,brand,maker,mall_name,lprice,link,image_url," +
+  "id,title,brand,maker,mall_name,lprice,link,image_url,gender," +
   "base_color,print_color,print_position,graphic_type,fit,material,functional,sizes," +
   "brands(canonical)";
 
@@ -59,6 +62,7 @@ export function mapRowToTee(row: ProductRow): Tee {
     name: row.title,
     brand: row.brand ?? row.maker ?? "",
     brandCanonical: row.brands?.canonical ?? undefined,
+    gender: asEnum<Gender>(row.gender, GENDERS) ?? "unisex",
     price: row.lprice ?? 0,
     mall: row.mall_name ?? "네이버",
     link: row.link,

@@ -15,6 +15,8 @@ export function removeConstraintFromIntent(intent: Intent, chip: IntentChip): In
       return { ...intent, graphicType: undefined };
     case "brand":
       return { ...intent, brand: undefined };
+    case "gender":
+      return { ...intent, gender: undefined, genderExclusive: undefined };
     case "functional":
       return {
         ...intent,

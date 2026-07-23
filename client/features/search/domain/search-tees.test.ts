@@ -11,6 +11,7 @@ function tee(over: Partial<Tee> & { id: string }): Tee {
     price: 10000,
     mall: "m",
     link: "http://x",
+    gender: "unisex",
     functional: [],
     sizes: [],
     ...over,
@@ -78,5 +79,49 @@ describe("searchTees", () => {
     const r = searchTees(tees, { ...EMPTY, brand: "온사이트" });
     expect(r.exact.map((t) => t.id)).toEqual(["a"]);
     expect(r.partial).toEqual([]);
+  });
+
+  it("남성 쿼리는 male·unisex 상품에 매칭되고 female은 제외한다", () => {
+    const tees = [
+      tee({ id: "m", gender: "male" }),
+      tee({ id: "u", gender: "unisex" }),
+      tee({ id: "f", gender: "female" }),
+    ];
+    const r = searchTees(tees, { ...EMPTY, gender: "male" });
+    expect(r.exact.map((t) => t.id).sort()).toEqual(["m", "u"]);
+    expect(r.partial).toEqual([]);
+  });
+
+  it("여성 쿼리는 female·unisex 상품에 매칭되고 male은 제외한다", () => {
+    const tees = [
+      tee({ id: "m", gender: "male" }),
+      tee({ id: "u", gender: "unisex" }),
+      tee({ id: "f", gender: "female" }),
+    ];
+    const r = searchTees(tees, { ...EMPTY, gender: "female" });
+    expect(r.exact.map((t) => t.id).sort()).toEqual(["f", "u"]);
+  });
+
+  it("genderExclusive면 공용을 제외하고 정확 성별만 매칭한다", () => {
+    const tees = [
+      tee({ id: "f", gender: "female" }),
+      tee({ id: "u", gender: "unisex" }),
+      tee({ id: "m", gender: "male" }),
+    ];
+    const r = searchTees(tees, { ...EMPTY, gender: "female", genderExclusive: true });
+    expect(r.exact.map((t) => t.id)).toEqual(["f"]);
+    expect(r.partial).toEqual([]);
+  });
+
+  it("공용 쿼리는 unisex 상품만 매칭한다", () => {
+    const tees = [tee({ id: "u", gender: "unisex" }), tee({ id: "m", gender: "male" })];
+    const r = searchTees(tees, { ...EMPTY, gender: "unisex" });
+    expect(r.exact.map((t) => t.id)).toEqual(["u"]);
+  });
+
+  it("gender 미설정이면 성별로 거르지 않는다", () => {
+    const tees = [tee({ id: "m", gender: "male" }), tee({ id: "f", gender: "female" })];
+    const r = searchTees(tees, EMPTY);
+    expect(r.exact.map((t) => t.id)).toEqual(["m", "f"]);
   });
 });
