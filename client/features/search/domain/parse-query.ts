@@ -129,14 +129,25 @@ export function parseQuery(q: string): { intent: Intent; chips: IntentChip[] } {
   }
 
   // 성별 (쿼리 의도 — 신호 없으면 미설정)
+  // "공용 말고/제외/빼고/아닌" 또는 "전용/오직/성별+만"이면 공용을 배제(genderExclusive).
+  const excludeUnisex =
+    /(남녀\s*공용|공용|유니섹스|unisex)\s*(말고|빼고|뺀|제외|아닌|아니)/.test(text) ||
+    /전용|오직/.test(text) ||
+    /(남성|여성|남자|여자)만/.test(text);
   let gender: Gender | undefined;
-  if (/남녀공용|남녀|공용|유니섹스|unisex|커플/.test(text)) gender = "unisex";
+  // 순수 공용(배제 신호가 아닐 때)만 unisex로 본다.
+  if (!excludeUnisex && /남녀\s*공용|공용|유니섹스|unisex|커플|남녀/.test(text))
+    gender = "unisex";
   else if (/여성|여자|우먼|우먼스|women|woman|female|레이디|걸/.test(text))
     gender = "female";
   else if (/남성|남자|맨즈|맨스|mens|men|male|man/.test(text)) gender = "male";
   if (gender) {
     intent.gender = gender;
-    chips.push({ label: GENDER_LABEL[gender], kind: "gender" });
+    // 공용 배제는 정확 성별(male/female)일 때만 의미가 있다(unisex 전용은 no-op).
+    const exclusive = excludeUnisex && gender !== "unisex";
+    if (exclusive) intent.genderExclusive = true;
+    const label = exclusive ? `${GENDER_LABEL[gender]} 전용` : GENDER_LABEL[gender];
+    chips.push({ label, kind: "gender" });
   }
 
   return { intent, chips };

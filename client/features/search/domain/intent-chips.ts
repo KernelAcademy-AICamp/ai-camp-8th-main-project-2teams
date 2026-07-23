@@ -42,7 +42,10 @@ export function intentToChips(intent: Intent): IntentChip[] {
     chips.push({ label: intent.brand, kind: "brand" });
   }
   if (intent.gender) {
-    chips.push({ label: GENDER_LABEL[intent.gender], kind: "gender" });
+    const label = intent.genderExclusive
+      ? `${GENDER_LABEL[intent.gender]} 전용`
+      : GENDER_LABEL[intent.gender];
+    chips.push({ label, kind: "gender" });
   }
   for (const fn of intent.functional) {
     chips.push({ label: fn, kind: "functional" });

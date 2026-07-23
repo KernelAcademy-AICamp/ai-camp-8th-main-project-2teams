@@ -27,7 +27,13 @@ export function searchTees(tees: Tee[], intent: Intent): SearchResult {
     const bump = (cond: boolean, w = 1) => (cond ? (score += w) : (miss += 1));
 
     if (intent.brand) bump(t.brandCanonical === intent.brand, 2);
-    if (intent.gender) bump(t.gender === "unisex" || t.gender === intent.gender, 2);
+    if (intent.gender)
+      bump(
+        intent.genderExclusive
+          ? t.gender === intent.gender // 공용 제외: 정확 성별만
+          : t.gender === "unisex" || t.gender === intent.gender, // 방향성: 공용 포함
+        2,
+      );
     if (intent.baseColor) bump(t.baseColor === intent.baseColor, 2);
     if (intent.printColor) bump(t.printColor === intent.printColor, 2);
     if (intent.printPosition)

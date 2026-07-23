@@ -135,3 +135,18 @@ def classify_gender(title: str) -> str: ...  # -> 'male' | 'female' | 'unisex'
 ## 정리 작업
 
 - `backend/analyze_gender.py`(임시 집계 스크립트)는 구현 시 `gender.py`로 로직 이관 후 삭제.
+
+## 후속 수정: 성별 전용(공용 제외) — genderExclusive (2026-07-23)
+
+**배경(버그):** "여성 전용 상품만 남녀공용 말고"처럼 공용 배제를 요청해도, 규칙 파서가 `공용/남녀공용`을
+가장 먼저 매칭해 `gender=unisex`로 잘못 파싱하고 "공용" 칩을 띄웠다. 부정("말고/제외")도 무시했다.
+(NVIDIA LLM이 15~45초로 느려 클라 7초 타임아웃 후 규칙 파서가 상시 폴백되던 것도 노출을 키웠다.)
+
+**변경:**
+- `Intent.genderExclusive?: boolean` 추가. 기본(false)은 기존 방향성(공용 포함), true면 공용 제외(정확 성별만).
+- 규칙 파서(`parse-query.ts`): "공용/남녀공용 + 말고/빼고/제외/아닌", "전용/오직", "성별+만" 신호 →
+  해당 성별 + `genderExclusive=true`. 순수 "남녀공용"만 있으면 기존대로 `unisex`.
+- `searchTees`: `genderExclusive`면 `t.gender === intent.gender`(공용 제외), 아니면 방향성 유지.
+- 의도칩: 전용이면 라벨에 "전용" 접미(예: "여성 전용"). 칩 삭제 시 `genderExclusive`도 함께 해제.
+- LLM 라우트: 스키마·규칙·예시·sanitize에 `genderExclusive` 반영(gender 없거나 unisex면 무시).
+- 백엔드/DB 변경 없음(쿼리 의도일 뿐 상품 속성 아님).

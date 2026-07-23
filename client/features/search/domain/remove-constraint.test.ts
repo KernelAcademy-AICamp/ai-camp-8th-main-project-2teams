@@ -48,4 +48,14 @@ describe("removeConstraintFromIntent", () => {
     const next = removeConstraintFromIntent({ functional: [], gender: "male" }, chip);
     expect(next.gender).toBeUndefined();
   });
+
+  it("gender 칩 제거 시 genderExclusive도 함께 해제한다", () => {
+    const chip: IntentChip = { label: "여성 전용", kind: "gender" };
+    const next = removeConstraintFromIntent(
+      { functional: [], gender: "female", genderExclusive: true },
+      chip,
+    );
+    expect(next.gender).toBeUndefined();
+    expect(next.genderExclusive).toBeFalsy();
+  });
 });

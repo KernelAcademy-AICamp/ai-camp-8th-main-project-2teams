@@ -42,4 +42,13 @@ describe("intentToChips", () => {
     const chips = intentToChips({ functional: [], gender: "male" });
     expect(chips).toContainEqual({ label: "남성", kind: "gender" });
   });
+
+  it("genderExclusive면 칩 라벨에 '전용'이 붙는다", () => {
+    const chips = intentToChips({
+      functional: [],
+      gender: "female",
+      genderExclusive: true,
+    });
+    expect(chips).toContainEqual({ label: "여성 전용", kind: "gender" });
+  });
 });

@@ -102,6 +102,17 @@ describe("searchTees", () => {
     expect(r.exact.map((t) => t.id).sort()).toEqual(["f", "u"]);
   });
 
+  it("genderExclusive면 공용을 제외하고 정확 성별만 매칭한다", () => {
+    const tees = [
+      tee({ id: "f", gender: "female" }),
+      tee({ id: "u", gender: "unisex" }),
+      tee({ id: "m", gender: "male" }),
+    ];
+    const r = searchTees(tees, { ...EMPTY, gender: "female", genderExclusive: true });
+    expect(r.exact.map((t) => t.id)).toEqual(["f"]);
+    expect(r.partial).toEqual([]);
+  });
+
   it("공용 쿼리는 unisex 상품만 매칭한다", () => {
     const tees = [tee({ id: "u", gender: "unisex" }), tee({ id: "m", gender: "male" })];
     const r = searchTees(tees, { ...EMPTY, gender: "unisex" });
