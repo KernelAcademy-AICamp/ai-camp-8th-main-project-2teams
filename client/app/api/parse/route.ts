@@ -19,7 +19,9 @@ import type { Intent } from "@/features/search/domain/intent";
 export const maxDuration = 30;
 
 const BASE_URL = process.env.NVIDIA_BASE_URL ?? "https://integrate.api.nvidia.com/v1";
-const MODEL = process.env.NVIDIA_MODEL ?? "qwen/qwen3-next-80b-a3b-instruct";
+// llama-3.1-8b: 검색어 파싱 벤치에서 평균 ~0.8s·정확도 최고(qwen3-next-80b는 15~45s로
+// 클라 7초 타임아웃에 상시 폴백됐음). 가벼운 JSON 추출 태스크라 소형 모델로 충분.
+const MODEL = process.env.NVIDIA_MODEL ?? "meta/llama-3.1-8b-instruct";
 
 const SYSTEM_PROMPT = `너는 클라이밍 프린팅 티셔츠 쇼핑몰의 검색어 파서다.
 사용자의 한국어 자연어 검색어를 아래 JSON 스키마로만 변환한다. 설명·코드펜스 없이 JSON 객체 하나만 출력한다.
