@@ -37,4 +37,9 @@ describe("intentToChips", () => {
   it("빈 Intent는 빈 배열을 만든다", () => {
     expect(intentToChips({ functional: [] })).toEqual([]);
   });
+
+  it("gender가 있으면 라벨 칩을 만든다", () => {
+    const chips = intentToChips({ functional: [], gender: "male" });
+    expect(chips).toContainEqual({ label: "남성", kind: "gender" });
+  });
 });

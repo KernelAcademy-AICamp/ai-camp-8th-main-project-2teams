@@ -40,4 +40,20 @@ describe("parseQuery — 색 분리", () => {
     expect(intent.functional).toContain("냉감");
     expect(intent.fit).toBe("오버");
   });
+
+  it("남성 쿼리에서 gender=male을 뽑는다", () => {
+    expect(parseQuery("남성 클라이밍 반팔티").intent.gender).toBe("male");
+  });
+
+  it("여성 쿼리에서 gender=female을 뽑는다", () => {
+    expect(parseQuery("여성 우먼 클라이밍 티").intent.gender).toBe("female");
+  });
+
+  it("공용/남녀공용 쿼리에서 gender=unisex를 뽑는다", () => {
+    expect(parseQuery("남녀공용 클라이밍 티").intent.gender).toBe("unisex");
+  });
+
+  it("성별 신호가 없으면 gender는 undefined다", () => {
+    expect(parseQuery("검정 오버핏 티").intent.gender).toBeUndefined();
+  });
 });

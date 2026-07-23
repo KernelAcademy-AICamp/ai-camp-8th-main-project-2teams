@@ -1,5 +1,6 @@
 // 유스케이스: 검색 의도(Intent) → 화면에 표시할 의도칩(IntentChip). 순수 함수.
 // 파싱 경로(LLM/규칙)와 무관하게 칩 생성 로직을 한곳에 모은다.
+import { GENDER_LABEL } from "@/features/catalog/domain/tee";
 import type { Intent, IntentChip } from "@/features/search/domain/intent";
 
 const POSITION_LABEL: Record<string, string> = {
@@ -39,6 +40,9 @@ export function intentToChips(intent: Intent): IntentChip[] {
   }
   if (intent.brand) {
     chips.push({ label: intent.brand, kind: "brand" });
+  }
+  if (intent.gender) {
+    chips.push({ label: GENDER_LABEL[intent.gender], kind: "gender" });
   }
   for (const fn of intent.functional) {
     chips.push({ label: fn, kind: "functional" });

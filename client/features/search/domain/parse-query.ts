@@ -1,6 +1,7 @@
 // 유스케이스: 자연어 쿼리 → 검색 의도(Intent) 파싱.
 // ⚠️ 규칙 기반 임시 구현. 실제로는 LLM 파싱으로 교체된다 (인터페이스는 유지).
-import type { ColorKey, GraphicType } from "@/features/catalog/domain/tee";
+import type { ColorKey, Gender, GraphicType } from "@/features/catalog/domain/tee";
+import { GENDER_LABEL } from "@/features/catalog/domain/tee";
 import type { Intent, IntentChip } from "@/features/search/domain/intent";
 
 const COLOR_WORDS: Record<string, ColorKey> = {
@@ -125,6 +126,17 @@ export function parseQuery(q: string): { intent: Intent; chips: IntentChip[] } {
       intent.graphicType = g;
       chips.push({ label: g, kind: "graphic" });
     }
+  }
+
+  // 성별 (쿼리 의도 — 신호 없으면 미설정)
+  let gender: Gender | undefined;
+  if (/남녀공용|남녀|공용|유니섹스|unisex|커플/.test(text)) gender = "unisex";
+  else if (/여성|여자|우먼|우먼스|women|woman|female|레이디|걸/.test(text))
+    gender = "female";
+  else if (/남성|남자|맨즈|맨스|mens|men|male|man/.test(text)) gender = "male";
+  if (gender) {
+    intent.gender = gender;
+    chips.push({ label: GENDER_LABEL[gender], kind: "gender" });
   }
 
   return { intent, chips };

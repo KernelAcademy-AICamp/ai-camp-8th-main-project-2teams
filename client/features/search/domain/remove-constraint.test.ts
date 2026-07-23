@@ -42,4 +42,10 @@ describe("removeConstraintFromIntent", () => {
     );
     expect(next.brand).toBeUndefined();
   });
+
+  it("gender 칩을 제거한다", () => {
+    const chip: IntentChip = { label: "남성", kind: "gender" };
+    const next = removeConstraintFromIntent({ functional: [], gender: "male" }, chip);
+    expect(next.gender).toBeUndefined();
+  });
 });
