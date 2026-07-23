@@ -30,6 +30,20 @@
   python run_ingest.py
   ```
 
+## 백업 (로컬 전용)
+
+원격 Supabase DB를 로컬에 SQL 파일로 덤프한다. Docker 불필요(네이티브 `pg_dump` 사용).
+
+```
+brew install libpq                         # 최초 1회, pg_dump 설치
+# .env.local 에 SUPABASE_DB_URL 추가 (.env.example 참고)
+bash scripts/backup_db.sh
+```
+
+- 산출물: `backend/backups/products_<타임스탬프>.sql` (스키마+데이터, 한 파일로 복원 가능)
+- `backups/` 는 `.gitignore` 제외 → **커밋되지 않는 로컬 전용**
+- 복원: `psql "$SUPABASE_DB_URL" -f backups/products_<...>.sql`
+
 ## 테스트
 
 ```

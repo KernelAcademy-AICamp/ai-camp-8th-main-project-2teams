@@ -4,7 +4,8 @@ import Link from "next/link";
 import { COLOR_HEX, type Tee } from "@/features/catalog/domain/tee";
 import TeeSwatch from "@/features/catalog/presentation/TeeSwatch";
 
-function Dot({ color }: { color: Tee["baseColor"] }) {
+function Dot({ color }: { color?: Tee["baseColor"] }) {
+  if (!color) return null;
   return (
     <span
       className="inline-block size-2.5 rounded-full ring-1 ring-black/10"
@@ -37,14 +38,16 @@ export default function ResultList({ tees }: { tees: Tee[] }) {
                 {tee.name}
               </h3>
               <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 font-mono text-[11px] text-ink-soft">
-                <span className="inline-flex items-center gap-1">
-                  <Dot color={tee.baseColor} />
-                  바탕
-                  <Dot color={tee.printColor} />
-                  프린팅
-                </span>
-                <span>· {tee.printPosition}면</span>
-                <span>· {tee.fit}핏</span>
+                {(tee.baseColor ?? tee.printColor) && (
+                  <span className="inline-flex items-center gap-1">
+                    <Dot color={tee.baseColor} />
+                    바탕
+                    <Dot color={tee.printColor} />
+                    프린팅
+                  </span>
+                )}
+                {tee.printPosition && <span>· {tee.printPosition}면</span>}
+                {tee.fit && <span>· {tee.fit}핏</span>}
                 {tee.functional[0] && <span>· {tee.functional[0]}</span>}
               </div>
             </div>

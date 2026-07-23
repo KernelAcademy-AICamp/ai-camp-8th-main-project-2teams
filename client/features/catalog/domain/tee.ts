@@ -31,6 +31,7 @@ export type PrintPosition = "앞" | "뒤" | "양면";
 export type GraphicType = "레터링" | "캐릭터" | "로고" | "패턴" | "그래픽";
 export type Fit = "오버" | "레귤러" | "슬림";
 export type Material = "면" | "폴리" | "기능성";
+export type Gender = "male" | "female" | "unisex";
 
 // 런타임 검증용 상수 — LLM 출력이 허용값인지 확인할 때 사용 (타입은 컴파일 시 소거되므로 별도 필요).
 export const COLOR_KEYS = Object.keys(COLOR_HEX) as ColorKey[];
@@ -44,20 +45,31 @@ export const GRAPHIC_TYPES: readonly GraphicType[] = [
 ];
 export const FITS: readonly Fit[] = ["오버", "레귤러", "슬림"];
 export const FUNCTIONALS: readonly string[] = ["냉감", "통풍", "신축", "흡습속건"];
+export const MATERIALS: readonly Material[] = ["면", "폴리", "기능성"];
+export const GENDERS: readonly Gender[] = ["male", "female", "unisex"];
+export const GENDER_LABEL: Record<Gender, string> = {
+  male: "남성",
+  female: "여성",
+  unisex: "공용",
+};
 
 export interface Tee {
   id: string;
   name: string;
   brand: string;
+  brandCanonical?: string; // 사전 매칭된 통합 브랜드(검색축). 없으면 미상.
+  gender: Gender; // 제목 규칙 판정. DB NOT NULL default라 항상 존재(신호 없으면 unisex).
   price: number;
   mall: string;
   link: string; // 상품 페이지(몰) URL — 구매 진입(outbound) 대상
-  baseColor: ColorKey;
-  printColor: ColorKey;
-  printPosition: PrintPosition;
-  graphicType: GraphicType;
-  fit: Fit;
-  material: Material;
-  functional: string[]; // 냉감 · 통풍 · 신축 · 흡습속건
-  sizes: string[]; // ["S","M","L","XL"] 또는 ["프리"]
+  image?: string; // 실상품 사진 URL(Supabase image_url). 없으면 합성 swatch로 폴백.
+  // ── 추출 속성: 추출 파이프라인 전이라 NULL일 수 있음 → optional. 값 있을 때만 UI 표기. ──
+  baseColor?: ColorKey;
+  printColor?: ColorKey;
+  printPosition?: PrintPosition;
+  graphicType?: GraphicType;
+  fit?: Fit;
+  material?: Material;
+  functional: string[]; // 냉감 · 통풍 · 신축 · 흡습속건 (없으면 [])
+  sizes: string[]; // ["S","M","L","XL"] 또는 ["프리"] (없으면 [])
 }

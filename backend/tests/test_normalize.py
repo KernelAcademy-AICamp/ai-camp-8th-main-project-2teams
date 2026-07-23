@@ -1,5 +1,18 @@
 from ingest.normalize import normalize_item
 
+
+def test_brand_id_none_without_resolver():
+    row = normalize_item(SAMPLE)
+    assert row["brand_id"] is None
+
+
+def test_brand_id_uses_resolver():
+    def resolver(title, brand, maker, mall_name):
+        return "brand-uuid-1" if brand == "블랙야크" else None
+
+    row = normalize_item(SAMPLE, brand_resolver=resolver)
+    assert row["brand_id"] == "brand-uuid-1"
+
 SAMPLE = {
     "title": "블랙야크 반팔 <b>티셔츠</b> 남성 &amp; 여성",
     "link": "https://smartstore.naver.com/main/products/13347585855",
@@ -103,3 +116,29 @@ def test_drops_real_long_sleeve():
         "category4": "반팔티셔츠",
     }
     assert normalize_item(explicit) is None
+
+
+def test_normalize_sets_gender_male():
+    item = {
+        "productId": "1",
+        "title": "K2 남성 반팔 클라이밍 티셔츠",
+        "link": "http://x",
+        "productType": "1",
+        "category2": "티셔츠",
+    }
+    row = normalize_item(item)
+    assert row is not None
+    assert row["gender"] == "male"
+
+
+def test_normalize_sets_gender_unisex_when_no_signal():
+    item = {
+        "productId": "2",
+        "title": "온사이트 후지산 클라이밍 반팔 티셔츠",
+        "link": "http://x",
+        "productType": "1",
+        "category2": "티셔츠",
+    }
+    row = normalize_item(item)
+    assert row is not None
+    assert row["gender"] == "unisex"
