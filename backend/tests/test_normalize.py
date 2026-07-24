@@ -88,15 +88,78 @@ def test_keeps_tshirt_by_category3_when_category4_empty():
     assert normalize_item(item) is not None
 
 
-def test_rescues_short_sleeve_miscategorized_as_long():
-    # category4=긴팔티셔츠지만 제목이 '반팔'이면 반팔로 보고 유지(네이버 오분류 구제)
+def test_drops_long_sleeve_category_even_if_title_says_short():
+    # 결정(엄격): category4=긴팔티셔츠면 제목이 '반팔'이어도 무조건 제외.
+    # 오분류된 진짜 반팔을 일부 잃더라도 긴팔 유입을 원천 차단한다.
     item = {
         **SAMPLE,
         "productId": "s1",
         "title": "온사이트 클라이밍 반팔 볼더링티",
         "category4": "긴팔티셔츠",
     }
-    assert normalize_item(item) is not None
+    assert normalize_item(item) is None
+
+
+def test_excludes_outerwear_by_title():
+    # 카테고리는 티셔츠여도 제목이 맨투맨/스웻셔츠 등 아우터면 제외
+    mm = {
+        **SAMPLE,
+        "productId": "o1",
+        "title": "파타고니아 클린 클라이밍 기모 맨투맨 스웻셔츠",
+        "category3": "티셔츠",
+        "category4": "",
+    }
+    assert normalize_item(mm) is None
+
+
+def test_excludes_pants_miscategorized_as_tshirt():
+    # 네이버가 '반팔티셔츠'로 오분류한 바지/팬츠 → 제목으로 제외
+    pants = {
+        **SAMPLE,
+        "productId": "o2",
+        "title": "와일 SS 클라이밍 바지 아웃도어 와이드 팬츠 아이보리",
+        "category4": "반팔티셔츠",
+    }
+    assert normalize_item(pants) is None
+
+
+def test_excludes_socks():
+    socks = {
+        **SAMPLE,
+        "productId": "o3",
+        "title": "스포츠 클라이밍 골프 볼링 하키 양말",
+        "category4": "반팔티셔츠",
+    }
+    assert normalize_item(socks) is None
+
+
+def test_excludes_sleeveless():
+    # 나시/민소매/슬리브리스는 반팔 스코프 밖 → 제외
+    nasi = {
+        **SAMPLE,
+        "productId": "o4",
+        "title": "블랙야크 클라이밍 스톤마스터 슬리브리스",
+        "category4": "반팔티셔츠",
+    }
+    assert normalize_item(nasi) is None
+    minso = {
+        **SAMPLE,
+        "productId": "o5",
+        "title": "와일 클라이밍 여성 민소매 나시탑",
+        "category4": "반팔티셔츠",
+    }
+    assert normalize_item(minso) is None
+
+
+def test_keeps_half_zip_short_sleeve_tshirt():
+    # '집업' 단어가 있어도 반팔 '티셔츠'면 유지(아우터 키워드 과차단 방지)
+    zip_tee = {
+        **SAMPLE,
+        "productId": "o6",
+        "title": "밀레 남성 반팔티셔츠 반집업 기능성 등산",
+        "category4": "반팔티셔츠",
+    }
+    assert normalize_item(zip_tee) is not None
 
 
 def test_drops_real_long_sleeve():
