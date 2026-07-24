@@ -2,7 +2,7 @@
 
 // ViewModel (MVVM) — 검색 결과 화면. query(=URL)를 입력받아 로딩·의도칩·결과를 계산.
 // 파싱은 서버 라우트(/api/parse)의 LLM으로 수행하므로 비동기. repository 주입(기본=목업).
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { getBrands } from "@/features/catalog/data/brand-repository";
 import { supabaseTeeRepository } from "@/features/catalog/data/supabase-tee-repository";
@@ -32,6 +32,14 @@ export function useSearchViewModel(
   const [tees, setTees] = useState<Tee[]>([]);
   const [teesLoading, setTeesLoading] = useState(true);
   const [brands, setBrands] = useState<BrandEntry[]>([]);
+  // 검색 호출에 최신 brands/tees를 쓰되(폴백 입력) 그 변경으로 재검색을 유발하지 않도록 ref로 보관.
+  // 렌더 중 ref 쓰기는 react-hooks/refs가 막으므로 커밋 후 effect에서 동기화한다.
+  const teesRef = useRef(tees);
+  const brandsRef = useRef(brands);
+  useEffect(() => {
+    teesRef.current = tees;
+    brandsRef.current = brands;
+  }, [tees, brands]);
   // 마지막으로 검색을 끝낸 (쿼리, 의도, 결과) 묶음. parsed.query가 현재 query와 다르면 아직 검색 중.
   const [parsed, setParsed] = useState<{
     query: string;
@@ -78,16 +86,19 @@ export function useSearchViewModel(
     };
   }, []);
 
-  // 쿼리 변경 시 서버 하이브리드 검색(비동기). 결과+intent를 함께 반영.
+  // 쿼리 변경 시에만 서버 하이브리드 검색. brands/tees는 ref로 읽어 재검색을 유발하지 않는다
+  // (초기 로드 시 중복 호출 방지 → NVIDIA 비용 절감). 결과+intent를 함께 반영.
   useEffect(() => {
     let active = true;
-    void searchRemote(query, brands, tees).then(({ results, intent }) => {
-      if (active) setParsed({ query, intent, results });
-    });
+    void searchRemote(query, brandsRef.current, teesRef.current).then(
+      ({ results, intent }) => {
+        if (active) setParsed({ query, intent, results });
+      },
+    );
     return () => {
       active = false;
     };
-  }, [query, brands, tees]);
+  }, [query]);
 
   const hasQuery = query.trim().length > 0;
   // 빈 쿼리는 파싱 대상이 아니므로 로딩에서 제외(전체 목록을 로딩 UI로 가리지 않기).
