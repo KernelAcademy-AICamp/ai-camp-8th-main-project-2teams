@@ -80,4 +80,26 @@ describe("buildSlackMessage", () => {
 
     expect(JSON.stringify(msg.blocks)).not.toContain("http");
   });
+
+  it("Slack mrkdwn 특수문자(<, >, &)를 이스케이프한다", () => {
+    const msg = buildSlackMessage({
+      title: "Error <script> & <b>tag</b>",
+      culprit: "a & b",
+    });
+    const json = JSON.stringify(msg);
+
+    expect(json).toContain("&lt;");
+    expect(json).toContain("&gt;");
+    expect(json).toContain("&amp;");
+    expect(json).not.toContain("<script>");
+  });
+
+  it("Slack 블록 길이 제한을 넘는 값은 절단한다", () => {
+    const long = "x".repeat(5000);
+    const msg = buildSlackMessage({ title: long });
+    const json = JSON.stringify(msg);
+
+    expect(json).not.toContain(long); // 원본 전체는 포함되지 않음
+    expect(json).toContain("…"); // 말줄임 표시
+  });
 });

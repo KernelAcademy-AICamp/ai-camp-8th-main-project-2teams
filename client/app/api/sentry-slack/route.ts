@@ -32,19 +32,33 @@ export async function POST(request: Request): Promise<Response> {
     return new Response(null, { status: 204 });
   }
 
+  // Slack이 응답을 안 주고 매달리는 것을 막는 짧은 타임아웃.
+  const controller = new AbortController();
+  const timer = setTimeout(() => {
+    controller.abort();
+  }, 5000);
+
   let res: Response;
   try {
     res = await fetch(webhookUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(buildSlackMessage(issue)),
+      signal: controller.signal,
     });
   } catch {
     return new Response("Slack 전송 실패", { status: 502 });
+  } finally {
+    clearTimeout(timer);
   }
 
-  if (!res.ok) {
-    return new Response(`Slack 오류 (${String(res.status)})`, { status: 502 });
+  const ok = res.ok;
+  const status = res.status;
+  // 응답 본문을 소비해 undici 커넥션 누수를 막는다(내용은 사용하지 않음).
+  await res.text().catch(() => undefined);
+
+  if (!ok) {
+    return new Response(`Slack 오류 (${String(status)})`, { status: 502 });
   }
 
   return new Response(null, { status: 204 });

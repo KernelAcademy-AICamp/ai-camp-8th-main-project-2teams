@@ -51,20 +51,37 @@ export function parseSentryAlert(payload: unknown): SentryIssue | null {
   };
 }
 
+// Slack mrkdwn 특수문자 이스케이프 + 길이 절단(외부 값이 링크/멘션으로 오해석되거나
+// Slack 블록 길이 제한(section 3000·field 2000자)을 넘겨 전송 실패하는 것을 방지).
+function slackSafe(value: string, max: number): string {
+  const escaped = value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+  return escaped.length > max ? `${escaped.slice(0, max - 1)}…` : escaped;
+}
+
 // SentryIssue → Slack Incoming Webhook 페이로드. url이 있으면 이슈 링크 버튼을 붙인다.
 export function buildSlackMessage(issue: SentryIssue): SlackMessage {
-  const level = issue.level ?? "error";
+  const level = slackSafe(issue.level ?? "error", 100);
+  const title = slackSafe(issue.title, 2900);
 
   const fields: unknown[] = [{ type: "mrkdwn", text: `*Level:*\n${level}` }];
   if (issue.project) {
-    fields.push({ type: "mrkdwn", text: `*Project:*\n${issue.project}` });
+    fields.push({
+      type: "mrkdwn",
+      text: `*Project:*\n${slackSafe(issue.project, 1900)}`,
+    });
   }
   if (issue.culprit) {
-    fields.push({ type: "mrkdwn", text: `*Culprit:*\n${issue.culprit}` });
+    fields.push({
+      type: "mrkdwn",
+      text: `*Culprit:*\n${slackSafe(issue.culprit, 1900)}`,
+    });
   }
 
   const blocks: unknown[] = [
-    { type: "section", text: { type: "mrkdwn", text: `*🚨 ${issue.title}*` } },
+    { type: "section", text: { type: "mrkdwn", text: `*🚨 ${title}*` } },
     { type: "section", fields },
   ];
 
@@ -81,5 +98,5 @@ export function buildSlackMessage(issue: SentryIssue): SlackMessage {
     });
   }
 
-  return { text: `🚨 [${level}] ${issue.title}`, blocks };
+  return { text: `🚨 [${level}] ${title}`, blocks };
 }
