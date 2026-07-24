@@ -1,6 +1,7 @@
 // 서버 전용: 사용자 쿼리를 NVIDIA 임베딩 API로 벡터화(input_type=query). 상품과 동일 모델.
 const BASE_URL = process.env.NVIDIA_BASE_URL ?? "https://integrate.api.nvidia.com/v1";
-const MODEL = process.env.NVIDIA_EMBED_MODEL ?? "baai/bge-m3";
+// 상품 임베딩(backend/ingest/embed.py)과 반드시 동일 모델·차원(1024)이어야 벡터 비교가 성립.
+const MODEL = process.env.NVIDIA_EMBED_MODEL ?? "nvidia/nv-embedqa-e5-v5";
 
 function firstEmbedding(payload: unknown): number[] | null {
   if (typeof payload !== "object" || payload === null) return null;

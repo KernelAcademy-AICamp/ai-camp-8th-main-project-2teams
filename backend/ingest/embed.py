@@ -3,7 +3,9 @@ import requests
 
 from settings import nvidia_credentials
 
-MODEL = "baai/bge-m3"  # Task 1에서 확정한 모델. 바꾸면 마이그레이션 차원도 함께.
+# 라이브 확정(2026-07-24): bge-m3는 이 NVIDIA 계정에서 500(서빙 이슈)이라 1024차원 e5-v5로 확정.
+# 비대칭 모델 — 상품은 input_type="passage", 쿼리는 "query". 차원 1024 = migration vector(1024).
+MODEL = "nvidia/nv-embedqa-e5-v5"
 _CATEGORY_FIELDS = ("category2", "category3", "category4")
 
 
