@@ -21,22 +21,9 @@ def backfill_embeddings(client, *, embed_fn=embed_texts, batch: int = 100) -> in
         texts = [build_embed_text(r) for r in rows]
         vectors = embed_fn(texts, input_type="passage")
         for r, vec in zip(rows, vectors):
-            # NOTE: 브리프 원문은 `.update(payload).eq(...)` 순서였으나(실제 supabase-py
-            # 정석 사용법), 테스트용 FakeTable에는 update()가 없고 select()로 얻은
-            # FakeQuery만 eq()/update()를 가진다. 오프라인 테스트를 통과시키려고
-            # `.select().eq().update()` 순서로 조정했다 — 실제 Supabase 연동 시
-            # 이 체이닝이 유효한지 재검증 필요(아래 보고서 우려 참고).
-            client.table("products").select("id").eq("id", r["id"]).update(
-                {"embedding": vec}
-            ).execute()
+            # backfill_gender.py와 동일한 supabase-py 정석 update 패턴.
+            client.table("products").update({"embedding": vec}).eq("id", r["id"]).execute()
             updated += 1
-        # NOTE: 브리프 원문엔 없던 종료 가드. FakeTable/FakeQuery 테스트 더블은 update()
-        # 호출 후에도 rows 원본을 mutate하지 않아 다음 루프의 `IS NULL` 재조회가 같은
-        # 행을 영원히 반환한다(무한루프 실측 확인). 반환된 행 수가 batch보다 적으면
-        # 더 채울 행이 없다는 뜻이므로 여기서 멈춘다 — 실DB 페이지네이션에서도 안전한
-        # 조건이며, 이 가드 없이는 오프라인 테스트가 종료되지 않는다.
-        if len(rows) < batch:
-            break
     return updated
 
 
