@@ -31,7 +31,8 @@ const SYSTEM_PROMPT = `너는 클라이밍 프린팅 티셔츠 쇼핑몰의 검�
   "gender": "male" | "female" | "unisex" | null,
   "genderExclusive": true | false,
   "functional": string[],
-  "semanticQuery": string  // 아래 규칙 참고
+  "semanticQuery": string,  // 아래 규칙 참고
+  "keywords": string[]  // 제목에서 찾을 특징 단어
 }
 
 규칙:
@@ -42,13 +43,14 @@ const SYSTEM_PROMPT = `너는 클라이밍 프린팅 티셔츠 쇼핑몰의 검�
 - gender: "남성/맨즈"=male, "여성/우먼"=female, "남녀공용/공용/유니섹스"=unisex. 성별 언급 없으면 null.
 - genderExclusive: "여성 전용/여성만/공용 말고/남녀공용 제외"처럼 공용을 빼달라는 뜻이면 true. 그 외는 false. gender가 null이면 false.
 - semanticQuery: 검색 의도를 의미검색에 쓸 풍부한 한국어 구절로 확장한다. 위 스키마에 안 담기는 표현(예: "홀로그램", "곰", "레트로", "빈티지")을 반드시 포함하고, 동의어를 덧붙여도 된다. 비면 원문을 그대로 넣는다.
+- keywords: 검색 의도의 특징적 단어(그래픽·소재·테마·느낌, 예 "홀로그램","곰","레트로")만 넣는다. "티","티셔츠","반팔","긴팔","옷","셔츠" 같은 일반 의류어와 색은 넣지 마라(색은 baseColor로 처리). 없으면 빈 배열.
 - ★가장 중요★ 구조화 필드(색·핏 등)는 명시되지 않으면 반드시 null(functional은 빈 배열). 추측·환각 금지. semanticQuery만 확장을 허용한다.
 
 예시:
 입력: "회색 무지 티"
-출력: {"baseColor":"회색","printColor":null,"printPosition":null,"fit":null,"graphicType":null,"gender":null,"genderExclusive":false,"functional":[],"semanticQuery":"회색 무지 반팔 티셔츠"}
+출력: {"baseColor":"회색","printColor":null,"printPosition":null,"fit":null,"graphicType":null,"gender":null,"genderExclusive":false,"functional":[],"semanticQuery":"회색 무지 반팔 티셔츠","keywords":[]}
 입력: "홀로그램 느낌나는 티셔츠"
-출력: {"baseColor":null,"printColor":null,"printPosition":null,"fit":null,"graphicType":null,"gender":null,"genderExclusive":false,"functional":[],"semanticQuery":"홀로그램 메탈릭 반짝이는 홀로그램 그래픽 티셔츠"}`;
+출력: {"baseColor":null,"printColor":null,"printPosition":null,"fit":null,"graphicType":null,"gender":null,"genderExclusive":false,"functional":[],"semanticQuery":"홀로그램 메탈릭 반짝이는 홀로그램 그래픽 티셔츠","keywords":["홀로그램"]}`;
 
 interface ParsedRaw {
   baseColor?: unknown;
@@ -60,6 +62,28 @@ interface ParsedRaw {
   genderExclusive?: unknown;
   functional?: unknown;
   semanticQuery?: unknown;
+  keywords?: unknown;
+}
+
+const KEYWORD_STOPWORDS = new Set([
+  "티",
+  "티셔츠",
+  "반팔",
+  "긴팔",
+  "옷",
+  "셔츠",
+  "반소매",
+  "무지",
+  "상의",
+]);
+
+function toKeywords(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  const out = raw
+    .filter((k): k is string => typeof k === "string")
+    .map((k) => k.trim())
+    .filter((k) => k.length > 0 && !KEYWORD_STOPWORDS.has(k));
+  return [...new Set(out)].slice(0, 8);
 }
 
 function oneOf<T extends string>(v: unknown, allowed: readonly T[]): T | undefined {
@@ -114,13 +138,25 @@ function parseJsonObject(text: string): ParsedRaw | null {
 export async function parseIntentLLM(
   query: string,
   fetchFn: typeof fetch = fetch,
-): Promise<{ intent: Intent; semanticQuery: string; degraded: boolean }> {
+): Promise<{
+  intent: Intent;
+  semanticQuery: string;
+  keywords: string[];
+  degraded: boolean;
+}> {
   const trimmed = query.trim();
   // 빈 쿼리는 실패가 아니다 — degraded:false로 폴백을 트리거하지 않는다.
-  if (!trimmed) return { intent: EMPTY_INTENT, semanticQuery: "", degraded: false };
+  if (!trimmed)
+    return { intent: EMPTY_INTENT, semanticQuery: "", keywords: [], degraded: false };
   const apiKey = process.env.NVIDIA_API_KEY;
   // 키 미설정은 파싱 실패 — degraded:true로 규칙 파서 폴백을 트리거한다.
-  if (!apiKey) return { intent: EMPTY_INTENT, semanticQuery: trimmed, degraded: true };
+  if (!apiKey)
+    return {
+      intent: EMPTY_INTENT,
+      semanticQuery: trimmed,
+      keywords: [],
+      degraded: true,
+    };
 
   try {
     const res = await fetchFn(`${BASE_URL}/chat/completions`, {
@@ -140,17 +176,38 @@ export async function parseIntentLLM(
       }),
     });
     if (!res.ok)
-      return { intent: EMPTY_INTENT, semanticQuery: trimmed, degraded: true };
+      return {
+        intent: EMPTY_INTENT,
+        semanticQuery: trimmed,
+        keywords: [],
+        degraded: true,
+      };
     const payload: unknown = await res.json();
     const content = extractContent(payload);
     const raw = content ? parseJsonObject(content) : null;
-    if (!raw) return { intent: EMPTY_INTENT, semanticQuery: trimmed, degraded: true };
+    if (!raw)
+      return {
+        intent: EMPTY_INTENT,
+        semanticQuery: trimmed,
+        keywords: [],
+        degraded: true,
+      };
     const semanticQuery =
       typeof raw.semanticQuery === "string" && raw.semanticQuery.trim()
         ? raw.semanticQuery.trim()
         : trimmed;
-    return { intent: sanitize(raw), semanticQuery, degraded: false };
+    return {
+      intent: sanitize(raw),
+      semanticQuery,
+      keywords: toKeywords(raw.keywords),
+      degraded: false,
+    };
   } catch {
-    return { intent: EMPTY_INTENT, semanticQuery: trimmed, degraded: true };
+    return {
+      intent: EMPTY_INTENT,
+      semanticQuery: trimmed,
+      keywords: [],
+      degraded: true,
+    };
   }
 }

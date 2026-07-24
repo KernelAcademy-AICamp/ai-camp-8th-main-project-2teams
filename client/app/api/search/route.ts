@@ -38,8 +38,8 @@ export async function POST(request: Request): Promise<Response> {
   };
   if (!query) return Response.json(empty);
 
-  // 1) LLM 파싱(intent + 확장 쿼리). 실패해도 EMPTY intent + 원쿼리로 진행.
-  const { intent, semanticQuery } = await parseIntentLLM(query);
+  // 1) LLM 파싱(intent + 확장 쿼리 + keywords). 실패해도 EMPTY intent + 원쿼리로 진행.
+  const { intent, semanticQuery, keywords } = await parseIntentLLM(query);
 
   // 2) 확장 쿼리 임베딩. 실패하면 의미검색 불가 → degraded 신호로 클라 폴백 유도.
   const vector = await embedQuery(semanticQuery);
@@ -52,6 +52,7 @@ export async function POST(request: Request): Promise<Response> {
   const rpcResponse = await supabase.rpc("search_products", {
     query_embedding: vector,
     intent,
+    keywords,
     match_limit: 60,
   });
   // data만 구조분해하면 (createClient에 Database 제네릭이 없어) any로 추론돼

@@ -21,11 +21,13 @@ describe("parseIntentLLM", () => {
       baseColor: "흰",
       functional: [],
       semanticQuery: "홀로그램 메탈릭 반짝이는 그래픽 티셔츠",
+      keywords: ["홀로그램"],
     });
     const fetchFn = vi.fn().mockResolvedValue(llmResponse(content));
     const r = await parseIntentLLM("홀로그램 느낌 흰 티", fetchFn);
     expect(r.intent.baseColor).toBe("흰");
     expect(r.semanticQuery).toContain("홀로그램");
+    expect(r.keywords).toEqual(["홀로그램"]);
     expect(r.degraded).toBe(false);
   });
 
@@ -34,6 +36,19 @@ describe("parseIntentLLM", () => {
     const fetchFn = vi.fn().mockResolvedValue(llmResponse('{"functional":[]}'));
     const r = await parseIntentLLM("빨간 티", fetchFn);
     expect(r.semanticQuery).toBe("빨간 티");
+    expect(r.keywords).toEqual([]);
+    expect(r.degraded).toBe(false);
+  });
+
+  it("keywords에서 일반 의류어 stopword를 제거한다", async () => {
+    vi.stubEnv("NVIDIA_API_KEY", "k");
+    const content = JSON.stringify({
+      functional: [],
+      keywords: ["홀로그램", "티셔츠"],
+    });
+    const fetchFn = vi.fn().mockResolvedValue(llmResponse(content));
+    const r = await parseIntentLLM("홀로그램 티셔츠", fetchFn);
+    expect(r.keywords).toEqual(["홀로그램"]);
     expect(r.degraded).toBe(false);
   });
 
@@ -42,6 +57,7 @@ describe("parseIntentLLM", () => {
     const r = await parseIntentLLM("아무거나");
     expect(r.intent).toEqual({ functional: [] });
     expect(r.semanticQuery).toBe("아무거나");
+    expect(r.keywords).toEqual([]);
     expect(r.degraded).toBe(true);
   });
 
@@ -51,6 +67,7 @@ describe("parseIntentLLM", () => {
     const r = await parseIntentLLM("검정 티", fetchFn);
     expect(r.intent).toEqual({ functional: [] });
     expect(r.semanticQuery).toBe("검정 티");
+    expect(r.keywords).toEqual([]);
     expect(r.degraded).toBe(true);
   });
 
@@ -60,6 +77,7 @@ describe("parseIntentLLM", () => {
     const r = await parseIntentLLM("파란 티", fetchFn);
     expect(r.intent).toEqual({ functional: [] });
     expect(r.semanticQuery).toBe("파란 티");
+    expect(r.keywords).toEqual([]);
     expect(r.degraded).toBe(true);
   });
 
@@ -69,6 +87,7 @@ describe("parseIntentLLM", () => {
     const r = await parseIntentLLM("   ", fetchFn);
     expect(r.intent).toEqual({ functional: [] });
     expect(r.semanticQuery).toBe("");
+    expect(r.keywords).toEqual([]);
     expect(r.degraded).toBe(false);
     expect(fetchFn).not.toHaveBeenCalled();
   });
