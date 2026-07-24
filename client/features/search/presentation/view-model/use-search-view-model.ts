@@ -8,7 +8,7 @@ import { getBrands } from "@/features/catalog/data/brand-repository";
 import { supabaseTeeRepository } from "@/features/catalog/data/supabase-tee-repository";
 import type { TeeRepository } from "@/features/catalog/data/tee-repository";
 import type { Tee } from "@/features/catalog/domain/tee";
-import { parseQueryRemote } from "@/features/search/data/parse-query-remote";
+import { searchRemote } from "@/features/search/data/search-remote";
 import type { Intent, IntentChip } from "@/features/search/domain/intent";
 import { intentToChips } from "@/features/search/domain/intent-chips";
 import { type BrandEntry, matchBrand } from "@/features/search/domain/match-brand";
@@ -23,6 +23,7 @@ export interface SearchViewModel {
 }
 
 const EMPTY_INTENT: Intent = { functional: [] };
+const EMPTY_RESULT: SearchResult = { exact: [], partial: [] };
 
 export function useSearchViewModel(
   query: string,
@@ -31,11 +32,12 @@ export function useSearchViewModel(
   const [tees, setTees] = useState<Tee[]>([]);
   const [teesLoading, setTeesLoading] = useState(true);
   const [brands, setBrands] = useState<BrandEntry[]>([]);
-  // 마지막으로 파싱을 끝낸 (쿼리, 의도) 쌍. parsed.query가 현재 query와 다르면 아직 파싱 중.
-  const [parsed, setParsed] = useState<{ query: string; intent: Intent }>({
-    query: "",
-    intent: EMPTY_INTENT,
-  });
+  // 마지막으로 검색을 끝낸 (쿼리, 의도, 결과) 묶음. parsed.query가 현재 query와 다르면 아직 검색 중.
+  const [parsed, setParsed] = useState<{
+    query: string;
+    intent: Intent;
+    results: SearchResult;
+  }>({ query: "", intent: EMPTY_INTENT, results: EMPTY_RESULT });
 
   const [prevParsed, setPrevParsed] = useState(parsed);
   const [workingIntent, setWorkingIntent] = useState<Intent>(EMPTY_INTENT);
@@ -76,16 +78,16 @@ export function useSearchViewModel(
     };
   }, []);
 
-  // 쿼리 변경 시 LLM 파싱(비동기) + 브랜드 사전 매칭. 결과는 .then 콜백에서만 반영(동기 setState 회피).
+  // 쿼리 변경 시 서버 하이브리드 검색(비동기). 결과+intent를 함께 반영.
   useEffect(() => {
     let active = true;
-    void parseQueryRemote(query, brands).then((intent) => {
-      if (active) setParsed({ query, intent });
+    void searchRemote(query, brands, tees).then(({ results, intent }) => {
+      if (active) setParsed({ query, intent, results });
     });
     return () => {
       active = false;
     };
-  }, [query, brands]);
+  }, [query, brands, tees]);
 
   const hasQuery = query.trim().length > 0;
   // 빈 쿼리는 파싱 대상이 아니므로 로딩에서 제외(전체 목록을 로딩 UI로 가리지 않기).
@@ -106,12 +108,20 @@ export function useSearchViewModel(
     return intentToChips(workingIntent);
   }, [hasQuery, parsing, immediateBrand, workingIntent]);
 
-  // 파싱 중엔 브랜드로만 필터(즉시 결과), 완료되면 전체 의도로 필터.
+  // 서버(또는 폴백)가 돌려준 후보 집합. 칩을 편집하면 그 위에서 searchTees로 재필터.
   const results = useMemo<SearchResult>(() => {
     if (!hasQuery) return { exact: tees, partial: [] };
-    const intent = parsing ? { functional: [], brand: immediateBrand } : workingIntent;
-    return searchTees(tees, intent);
-  }, [hasQuery, parsing, immediateBrand, tees, workingIntent]);
+    if (parsing) {
+      return immediateBrand
+        ? searchTees(tees, { functional: [], brand: immediateBrand })
+        : EMPTY_RESULT;
+    }
+    const candidates = [...parsed.results.exact, ...parsed.results.partial];
+    // workingIntent가 파싱 원본과 같으면 서버 순위 그대로, 편집됐으면 재필터.
+    return workingIntent === parsed.intent
+      ? parsed.results
+      : searchTees(candidates, workingIntent);
+  }, [hasQuery, parsing, immediateBrand, tees, parsed, workingIntent]);
 
   // 브랜드가 즉시 잡히면 결과를 로딩으로 가리지 않는다(파싱은 뒤에서 계속 → 완료 시 정밀화).
   return {
