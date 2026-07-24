@@ -5,7 +5,7 @@
 import type { Tee } from "@/features/catalog/domain/tee";
 import { parseQueryRemote } from "@/features/search/data/parse-query-remote";
 import type { Intent } from "@/features/search/domain/intent";
-import type { BrandEntry } from "@/features/search/domain/match-brand";
+import { type BrandEntry, matchBrand } from "@/features/search/domain/match-brand";
 import { type SearchResult, searchTees } from "@/features/search/domain/search-tees";
 
 const SEARCH_TIMEOUT_MS = 9000;
@@ -50,7 +50,9 @@ export async function searchRemote(
     if (data.degraded || !Array.isArray(data.results)) {
       return await localFallback(query, brands, fallbackTees);
     }
-    const intent = data.intent ?? EMPTY_INTENT;
+    const serverIntent = data.intent ?? EMPTY_INTENT;
+    const brand = matchBrand(query, brands);
+    const intent = brand ? { ...serverIntent, brand } : serverIntent;
     return { results: { exact: data.results, partial: [] }, intent };
   } catch {
     return await localFallback(query, brands, fallbackTees);

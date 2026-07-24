@@ -51,6 +51,37 @@ describe("searchRemote", () => {
     expect(r.results.partial).toEqual([]);
   });
 
+  it("서버 성공 경로에서도 결정적 브랜드 매칭을 intent에 얹는다", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            results: [
+              {
+                id: "곰",
+                name: "온사이트 곰 티",
+                brand: "b",
+                price: 1,
+                mall: "m",
+                link: "x",
+                gender: "unisex",
+                functional: [],
+                sizes: [],
+              },
+            ],
+            intent: { functional: [] },
+            semanticQuery: "온사이트",
+            degraded: false,
+          }),
+      }),
+    );
+    const brands = [{ canonical: "온사이트", aliases: ["온사이트"] }];
+    const r = await searchRemote("온사이트 곰 티", brands, []);
+    expect(r.intent.brand).toBe("온사이트");
+  });
+
   it("degraded면 로컬 폴백(searchTees)으로 계산한다", async () => {
     vi.stubGlobal(
       "fetch",
