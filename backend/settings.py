@@ -20,3 +20,8 @@ def naver_credentials() -> tuple[str, str]:
 
 def supabase_credentials() -> tuple[str, str]:
     return _require("SUPABASE_URL"), _require("SUPABASE_SECRET_KEY")
+
+
+def nvidia_credentials() -> tuple[str, str]:
+    base_url = os.environ.get("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1")
+    return base_url, _require("NVIDIA_API_KEY")
