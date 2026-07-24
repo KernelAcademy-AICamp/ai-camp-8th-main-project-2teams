@@ -19,7 +19,9 @@ def test_build_embed_text_ignores_missing_fields():
     assert text == "무지 반팔"
 
 
-def test_embed_texts_maps_response_to_vectors():
+def test_embed_texts_maps_response_to_vectors(monkeypatch):
+    monkeypatch.setenv("NVIDIA_API_KEY", "test-key")
+
     def fake_post(url, headers=None, json=None, timeout=None):
         assert json["input_type"] == "passage"
         assert json["input"] == ["a", "b"]
@@ -42,7 +44,9 @@ def test_embed_texts_maps_response_to_vectors():
     assert vecs == [[0.1, 0.2], [0.3, 0.4]]
 
 
-def test_embed_texts_orders_by_index():
+def test_embed_texts_orders_by_index(monkeypatch):
+    monkeypatch.setenv("NVIDIA_API_KEY", "test-key")
+
     def fake_post(url, headers=None, json=None, timeout=None):
         class R:
             status_code = 200
