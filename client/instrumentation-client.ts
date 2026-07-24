@@ -4,13 +4,18 @@ import * as Sentry from "@sentry/nextjs";
 
 const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
 
-Sentry.init({
-  dsn,
-  enabled: Boolean(dsn) && process.env.NODE_ENV === "production",
-  environment: process.env.NEXT_PUBLIC_VERCEL_ENV ?? process.env.NODE_ENV,
-  tracesSampleRate: 0.1,
-  sendDefaultPii: false,
-});
+// 계측 초기화 실패가 브라우저 앱 초기 로딩을 막지 않도록 fail-open(Next 16 권장).
+try {
+  Sentry.init({
+    dsn,
+    enabled: Boolean(dsn) && process.env.NODE_ENV === "production",
+    environment: process.env.NEXT_PUBLIC_VERCEL_ENV ?? process.env.NODE_ENV,
+    tracesSampleRate: 0.1,
+    sendDefaultPii: false,
+  });
+} catch (error) {
+  console.error("[sentry] 브라우저 초기화 실패 — 무시하고 계속:", error);
+}
 
 // 라우터 네비게이션 계측(Next 규약).
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;

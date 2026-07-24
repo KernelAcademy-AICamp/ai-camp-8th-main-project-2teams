@@ -71,7 +71,7 @@
 
 ## 에러 처리 / 안전장치
 
-- `instrumentation-client.ts` 계측 코드는 실패해도 앱에 영향 없게(초기화 예외가 페이지를 막지 않도록) 방어.
+- 서버(`instrumentation.ts` `register()`)·브라우저(`instrumentation-client.ts`) 양쪽 `Sentry.init` 을 try/catch 로 감싼 **fail-open** — 계측 초기화가 실패해도 서버 시작·페이지 로딩을 막지 않고 로그만 남기고 계속(Next 16 권장).
 - DSN 미설정/`enabled=false` 여도 앱은 정상 동작(이벤트만 안 감).
 - 소스맵 토큰 없으면 빌드 통과(업로드만 스킵) — 이번 사건의 교훈(설정 누락이 빌드/런타임을 죽이면 안 됨)을 그대로 적용.
 
