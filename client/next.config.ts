@@ -20,5 +20,4 @@ export default withSentryConfig(nextConfig, {
   widenClientFileUpload: true,
   // 애드블록 우회용 프록시 라우트.
   tunnelRoute: "/monitoring",
-  disableLogger: true,
 });
