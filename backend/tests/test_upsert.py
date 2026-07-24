@@ -71,9 +71,14 @@ def test_upsert_keeps_distinct_variants():
     # variant 없는 행은 DB default 1과 같으므로 variant=1 행과는 접힌다.
     client = FakeClient()
     rows = [
-        {"source": "naver_shopping", "source_product_id": "1", "variant": 1},
-        {"source": "naver_shopping", "source_product_id": "1", "variant": 2},
-        {"source": "naver_shopping", "source_product_id": "1"},  # ≡ variant 1
+        {"source": "naver_shopping", "source_product_id": "1", "variant": 1, "lprice": 100},
+        {"source": "naver_shopping", "source_product_id": "1", "variant": 2, "lprice": 200},
+        {"source": "naver_shopping", "source_product_id": "1", "lprice": 300},  # ≡ variant 1
     ]
 
     assert upsert_products(client, rows) == 2
+    sent = client.calls[0]["rows"]
+    by_variant = {r.get("variant", 1): r for r in sent}
+    assert set(by_variant) == {1, 2}
+    assert by_variant[1]["lprice"] == 300  # variant 없는 행이 variant=1 행 대체(last-wins)
+    assert by_variant[2]["lprice"] == 200
