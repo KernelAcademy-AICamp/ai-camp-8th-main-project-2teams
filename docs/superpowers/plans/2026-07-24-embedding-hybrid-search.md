@@ -1012,7 +1012,8 @@ import type { Intent } from "@/features/search/domain/intent";
 export const maxDuration = 30;
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
+// 이 repo는 anon이 아니라 publishable 키 이름을 쓴다(supabase-client.ts와 동일). 읽기 RLS는 public.
+const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "";
 
 function readQuery(body: unknown): string {
   if (typeof body !== "object" || body === null) return "";
