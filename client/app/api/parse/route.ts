@@ -14,6 +14,10 @@ export async function POST(request: Request): Promise<Response> {
   const body: unknown = await request.json().catch(() => null);
   const query = readQuery(body);
   if (!query) return Response.json({ intent: EMPTY_INTENT, semanticQuery: "" });
-  const { intent, semanticQuery } = await parseIntentLLM(query);
+  const { intent, semanticQuery, degraded } = await parseIntentLLM(query);
+  if (degraded) {
+    // LLM 파싱 실패(키 미설정·오류) → 502로 알려 parse-query-remote가 규칙 파서로 폴백하게 한다.
+    return Response.json({ intent, semanticQuery }, { status: 502 });
+  }
   return Response.json({ intent, semanticQuery });
 }

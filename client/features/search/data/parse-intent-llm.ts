@@ -114,10 +114,13 @@ function parseJsonObject(text: string): ParsedRaw | null {
 export async function parseIntentLLM(
   query: string,
   fetchFn: typeof fetch = fetch,
-): Promise<{ intent: Intent; semanticQuery: string }> {
+): Promise<{ intent: Intent; semanticQuery: string; degraded: boolean }> {
   const trimmed = query.trim();
+  // 빈 쿼리는 실패가 아니다 — degraded:false로 폴백을 트리거하지 않는다.
+  if (!trimmed) return { intent: EMPTY_INTENT, semanticQuery: "", degraded: false };
   const apiKey = process.env.NVIDIA_API_KEY;
-  if (!trimmed || !apiKey) return { intent: EMPTY_INTENT, semanticQuery: trimmed };
+  // 키 미설정은 파싱 실패 — degraded:true로 규칙 파서 폴백을 트리거한다.
+  if (!apiKey) return { intent: EMPTY_INTENT, semanticQuery: trimmed, degraded: true };
 
   try {
     const res = await fetchFn(`${BASE_URL}/chat/completions`, {
@@ -136,17 +139,18 @@ export async function parseIntentLLM(
         ],
       }),
     });
-    if (!res.ok) return { intent: EMPTY_INTENT, semanticQuery: trimmed };
+    if (!res.ok)
+      return { intent: EMPTY_INTENT, semanticQuery: trimmed, degraded: true };
     const payload: unknown = await res.json();
     const content = extractContent(payload);
     const raw = content ? parseJsonObject(content) : null;
-    if (!raw) return { intent: EMPTY_INTENT, semanticQuery: trimmed };
+    if (!raw) return { intent: EMPTY_INTENT, semanticQuery: trimmed, degraded: true };
     const semanticQuery =
       typeof raw.semanticQuery === "string" && raw.semanticQuery.trim()
         ? raw.semanticQuery.trim()
         : trimmed;
-    return { intent: sanitize(raw), semanticQuery };
+    return { intent: sanitize(raw), semanticQuery, degraded: false };
   } catch {
-    return { intent: EMPTY_INTENT, semanticQuery: trimmed };
+    return { intent: EMPTY_INTENT, semanticQuery: trimmed, degraded: true };
   }
 }
