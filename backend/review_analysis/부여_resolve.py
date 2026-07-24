@@ -80,6 +80,8 @@ def main():
     out = []
     for p in data:
         final, ch = resolve(p["hits"], id2date)
+        if not final:
+            final = ["unknown"]   # 분석했으나 태그 0개 → 명시 sentinel(NULL=미분석과 구분, [] 안 씀)
         out.append({"index": p["index"], "product": p["product"], "review_tags": final})
         print(f"{p['index']:>2} {p['product'][:28]:<28} {', '.join(final)}")
         for c in ch: print(f"     ⚖️  {c}")
