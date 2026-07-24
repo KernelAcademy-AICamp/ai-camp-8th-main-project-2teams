@@ -1,3 +1,14 @@
+## [0.2.3](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/compare/v0.2.2...v0.2.3) (2026-07-24)
+
+### Features
+
+* products에 디자인(컷) 적재용 스키마 확장 ([a0e9a83](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/commit/a0e9a83cd78ae3dc2225979a0c1379f2d7ef7548))
+* Sentry 에러 추적 도입(클라·서버·global-error) ([#22](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/issues/22)) ([c173210](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/commit/c173210adbf2c17f6e2518124e353d0547fffcde))
+* Sentry→Slack 알림 릴레이 라우트 ([#23](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/issues/23)) ([63c737a](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/commit/63c737a02a698f30e34b8c63e4eca136780bd15a))
+
+### Bug Fixes
+
+* upsert 충돌키를 (source, source_product_id, variant)로 변경 ([214aba5](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/commit/214aba5fe6231e3a3e448bf825e5532defd0dc0d))
 ## [0.2.2](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/compare/v0.2.1...v0.2.2) (2026-07-23)
 
 ### Features
