@@ -12,7 +12,7 @@ create or replace function search_products(
 returns table (
   id uuid, title text, brand text, maker text, mall_name text,
   lprice int, link text, image_url text, gender text,
-  base_color text, print_color text, print_position text,
+  base_color text, print_color text[], print_position text,
   graphic_type text, fit text, material text,
   functional text[], sizes text[], brand_canonical text, score float
 )
@@ -35,7 +35,7 @@ language sql stable as $$
         (case when intent->>'brand' is not null and c.brand_canonical = intent->>'brand' then 2 else 0 end)
       + (case when intent->>'gender' is not null and (c.gender = intent->>'gender' or c.gender = 'unisex') then 2 else 0 end)
       + (case when intent->>'baseColor' is not null and c.base_color = intent->>'baseColor' then 2 else 0 end)
-      + (case when intent->>'printColor' is not null and c.print_color = intent->>'printColor' then 2 else 0 end)
+      + (case when intent->>'printColor' is not null and intent->>'printColor' = any(c.print_color) then 2 else 0 end)
       + (case when intent->>'printPosition' is not null and (c.print_position = intent->>'printPosition' or c.print_position = '양면') then 1 else 0 end)
       + (case when intent->>'fit' is not null and c.fit = intent->>'fit' then 1 else 0 end)
       + (case when intent->>'graphicType' is not null and c.graphic_type = intent->>'graphicType' then 1 else 0 end)

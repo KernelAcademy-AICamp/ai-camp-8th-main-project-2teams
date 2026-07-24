@@ -27,7 +27,7 @@ export interface SearchRow {
   image_url: string | null;
   gender: string | null;
   base_color: string | null;
-  print_color: string | null;
+  print_color: string[] | null;
   print_position: string | null;
   graphic_type: string | null;
   fit: string | null;
@@ -59,7 +59,7 @@ export function mapSearchRow(row: SearchRow): Tee {
     link: row.link,
     image: row.image_url ?? undefined,
     baseColor: asEnum<ColorKey>(row.base_color, COLOR_KEYS),
-    printColor: asEnum<ColorKey>(row.print_color, COLOR_KEYS),
+    printColor: asEnum<ColorKey>(row.print_color?.[0] ?? null, COLOR_KEYS),
     printPosition: asEnum<PrintPosition>(row.print_position, PRINT_POSITIONS),
     graphicType: asEnum<GraphicType>(row.graphic_type, GRAPHIC_TYPES),
     fit: asEnum<Fit>(row.fit, FITS),

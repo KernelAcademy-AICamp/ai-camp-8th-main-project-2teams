@@ -40,4 +40,10 @@ describe("mapSearchRow", () => {
     expect(t.baseColor).toBeUndefined();
     expect(t.graphicType).toBeUndefined();
   });
+
+  it("배열 print_color는 첫 원소를 ColorKey로 매핑하고, null이면 undefined다", () => {
+    // print_color는 이전 마이그레이션에서 text[]로 바뀌었다. Tee.printColor는 단일값이라 첫 원소를 쓴다.
+    expect(mapSearchRow({ ...ROW, print_color: ["검정"] }).printColor).toBe("검정");
+    expect(mapSearchRow({ ...ROW, print_color: null }).printColor).toBeUndefined();
+  });
 });
