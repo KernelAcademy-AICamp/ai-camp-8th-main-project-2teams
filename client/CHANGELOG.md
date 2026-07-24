@@ -1,3 +1,8 @@
+## [0.2.4](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/compare/v0.2.3...v0.2.4) (2026-07-24)
+
+### Features
+
+* 임베딩·어휘·속성 3-way 하이브리드 상품검색 ([#24](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/issues/24)) ([6cb3b34](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/commit/6cb3b34081ac20eaca95c0fb3b47e3d0fef2b98f))
 ## [0.2.3](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/compare/v0.2.2...v0.2.3) (2026-07-24)
 
 ### Features

@@ -54,6 +54,11 @@ def main() -> None:
         f"완료: 수집 {stats['collected']} · 적재 {stats['kept']} · upsert {stats['upserted']}"
     )
 
+    from backfill_embeddings import backfill_embeddings
+
+    embedded = backfill_embeddings(client)
+    print(f"임베딩 백필: {embedded}행")
+
 
 if __name__ == "__main__":
     main()
