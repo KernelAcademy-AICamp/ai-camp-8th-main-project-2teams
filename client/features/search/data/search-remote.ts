@@ -21,18 +21,22 @@ async function localFallback(
   query: string,
   brands: BrandEntry[],
   fallbackTees: Tee[],
-): Promise<{ results: SearchResult; intent: Intent }> {
+): Promise<{ results: SearchResult; intent: Intent; degraded: boolean }> {
   const intent = await parseQueryRemote(query, brands);
-  return { results: searchTees(fallbackTees, intent), intent };
+  return { results: searchTees(fallbackTees, intent), intent, degraded: true };
 }
 
 export async function searchRemote(
   query: string,
   brands: BrandEntry[],
   fallbackTees: Tee[],
-): Promise<{ results: SearchResult; intent: Intent }> {
+): Promise<{ results: SearchResult; intent: Intent; degraded: boolean }> {
   if (!query.trim())
-    return { results: { exact: fallbackTees, partial: [] }, intent: EMPTY_INTENT };
+    return {
+      results: { exact: fallbackTees, partial: [] },
+      intent: EMPTY_INTENT,
+      degraded: false,
+    };
 
   const controller = new AbortController();
   const timer = setTimeout(() => {
@@ -53,7 +57,7 @@ export async function searchRemote(
     const serverIntent = data.intent ?? EMPTY_INTENT;
     const brand = matchBrand(query, brands);
     const intent = brand ? { ...serverIntent, brand } : serverIntent;
-    return { results: { exact: data.results, partial: [] }, intent };
+    return { results: { exact: data.results, partial: [] }, intent, degraded: false };
   } catch {
     return await localFallback(query, brands, fallbackTees);
   } finally {
