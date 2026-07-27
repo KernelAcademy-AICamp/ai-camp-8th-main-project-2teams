@@ -66,4 +66,21 @@ describe("extractReviewTags", () => {
     expect(r.reviewTags).toContain("화면색상일치");
     expect(r.excludeTags).toContain("화면과색상다름");
   });
+
+  it("부분문자열 오탐을 만들지 않는다(쿨톤·아이스크림·따뜻한 색감)", () => {
+    // 쿨톤(피부톤)≠냉감, 아이스크림(그래픽)≠냉감·아동, 따뜻한 색감(색)≠따뜻함
+    expect(extractReviewTags("쿨톤 어울리는 티").functional).not.toContain("냉감");
+    const ice = extractReviewTags("아이스크림 그래픽 티");
+    expect(ice.functional).not.toContain("냉감");
+    expect(ice.reviewTags).not.toContain("아동·학생용");
+    expect(extractReviewTags("따뜻한 색감 파스텔 티").reviewTags).not.toContain(
+      "따뜻함",
+    );
+  });
+
+  it("정상 냉감/아동/따뜻함은 여전히 잡는다(과교정 방지)", () => {
+    expect(extractReviewTags("쿨한 냉감 티").functional).toContain("냉감");
+    expect(extractReviewTags("아이들 키즈 티").reviewTags).toContain("아동·학생용");
+    expect(extractReviewTags("따뜻한 기모 티").reviewTags).toContain("따뜻함");
+  });
 });

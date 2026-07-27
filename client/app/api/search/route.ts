@@ -41,23 +41,16 @@ export async function POST(request: Request): Promise<Response> {
 
   // 1) LLM 파싱(intent + 확장 쿼리 + keywords). 실패해도 EMPTY intent + 원쿼리로 진행.
   const { intent: llmIntent, semanticQuery, keywords } = await parseIntentLLM(query);
-  // 1-b) 리뷰태그는 결정적 키워드 사전이 권위(8B LLM의 태그 비결정성·오염 제거).
-  //      LLM은 색·핏·성별·그래픽·semanticQuery 담당. functional만 합집합.
-  //      단, 사전이 아무 태그도 못 잡은 신규 표현은 LLM 태그를 폴백으로 써 리콜을 확보한다.
+  // 1-b) 리뷰태그·기능·제외는 결정적 키워드 사전이 전담(순수 dict).
+  //      8B LLM의 태그 비결정성·오염("면접"→면느낌 등)을 원천 차단한다.
+  //      LLM은 색·핏·성별·그래픽·semanticQuery만 담당. 사전이 못 잡는 신규 표현은
+  //      태그 없이 semanticQuery(임베딩)로 랭킹된다.
   const det = extractReviewTags(query);
-  // 사전이 어떤 태그든 잡았으면 사전을 전적으로 신뢰(LLM 태그 오염 배제).
-  // 사전이 완전히 비었을 때만 LLM 태그를 폴백으로 써 신규 표현 리콜을 확보한다.
-  const dictHasAny =
-    det.reviewTags.length > 0 ||
-    det.excludeTags.length > 0 ||
-    det.functional.length > 0;
   const intent: Intent = {
     ...llmIntent,
-    functional: dictHasAny
-      ? det.functional
-      : [...new Set([...llmIntent.functional, ...det.functional])],
-    reviewTags: dictHasAny ? det.reviewTags : (llmIntent.reviewTags ?? []),
-    excludeTags: dictHasAny ? det.excludeTags : (llmIntent.excludeTags ?? []),
+    functional: det.functional,
+    reviewTags: det.reviewTags,
+    excludeTags: det.excludeTags,
   };
 
   // 2) 확장 쿼리 임베딩. 실패하면 의미검색 불가 → degraded 신호로 클라 폴백 유도.

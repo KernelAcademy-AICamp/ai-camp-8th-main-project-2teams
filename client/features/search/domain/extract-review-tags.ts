@@ -119,7 +119,11 @@ const RULES: Rule[] = [
     bucket: "review",
   },
   // ── 계절/온도 (functional: 냉감·통풍만) ──
-  { re: /시원|냉감|쿨(?!러)|아이스|시원하게/, tag: "냉감", bucket: "functional" },
+  {
+    re: /시원|냉감|쿨(?!러|톤)|아이스(?!크림)|시원하게/,
+    tag: "냉감",
+    bucket: "functional",
+  },
   {
     re: /통풍|바람\s*(잘\s*)?통|통기|산들|메쉬|매쉬|바람\s*드나/,
     tag: "통풍",
@@ -133,7 +137,11 @@ const RULES: Rule[] = [
   { re: /여름/, tag: "여름용", bucket: "review" },
   { re: /간절기|봄가을|봄\s*가을/, tag: "간절기용", bucket: "review" },
   { re: /겨울\s*이너|기모\s*이너|겨울용\s*이너/, tag: "겨울이너", bucket: "review" },
-  { re: /따뜻|기모|보온|웜하게|안\s*춥/, tag: "따뜻함", bucket: "review" },
+  {
+    re: /따뜻(?!한?\s*(색|컬러|톤))|기모|보온|웜하게|안\s*춥/,
+    tag: "따뜻함",
+    bucket: "review",
+  },
   // ── 색/발색 ──
   {
     re: /화면.{0,8}(그대로|똑같|같|일치|동일|안\s*다르|다르지\s*않)|색.{0,5}화면.{0,5}(똑같|같|다르지\s*않)|실물.{0,4}(같|동일)|화면색\s*그대로|색\s*(안\s*다르|똑같)/,
@@ -228,7 +236,11 @@ const RULES: Rule[] = [
   { re: /복싱|권투/, tag: "복싱", bucket: "review" },
   { re: /테니스/, tag: "테니스", bucket: "review" },
   { re: /필라테스|요가|필테/, tag: "필라테스", bucket: "review" },
-  { re: /아동|아이|어린이|키즈|학생|주니어/, tag: "아동·학생용", bucket: "review" },
+  {
+    re: /아동|아이들|아이\s*옷|아이\s*용|우리\s*아이|애기|베이비|어린이|키즈|학생|주니어/,
+    tag: "아동·학생용",
+    bucket: "review",
+  },
   { re: /행사|공연|이벤트|축제|무대\s*의상/, tag: "행사·공연", bucket: "review" },
   { re: /각인|이니셜|이름\s*새|네임\s*프린팅/, tag: "각인서비스", bucket: "review" },
   {
