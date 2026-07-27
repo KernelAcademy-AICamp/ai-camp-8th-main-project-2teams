@@ -25,6 +25,13 @@ describe("extractReviewTags", () => {
     expect(p.reviewTags).not.toContain("탄탄함");
   });
 
+  it("'세탁 후 프린팅이 변하지 않고'도 프린팅튼튼으로 잡는다", () => {
+    expect(
+      extractReviewTags("세탁 후 프린팅이 변하지 않고 그대로인 티").reviewTags,
+    ).toContain("프린팅튼튼");
+    expect(extractReviewTags("프린팅 변형 없는 티").reviewTags).toContain("프린팅튼튼");
+  });
+
   it("'목이 넉넉한'은 넥라인넉넉(넉넉핏 아님)으로 우선 매칭한다", () => {
     const r = extractReviewTags("목이 넉넉한 티");
     expect(r.reviewTags).toContain("넥라인넉넉");
@@ -118,5 +125,13 @@ describe("extractReviewTags", () => {
     const r = extractReviewTags("안 넉넉한 핏 티");
     expect(r.reviewTags).toContain("슬림핏");
     expect(r.reviewTags).not.toContain("넉넉핏");
+  });
+
+  it("무게감 표현을 가벼움으로 매핑한다(무게감 적은/없는/무게 안 나가는)", () => {
+    expect(extractReviewTags("무게감이 적은 티").reviewTags).toContain("가벼움");
+    expect(extractReviewTags("무게감 없는 티").reviewTags).toContain("가벼움");
+    expect(extractReviewTags("무게 안 나가는 티").reviewTags).toContain("가벼움");
+    // '무게감 있는'은 가벼움이 아니다(오탐 방지)
+    expect(extractReviewTags("무게감 있는 티").reviewTags).not.toContain("가벼움");
   });
 });
