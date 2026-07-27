@@ -3,6 +3,8 @@ import Link from "next/link";
 
 import { COLOR_HEX, type Tee } from "@/features/catalog/domain/tee";
 import TeeSwatch from "@/features/catalog/presentation/TeeSwatch";
+import { track } from "@/shared/analytics";
+import type { ResultType } from "@/shared/analytics-params";
 
 function Dot({ color }: { color?: Tee["baseColor"] }) {
   if (!color) return null;
@@ -15,13 +17,29 @@ function Dot({ color }: { color?: Tee["baseColor"] }) {
   );
 }
 
-export default function ResultList({ tees }: { tees: Tee[] }) {
+export default function ResultList({
+  tees,
+  searchId,
+  resultType,
+}: {
+  tees: Tee[];
+  searchId: string;
+  resultType: ResultType;
+}) {
   return (
     <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-wall">
-      {tees.map((tee) => (
+      {tees.map((tee, rank) => (
         <li key={tee.id}>
           <Link
-            href={`/tee/${tee.id}`}
+            href={`/tee/${tee.id}?sid=${encodeURIComponent(searchId)}&rank=${rank}&rt=${resultType}`}
+            onClick={() => {
+              track("result_clicked", {
+                search_id: searchId,
+                product_id: tee.id,
+                rank,
+                result_type: resultType,
+              });
+            }}
             className="flex items-center gap-4 px-3 py-3 transition hover:bg-chalk sm:px-4"
           >
             <TeeSwatch
