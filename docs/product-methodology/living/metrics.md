@@ -1,6 +1,6 @@
-# 지표 설계 (Metrics) — Amplitude 계측
-> 유형: living · 2026-07-21(개정 07-22) · 방법: 북극성+선행+가드레일 / Build-Measure-Learn
-> 도구: **Amplitude**(행동 로그·퍼널). 프로젝트 핵심이 "데이터로 의사결정"이므로 Loop 1부터 계측 필수.
+# 지표 설계 (Metrics) — GA4 계측
+> 유형: living · 2026-07-21(개정 07-22, 07-27 도구 변경) · 방법: 북극성+선행+가드레일 / Build-Measure-Learn
+> 도구: **GA4**(행동 로그·퍼널). 프로젝트 핵심이 "데이터로 의사결정"이므로 Loop 1부터 계측 필수. (당초 Amplitude 검토 → GA4로 대체. 실제 이벤트 스키마·설정은 [ga4-setup.md](./ga4-setup.md), 설계 근거는 스펙 [`docs/superpowers/specs/2026-07-27-ga4-analytics-design.md`](../../superpowers/specs/2026-07-27-ga4-analytics-design.md) 참고.)
 >
 > **개정 사유**: 북극성을 "저장률"에서 **"상품 페이지 이동(구매 진입) 클릭"** 으로 교체. 저장(찜)은 낮은 의도의 부가 행동이라 MVP에서 제거. 결제 없는 발견·집계 제품이라 **사용자가 몰로 나가서 사는 outbound 클릭이 관측 가능한 가장 강한 전환 신호**다. (단, 실구매 확인은 불가 → 여전히 선행지표. 부트캠프 규정: GMV·CVR 직접 주장 금지와도 합치.)
 
