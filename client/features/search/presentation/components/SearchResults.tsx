@@ -15,9 +15,9 @@ export default function SearchResults() {
   const params = useSearchParams();
   const query = params.get("q") ?? "";
 
-  const vm = useSearchViewModel(query);
-  const go = (q: string) => {
-    router.push(`/search?q=${encodeURIComponent(q)}`);
+  const vm = useSearchViewModel(query, params.get("src"));
+  const go = (q: string, src = "refine") => {
+    router.push(`/search?q=${encodeURIComponent(q)}&src=${src}`);
   };
 
   return (
@@ -79,7 +79,11 @@ export default function SearchResults() {
                   딱 맞는 티는 없어서, 조건에 가까운 상품을 보여드려요.
                 </p>
               )}
-              <ResultList tees={showing} />
+              <ResultList
+                tees={showing}
+                searchId={vm.searchId}
+                resultType={vm.resultType}
+              />
             </>
           );
         })()}
