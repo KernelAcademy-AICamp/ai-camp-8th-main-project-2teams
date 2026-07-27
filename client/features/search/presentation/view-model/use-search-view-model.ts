@@ -80,20 +80,18 @@ export function useSearchViewModel(
 
   const removeConstraint = useCallback(
     (chip: IntentChip) => {
-      setWorkingIntent((prev) => {
-        const next = removeConstraintFromIntent(prev, chip);
-        const candidates = [...parsed.results.exact, ...parsed.results.partial];
-        const after = searchTees(candidates, next);
-        track("constraint_removed", {
-          search_id: searchIdRef.current,
-          attribute: chip.kind,
-          after_result_count: after.exact.length + after.partial.length,
-          after_result_type: deriveResultType(after),
-        });
-        return next;
+      const next = removeConstraintFromIntent(workingIntent, chip);
+      const candidates = [...parsed.results.exact, ...parsed.results.partial];
+      const after = searchTees(candidates, next);
+      track("constraint_removed", {
+        search_id: searchIdRef.current,
+        attribute: chip.kind,
+        after_result_count: after.exact.length + after.partial.length,
+        after_result_type: deriveResultType(after),
       });
+      setWorkingIntent(next);
     },
-    [parsed],
+    [workingIntent, parsed],
   );
 
   // 카탈로그 로드
