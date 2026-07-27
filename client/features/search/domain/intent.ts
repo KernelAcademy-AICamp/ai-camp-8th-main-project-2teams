@@ -17,6 +17,8 @@ export interface Intent {
   brand?: string; // 사전 매칭된 canonical 브랜드
   gender?: Gender; // 쿼리에서 파싱된 성별 의도. 없으면 제약 없음.
   genderExclusive?: boolean; // "여성 전용/공용 말고"처럼 공용을 제외하라는 신호. 기본(false)은 방향성(공용 포함).
+  reviewTags?: string[]; // 리뷰태그 중 "원하는" 긍정 태그 — 매칭(가점)
+  excludeTags?: string[]; // 리뷰태그 중 기피 태그 — 이 태그 가진 상품은 제외
 }
 
 export interface IntentChip {
@@ -29,6 +31,8 @@ export interface IntentChip {
     | "functional"
     | "graphic"
     | "brand"
-    | "gender";
+    | "gender"
+    | "reviewTag"
+    | "exclude";
   color?: ColorKey;
 }

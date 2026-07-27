@@ -13,6 +13,7 @@ function tee(over: Partial<Tee> & { id: string }): Tee {
     link: "http://x",
     gender: "unisex",
     functional: [],
+    reviewTags: [],
     sizes: [],
     ...over,
   };
@@ -123,5 +124,47 @@ describe("searchTees", () => {
     const tees = [tee({ id: "m", gender: "male" }), tee({ id: "f", gender: "female" })];
     const r = searchTees(tees, EMPTY);
     expect(r.exact.map((t) => t.id)).toEqual(["m", "f"]);
+  });
+
+  it("리뷰 긍정태그를 가진 상품을 매칭한다", () => {
+    const tees = [
+      tee({ id: "a", reviewTags: ["디자인귀여움", "클라이밍"] }),
+      tee({ id: "b", reviewTags: ["박시핏"] }),
+    ];
+    const r = searchTees(tees, { ...EMPTY, reviewTags: ["디자인귀여움"] });
+    expect(r.exact.map((t) => t.id)).toEqual(["a"]);
+    expect(r.partial).toEqual([]);
+  });
+
+  it("기능(functional)과 리뷰태그(냉감)를 하나의 풀로 합쳐 매칭한다", () => {
+    // 겹치는 태그 '냉감'은 functional·reviewTags 어느 쪽에 있어도 동일하게 매칭된다.
+    const tees = [
+      tee({ id: "fn", functional: ["냉감"] }),
+      tee({ id: "rv", reviewTags: ["냉감"] }),
+      tee({ id: "no", reviewTags: ["박시핏"] }),
+    ];
+    const r = searchTees(tees, { ...EMPTY, functional: ["냉감"] });
+    expect(r.exact.map((t) => t.id).sort()).toEqual(["fn", "rv"]);
+    expect(r.partial).toEqual([]);
+  });
+
+  it("기피태그(제외 필터)를 가진 상품은 후보에서 뺀다", () => {
+    const tees = [
+      tee({ id: "ok", baseColor: "흰" }),
+      tee({ id: "bad", baseColor: "흰", reviewTags: ["비침있음"] }),
+    ];
+    const r = searchTees(tees, {
+      ...EMPTY,
+      baseColor: "흰",
+      excludeTags: ["비침있음"],
+    });
+    expect(r.exact.map((t) => t.id)).toEqual(["ok"]);
+  });
+
+  it("제외조건만 있으면 결함 상품을 뺀 나머지를 전부 exact로 반환한다", () => {
+    const tees = [tee({ id: "ok" }), tee({ id: "bad", reviewTags: ["목늘어남"] })];
+    const r = searchTees(tees, { ...EMPTY, excludeTags: ["목늘어남"] });
+    expect(r.exact.map((t) => t.id)).toEqual(["ok"]);
+    expect(r.partial).toEqual([]);
   });
 });

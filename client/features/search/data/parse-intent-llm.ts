@@ -12,6 +12,8 @@ import {
   type GraphicType,
   PRINT_POSITIONS,
   type PrintPosition,
+  REVIEW_TAGS_NEGATIVE,
+  REVIEW_TAGS_POSITIVE,
 } from "@/features/catalog/domain/tee";
 import type { Intent } from "@/features/search/domain/intent";
 
@@ -31,9 +33,17 @@ const SYSTEM_PROMPT = `너는 클라이밍 프린팅 티셔츠 쇼핑몰의 검�
   "gender": "male" | "female" | "unisex" | null,
   "genderExclusive": true | false,
   "functional": string[],
+  "reviewTags": string[],  // 리뷰 기반 "원하는" 태그(아래 [원하는태그]만)
+  "excludeTags": string[],  // "피하고 싶은" 결함 태그(아래 [기피태그]만)
   "semanticQuery": string,  // 아래 규칙 참고
   "keywords": string[]  // 제목에서 찾을 특징 단어
 }
+
+[원하는태그] (reviewTags — 이 목록 값만):
+${REVIEW_TAGS_POSITIVE.join(", ")}
+
+[기피태그] (excludeTags — 이 목록 값만):
+${REVIEW_TAGS_NEGATIVE.join(", ")}
 
 규칙:
 - 색은 반드시 이 목록 중 하나: 흰, 검정, 회색, 네이비, 노랑, 빨강, 파랑, 초록, 주황, 분홍, 보라
@@ -42,15 +52,19 @@ const SYSTEM_PROMPT = `너는 클라이밍 프린팅 티셔츠 쇼핑몰의 검�
 - "바탕/몸판/티 색"은 baseColor, "프린팅/글씨/레터링/로고 색"은 printColor
 - gender: "남성/맨즈"=male, "여성/우먼"=female, "남녀공용/공용/유니섹스"=unisex. 성별 언급 없으면 null.
 - genderExclusive: "여성 전용/여성만/공용 말고/남녀공용 제외"처럼 공용을 빼달라는 뜻이면 true. 그 외는 false. gender가 null이면 false.
+- reviewTags 매핑(alias): "귀여운 그림/캐릭터 이쁜"→디자인귀여움, "선물용/선물하려고"→선물용, "커플룩"→커플티, "암장/볼더링/클라이밍용"→클라이밍, "안 달라붙는"→안달라붙음, "고급스러운"→재질좋음, "면 느낌/면티"→면느낌, "박시한/큼직한"→박시핏, "엉덩이 덮는/힙 커버"→엉덩이커버기장, "쨍한 색"→선명한발색, "톡톡한"→도톰함, "각인/이니셜"→각인서비스
+- ★극성★ "안 ~한/~하지 않은"처럼 결함을 피하려는 표현은 excludeTags: "안 비치는"→["비침있음"], "목 안 늘어나는"→["목늘어남"], "안 줄어드는/세탁해도 그대로"→["세탁후줄어듦"], "보풀 안 생기는"→["보풀생김"]. "안 무거운/가벼운"→reviewTags:["가벼움"].
 - semanticQuery: 검색 의도를 의미검색에 쓸 풍부한 한국어 구절로 확장한다. 위 스키마에 안 담기는 표현(예: "홀로그램", "곰", "레트로", "빈티지")을 반드시 포함하고, 동의어를 덧붙여도 된다. 비면 원문을 그대로 넣는다.
 - keywords: 검색 의도의 특징적 단어(그래픽·소재·테마·느낌, 예 "홀로그램","곰","레트로")만 넣는다. "티","티셔츠","반팔","긴팔","옷","셔츠" 같은 일반 의류어와 색은 넣지 마라(색은 baseColor로 처리). 없으면 빈 배열.
-- ★가장 중요★ 구조화 필드(색·핏 등)는 명시되지 않으면 반드시 null(functional은 빈 배열). 추측·환각 금지. semanticQuery만 확장을 허용한다.
+- ★가장 중요★ 구조화 필드(색·핏·태그 등)는 명시되지 않으면 반드시 null 또는 빈 배열. 목록에 없는 태그를 지어내지 마라. semanticQuery만 확장을 허용한다.
 
 예시:
 입력: "회색 무지 티"
-출력: {"baseColor":"회색","printColor":null,"printPosition":null,"fit":null,"graphicType":null,"gender":null,"genderExclusive":false,"functional":[],"semanticQuery":"회색 무지 반팔 티셔츠","keywords":[]}
-입력: "홀로그램 느낌나는 티셔츠"
-출력: {"baseColor":null,"printColor":null,"printPosition":null,"fit":null,"graphicType":null,"gender":null,"genderExclusive":false,"functional":[],"semanticQuery":"홀로그램 메탈릭 반짝이는 홀로그램 그래픽 티셔츠","keywords":["홀로그램"]}`;
+출력: {"baseColor":"회색","printColor":null,"printPosition":null,"fit":null,"graphicType":null,"gender":null,"genderExclusive":false,"functional":[],"reviewTags":[],"excludeTags":[],"semanticQuery":"회색 무지 반팔 티셔츠","keywords":[]}
+입력: "선물하기 좋은 귀여운 클라이밍 티"
+출력: {"baseColor":null,"printColor":null,"printPosition":null,"fit":null,"graphicType":null,"gender":null,"genderExclusive":false,"functional":[],"reviewTags":["선물용","디자인귀여움","클라이밍"],"excludeTags":[],"semanticQuery":"선물용 귀여운 클라이밍 볼더링 티셔츠","keywords":[]}
+입력: "안 비치고 목 안 늘어나는 흰 티"
+출력: {"baseColor":"흰","printColor":null,"printPosition":null,"fit":null,"graphicType":null,"gender":null,"genderExclusive":false,"functional":[],"reviewTags":[],"excludeTags":["비침있음","목늘어남"],"semanticQuery":"안 비치는 목 안 늘어나는 흰색 반팔 티셔츠","keywords":[]}`;
 
 interface ParsedRaw {
   baseColor?: unknown;
@@ -61,8 +75,19 @@ interface ParsedRaw {
   gender?: unknown;
   genderExclusive?: unknown;
   functional?: unknown;
+  reviewTags?: unknown;
+  excludeTags?: unknown;
   semanticQuery?: unknown;
   keywords?: unknown;
+}
+
+// 임의 배열 → 허용 목록 안의 문자열만 통과(중복 제거).
+function pickTags(v: unknown, allowed: readonly string[]): string[] {
+  if (!Array.isArray(v)) return [];
+  const set = new Set(allowed);
+  return [
+    ...new Set(v.filter((x): x is string => typeof x === "string" && set.has(x))),
+  ];
 }
 
 const KEYWORD_STOPWORDS = new Set([
@@ -109,6 +134,8 @@ function sanitize(raw: ParsedRaw): Intent {
     genderExclusive:
       raw.genderExclusive === true && gender !== undefined && gender !== "unisex",
     functional: [...new Set(functional)],
+    reviewTags: pickTags(raw.reviewTags, REVIEW_TAGS_POSITIVE),
+    excludeTags: pickTags(raw.excludeTags, REVIEW_TAGS_NEGATIVE),
   };
 }
 
