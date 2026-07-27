@@ -45,12 +45,19 @@ export async function POST(request: Request): Promise<Response> {
   //      LLM은 색·핏·성별·그래픽·semanticQuery 담당. functional만 합집합.
   //      단, 사전이 아무 태그도 못 잡은 신규 표현은 LLM 태그를 폴백으로 써 리콜을 확보한다.
   const det = extractReviewTags(query);
-  const dictEmpty = det.reviewTags.length === 0 && det.excludeTags.length === 0;
+  // 사전이 어떤 태그든 잡았으면 사전을 전적으로 신뢰(LLM 태그 오염 배제).
+  // 사전이 완전히 비었을 때만 LLM 태그를 폴백으로 써 신규 표현 리콜을 확보한다.
+  const dictHasAny =
+    det.reviewTags.length > 0 ||
+    det.excludeTags.length > 0 ||
+    det.functional.length > 0;
   const intent: Intent = {
     ...llmIntent,
-    functional: [...new Set([...llmIntent.functional, ...det.functional])],
-    reviewTags: dictEmpty ? (llmIntent.reviewTags ?? []) : det.reviewTags,
-    excludeTags: dictEmpty ? (llmIntent.excludeTags ?? []) : det.excludeTags,
+    functional: dictHasAny
+      ? det.functional
+      : [...new Set([...llmIntent.functional, ...det.functional])],
+    reviewTags: dictHasAny ? det.reviewTags : (llmIntent.reviewTags ?? []),
+    excludeTags: dictHasAny ? det.excludeTags : (llmIntent.excludeTags ?? []),
   };
 
   // 2) 확장 쿼리 임베딩. 실패하면 의미검색 불가 → degraded 신호로 클라 폴백 유도.

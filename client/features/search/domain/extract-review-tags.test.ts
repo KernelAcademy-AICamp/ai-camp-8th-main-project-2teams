@@ -52,4 +52,18 @@ describe("extractReviewTags", () => {
     const r = extractReviewTags("두께 적당한 티");
     expect(r.reviewTags).toEqual(["두께적당"]);
   });
+
+  it("ㅂ불규칙 어간(귀엽고·부드럽고·안 무겁고)도 잡는다", () => {
+    expect(extractReviewTags("귀엽고 예쁜 티").reviewTags).toContain("디자인귀여움");
+    expect(extractReviewTags("부드럽고 얇은 티").reviewTags).toContain("부드러움");
+    const light = extractReviewTags("안 무겁고 시원한 티");
+    expect(light.reviewTags).toContain("가벼움");
+    expect(light.excludeTags).toContain("무거움");
+  });
+
+  it("'화면이랑 색 똑같고'도 화면색상일치로 잡는다", () => {
+    const r = extractReviewTags("화면이랑 색 똑같고 발색 좋은 티");
+    expect(r.reviewTags).toContain("화면색상일치");
+    expect(r.excludeTags).toContain("화면과색상다름");
+  });
 });
