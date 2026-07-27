@@ -69,7 +69,7 @@ const RULES: Rule[] = [
   { re: /박시|박스핏|큼직/, tag: "박시핏", bucket: "review" },
   { re: /루즈|헐렁/, tag: "루즈핏", bucket: "review" },
   {
-    re: /슬림핏|슬림\s*핏|몸에\s*붙|딱\s*맞|타이트핏/,
+    re: /슬림|몸에\s*붙|딱\s*맞|타이트핏|핏하게/,
     tag: "슬림핏",
     bucket: "review",
   },
