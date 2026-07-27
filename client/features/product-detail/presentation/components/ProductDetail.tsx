@@ -2,6 +2,8 @@
 
 // product-detail feature: 상세 화면 본체. id로 로드 → 정보 표시 → 구매 진입(outbound).
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 
 import AppHeader from "@/components/AppHeader";
 import { COLOR_HEX, type ColorKey } from "@/features/catalog/domain/tee";
@@ -39,6 +41,14 @@ function Spec({ label, value }: { label: string; value: string }) {
 
 export default function ProductDetail({ id }: { id: string }) {
   const { loading, tee } = useTeeDetailViewModel(id);
+  const params = useSearchParams();
+  const sid = params.get("sid");
+  const [reported, setReported] = useState(false);
+
+  useEffect(() => {
+    if (loading) return;
+    track("detail_viewed", { search_id: sid, product_id: id, found: Boolean(tee) });
+  }, [loading, tee, id, sid]);
 
   return (
     <div className="flex flex-1 flex-col">
@@ -121,6 +131,7 @@ export default function ProductDetail({ id }: { id: string }) {
                 rel="noreferrer noopener"
                 onClick={() => {
                   track("outbound_click", {
+                    search_id: sid,
                     product_id: tee.id,
                     mall: tee.mall,
                     from: "detail",
@@ -133,6 +144,22 @@ export default function ProductDetail({ id }: { id: string }) {
               <p className="mt-2 text-center font-mono text-[11px] text-ink-soft">
                 네이버 쇼핑 상품 페이지로 이동합니다
               </p>
+              {!reported ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    track("mismatch_reported", { search_id: sid, product_id: tee.id });
+                    setReported(true);
+                  }}
+                  className="mt-3 w-full font-mono text-[11px] text-ink-soft underline underline-offset-2 transition hover:text-ink"
+                >
+                  검색 조건과 안 맞아요 · 신고
+                </button>
+              ) : (
+                <p className="mt-3 text-center font-mono text-[11px] text-ink-soft">
+                  신고 접수됐어요. 고맙습니다.
+                </p>
+              )}
             </div>
           </div>
         )}
