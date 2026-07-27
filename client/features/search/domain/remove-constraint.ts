@@ -22,6 +22,16 @@ export function removeConstraintFromIntent(intent: Intent, chip: IntentChip): In
         ...intent,
         functional: intent.functional.filter((f) => f !== chip.label),
       };
+    case "reviewTag":
+      return {
+        ...intent,
+        reviewTags: (intent.reviewTags ?? []).filter((t) => t !== chip.label),
+      };
+    case "exclude":
+      return {
+        ...intent,
+        excludeTags: (intent.excludeTags ?? []).filter((t) => t !== chip.label),
+      };
     default:
       return intent;
   }

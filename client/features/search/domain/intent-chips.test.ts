@@ -51,4 +51,15 @@ describe("intentToChips", () => {
     });
     expect(chips).toContainEqual({ label: "여성 전용", kind: "gender" });
   });
+
+  it("reviewTags는 reviewTag 칩, excludeTags는 exclude 칩(라벨은 원본 태그)으로 만든다", () => {
+    const chips = intentToChips({
+      functional: [],
+      reviewTags: ["디자인귀여움", "클라이밍"],
+      excludeTags: ["목늘어남"],
+    });
+    expect(chips).toContainEqual({ label: "디자인귀여움", kind: "reviewTag" });
+    expect(chips).toContainEqual({ label: "클라이밍", kind: "reviewTag" });
+    expect(chips).toContainEqual({ label: "목늘어남", kind: "exclude" });
+  });
 });

@@ -6,6 +6,7 @@ import type { Tee } from "@/features/catalog/domain/tee";
 import { embedQuery } from "@/features/search/data/embed-query";
 import { EMPTY_INTENT, parseIntentLLM } from "@/features/search/data/parse-intent-llm";
 import { mapSearchRow, type SearchRow } from "@/features/search/data/search-response";
+import { extractReviewTags } from "@/features/search/domain/extract-review-tags";
 import type { Intent } from "@/features/search/domain/intent";
 
 export const maxDuration = 30;
@@ -39,7 +40,18 @@ export async function POST(request: Request): Promise<Response> {
   if (!query) return Response.json(empty);
 
   // 1) LLM 파싱(intent + 확장 쿼리 + keywords). 실패해도 EMPTY intent + 원쿼리로 진행.
-  const { intent, semanticQuery, keywords } = await parseIntentLLM(query);
+  const { intent: llmIntent, semanticQuery, keywords } = await parseIntentLLM(query);
+  // 1-b) 리뷰태그는 결정적 키워드 사전이 권위(8B LLM의 태그 비결정성·오염 제거).
+  //      LLM은 색·핏·성별·그래픽·semanticQuery 담당. functional만 합집합.
+  //      단, 사전이 아무 태그도 못 잡은 신규 표현은 LLM 태그를 폴백으로 써 리콜을 확보한다.
+  const det = extractReviewTags(query);
+  const dictEmpty = det.reviewTags.length === 0 && det.excludeTags.length === 0;
+  const intent: Intent = {
+    ...llmIntent,
+    functional: [...new Set([...llmIntent.functional, ...det.functional])],
+    reviewTags: dictEmpty ? (llmIntent.reviewTags ?? []) : det.reviewTags,
+    excludeTags: dictEmpty ? (llmIntent.excludeTags ?? []) : det.excludeTags,
+  };
 
   // 2) 확장 쿼리 임베딩. 실패하면 의미검색 불가 → degraded 신호로 클라 폴백 유도.
   const vector = await embedQuery(semanticQuery);
