@@ -24,8 +24,11 @@
 - **오검색 체감**(카드 '안 맞음' 신고 / 인터뷰) — 추출 정확도 신호
 - (감각축) 구매 불안·추가검색 필요성 — Loop3 리뷰 실험 시
 
-## Amplitude 이벤트 택소노미 (Loop 1부터)
-| 이벤트 | 주요 property |
+## Amplitude 이벤트 택소노미 (Loop 1부터) — ⚠️ SUPERSEDED
+
+> **[SUPERSEDED]** 이 절은 당초 Amplitude 도입을 전제로 초안 작성된 옛 이벤트 택소노미다. 위 개정 사유(07-27)대로 계측 도구가 **GA4**로 바뀌면서 이벤트명·속성이 갱신됐고, 아래 표의 이벤트명 중 일부(`search_no_results`, `filter_applied`, `purchase_intent_rated` 등)는 실제 GA4 스키마와 **일치하지 않는다**. 커스텀 디멘션/이벤트 등록 시 이 표를 참고하지 말 것 — 최신·정합 스키마는 [ga4-setup.md](./ga4-setup.md)와 설계 스펙 [`docs/superpowers/specs/2026-07-27-ga4-analytics-design.md`](../../superpowers/specs/2026-07-27-ga4-analytics-design.md)를 확인한다. (아래 표는 이력 참고용으로만 남긴다.)
+
+| 이벤트 (구, 참고용) | 주요 property |
 |---|---|
 | `search_performed` | query, parsed_attributes(색/프린팅위치/핏/소재…), result_count |
 | `search_no_results` | query, parsed_attributes |

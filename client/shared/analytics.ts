@@ -12,7 +12,7 @@ declare global {
 export function track(event: string, props?: Record<string, unknown>): void {
   if (typeof window === "undefined") return;
   if (process.env.NODE_ENV !== "production") {
-    // eslint-disable-next-line no-console
+    // eslint-disable-next-line no-console -- dev 전용 관측 seam(프로덕션은 gtag 사용)
     console.debug("[track]", event, props ?? {});
   }
   window.gtag?.("event", event, props);
