@@ -8,8 +8,8 @@ import SearchBar from "@/features/search/presentation/components/SearchBar";
 
 export default function LandingPage() {
   const router = useRouter();
-  const go = (q: string) => {
-    router.push(`/search?q=${encodeURIComponent(q)}`);
+  const go = (q: string, src: string) => {
+    router.push(`/search?q=${encodeURIComponent(q)}&src=${src}`);
   };
 
   return (
@@ -27,11 +27,20 @@ export default function LandingPage() {
         </p>
 
         <div className="mt-8">
-          <SearchBar onSearch={go} autoFocus />
+          <SearchBar
+            onSearch={(q) => {
+              go(q, "typed");
+            }}
+            autoFocus
+          />
         </div>
 
         <div className="mt-5">
-          <ExampleChips onPick={go} />
+          <ExampleChips
+            onPick={(q) => {
+              go(q, "chip");
+            }}
+          />
         </div>
       </main>
     </div>
