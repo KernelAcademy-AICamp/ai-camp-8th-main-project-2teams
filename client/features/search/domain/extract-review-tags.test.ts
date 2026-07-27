@@ -127,6 +127,20 @@ describe("extractReviewTags", () => {
     expect(r.reviewTags).not.toContain("넉넉핏");
   });
 
+  it("긴 부정형('~지 않')도 짧은 부정형처럼 잡는다", () => {
+    // "안 X"뿐 아니라 "X지 않"도 커버
+    const pairs: [string, string][] = [
+      ["비치지 않는 티", "비침없음"],
+      ["프린팅 벗겨지지 않는 티", "프린팅튼튼"],
+      ["보풀 생기지 않는 티", "보풀안생김"],
+      ["물 빠지지 않는 티", "물빠짐"],
+    ];
+    for (const [q, tag] of pairs) {
+      const r = extractReviewTags(q);
+      expect([...r.reviewTags, ...r.excludeTags]).toContain(tag);
+    }
+  });
+
   it("무게감 표현을 가벼움으로 매핑한다(무게감 적은/없는/무게 안 나가는)", () => {
     expect(extractReviewTags("무게감이 적은 티").reviewTags).toContain("가벼움");
     expect(extractReviewTags("무게감 없는 티").reviewTags).toContain("가벼움");
