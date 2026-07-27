@@ -15,7 +15,7 @@ export default function SearchResults() {
   const params = useSearchParams();
   const query = params.get("q") ?? "";
 
-  const vm = useSearchViewModel(query);
+  const vm = useSearchViewModel(query, null);
   const go = (q: string) => {
     router.push(`/search?q=${encodeURIComponent(q)}`);
   };
