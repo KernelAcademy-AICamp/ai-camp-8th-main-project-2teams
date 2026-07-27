@@ -31,6 +31,18 @@ describe("extractReviewTags", () => {
     expect(r.reviewTags).not.toContain("넉넉핏");
   });
 
+  it("'목이 조이지 않는'은 넥라인넉넉으로(좁음 아님) — 부정 처리", () => {
+    const r = extractReviewTags("목이 조이지 않는 티");
+    expect(r.reviewTags).toContain("넥라인넉넉");
+    expect(r.reviewTags).not.toContain("넥라인좁음");
+  });
+
+  it("'목이 조이는'(부정 없음)은 넥라인좁음으로 잡는다", () => {
+    const r = extractReviewTags("목이 조이는 티");
+    expect(r.reviewTags).toContain("넥라인좁음");
+    expect(r.reviewTags).not.toContain("넥라인넉넉");
+  });
+
   it("냉감·통풍은 functional, 흡습속건은 reviewTags로 간다", () => {
     const r = extractReviewTags("시원하고 바람 잘 통하고 땀 빨리 마르는 티");
     expect(new Set(r.functional)).toEqual(new Set(["냉감", "통풍"]));
@@ -82,5 +94,29 @@ describe("extractReviewTags", () => {
     expect(extractReviewTags("쿨한 냉감 티").functional).toContain("냉감");
     expect(extractReviewTags("아이들 키즈 티").reviewTags).toContain("아동·학생용");
     expect(extractReviewTags("따뜻한 기모 티").reviewTags).toContain("따뜻함");
+  });
+
+  it("의태어를 표준 태그로 매핑한다(부드부드·쫀쫀·하늘하늘)", () => {
+    expect(extractReviewTags("부드부드한 티").reviewTags).toContain("부드러움");
+    expect(extractReviewTags("보들보들 부들부들 티").reviewTags).toContain("부드러움");
+    expect(extractReviewTags("쫀쫀한 원단 티").reviewTags).toContain("탄탄함");
+    expect(extractReviewTags("하늘하늘한 티").reviewTags).toContain("얇음");
+  });
+
+  it("두께 부정을 반대 태그로 뒤집는다(안 얇은→도톰, 도톰하지 않은→얇음)", () => {
+    const thick = extractReviewTags("안 얇은 티");
+    expect(thick.reviewTags).toContain("도톰함");
+    expect(thick.reviewTags).not.toContain("얇음");
+    const thin = extractReviewTags("도톰하지 않은 티");
+    expect(thin.reviewTags).toContain("얇음");
+    expect(thin.reviewTags).not.toContain("도톰함");
+    // '두꺼운'도 도톰함으로
+    expect(extractReviewTags("두꺼운 티").reviewTags).toContain("도톰함");
+  });
+
+  it("'안 넉넉한 핏'은 슬림핏으로(넉넉핏 아님)", () => {
+    const r = extractReviewTags("안 넉넉한 핏 티");
+    expect(r.reviewTags).toContain("슬림핏");
+    expect(r.reviewTags).not.toContain("넉넉핏");
   });
 });

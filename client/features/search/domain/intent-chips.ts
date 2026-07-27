@@ -58,5 +58,11 @@ export function intentToChips(intent: Intent): IntentChip[] {
     chips.push({ label: tag, kind: "exclude" });
   }
 
-  return chips;
+  // 같은 라벨 중복 제거(예: fit "오버핏" + 리뷰태그 "오버핏"). 먼저 온 칩을 유지.
+  const seen = new Set<string>();
+  return chips.filter((c) => {
+    if (seen.has(c.label)) return false;
+    seen.add(c.label);
+    return true;
+  });
 }

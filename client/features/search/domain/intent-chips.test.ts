@@ -62,4 +62,13 @@ describe("intentToChips", () => {
     expect(chips).toContainEqual({ label: "클라이밍", kind: "reviewTag" });
     expect(chips).toContainEqual({ label: "목늘어남", kind: "exclude" });
   });
+
+  it("같은 라벨 칩은 중복 제거한다(fit '오버핏' + 리뷰태그 '오버핏')", () => {
+    const chips = intentToChips({
+      functional: [],
+      fit: "오버",
+      reviewTags: ["오버핏"],
+    });
+    expect(chips.filter((c) => c.label === "오버핏")).toHaveLength(1);
+  });
 });
