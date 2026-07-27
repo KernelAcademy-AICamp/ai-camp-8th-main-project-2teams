@@ -1,3 +1,13 @@
+## [0.2.5](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/compare/v0.2.4...v0.2.5) (2026-07-27)
+
+### Features
+
+* GA4 계측 — 북극성·퍼널·속성 추출 정확도 측정 ([#30](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/issues/30)) ([4db20d9](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/commit/4db20d943363f3735cecad657b242bb9054b071e))
+
+### Bug Fixes
+
+* 수집 필터에 아우터·긴팔·민소매·바지·양말 제외 추가 ([#25](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/issues/25)) ([f8f8187](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/commit/f8f81874ae829efaa6c30f95809082f7b43427f7))
+* 파싱 완료 직후 한 프레임 의도 desync 제거 ([#26](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/issues/26)) ([92c4098](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/commit/92c40981d2932fb9a0fd51e9172b3fa45efe66d0))
 ## [0.2.4](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/compare/v0.2.3...v0.2.4) (2026-07-24)
 
 ### Features

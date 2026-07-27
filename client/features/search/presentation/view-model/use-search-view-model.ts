@@ -12,14 +12,25 @@ import { searchRemote } from "@/features/search/data/search-remote";
 import type { Intent, IntentChip } from "@/features/search/domain/intent";
 import { intentToChips } from "@/features/search/domain/intent-chips";
 import { type BrandEntry, matchBrand } from "@/features/search/domain/match-brand";
+import { reconcileWorkingIntent } from "@/features/search/domain/reconcile-working-intent";
 import { removeConstraintFromIntent } from "@/features/search/domain/remove-constraint";
 import { type SearchResult, searchTees } from "@/features/search/domain/search-tees";
+import { newSearchId, track } from "@/shared/analytics";
+import {
+  deriveResultType,
+  entryTypeFromSrc,
+  flattenParsedAttributes,
+  hasParsedConstraint,
+  type ResultType,
+} from "@/shared/analytics-params";
 
 export interface SearchViewModel {
   loading: boolean;
   chips: IntentChip[];
   results: SearchResult;
   removeConstraint: (chip: IntentChip) => void;
+  searchId: string;
+  resultType: ResultType;
 }
 
 const EMPTY_INTENT: Intent = { functional: [] };
@@ -27,8 +38,13 @@ const EMPTY_RESULT: SearchResult = { exact: [], partial: [] };
 
 export function useSearchViewModel(
   query: string,
+  src: string | null,
   repository: TeeRepository = supabaseTeeRepository,
 ): SearchViewModel {
+  // ref는 콜백(검색 effect·removeConstraint)에서만 읽는다. 렌더 중 읽기는
+  // react-hooks/refs(React Compiler) 위반이므로, 반환용으로는 별도 state로 노출한다.
+  const searchIdRef = useRef("");
+  const [searchId, setSearchId] = useState("");
   const [tees, setTees] = useState<Tee[]>([]);
   const [teesLoading, setTeesLoading] = useState(true);
   const [brands, setBrands] = useState<BrandEntry[]>([]);
@@ -57,10 +73,26 @@ export function useSearchViewModel(
     setPrevParsed(parsed);
     setWorkingIntent(parsed.intent);
   }
+  // setWorkingIntent는 다음 렌더에 반영되므로, 이번 렌더의 chips/results는
+  // reconcileWorkingIntent가 고른 값(갓 갱신된 parsed.intent)을 써야 desync가 없다.
+  // workingIntent state를 직접 읽으면 한 프레임 낡아 전체 상품이 잠깐 튄다.
+  const currentIntent = reconcileWorkingIntent(parsed, prevParsed, workingIntent);
 
-  const removeConstraint = useCallback((chip: IntentChip) => {
-    setWorkingIntent((prev) => removeConstraintFromIntent(prev, chip));
-  }, []);
+  const removeConstraint = useCallback(
+    (chip: IntentChip) => {
+      const next = removeConstraintFromIntent(workingIntent, chip);
+      const candidates = [...parsed.results.exact, ...parsed.results.partial];
+      const after = searchTees(candidates, next);
+      track("constraint_removed", {
+        search_id: searchIdRef.current,
+        attribute: chip.kind,
+        after_result_count: after.exact.length + after.partial.length,
+        after_result_type: deriveResultType(after),
+      });
+      setWorkingIntent(next);
+    },
+    [workingIntent, parsed],
+  );
 
   // 카탈로그 로드
   useEffect(() => {
@@ -87,18 +119,39 @@ export function useSearchViewModel(
   }, []);
 
   // 쿼리 변경 시에만 서버 하이브리드 검색. brands/tees는 ref로 읽어 재검색을 유발하지 않는다
-  // (초기 로드 시 중복 호출 방지 → NVIDIA 비용 절감). 결과+intent를 함께 반영.
+  // (초기 로드 시 중복 호출 방지 → NVIDIA 비용 절감). 결과+intent를 함께 반영하고,
+  // 검색 1건 완료 시 search_performed를 정확히 한 번 발화한다.
   useEffect(() => {
     let active = true;
+    if (!query.trim()) return;
+    const id = newSearchId();
+    searchIdRef.current = id;
+    const startedAt = performance.now();
     void searchRemote(query, brandsRef.current, teesRef.current).then(
-      ({ results, intent }) => {
-        if (active) setParsed({ query, intent, results });
+      ({ results, intent, degraded }) => {
+        if (!active) return;
+        setParsed({ query, intent, results });
+        // searchId state는 표시 중인 results/resultType과 함께 갱신(검색 시작이 아닌 완료 시점).
+        setSearchId(id);
+        const resultType = deriveResultType(results);
+        track("search_performed", {
+          search_id: id,
+          query,
+          result_count: results.exact.length + results.partial.length,
+          result_type: resultType,
+          degraded,
+          understood: hasParsedConstraint(intent),
+          entry_type: entryTypeFromSrc(src),
+          is_refinement: src === "refine",
+          duration_ms: Math.round(performance.now() - startedAt),
+          ...flattenParsedAttributes(intent),
+        });
       },
     );
     return () => {
       active = false;
     };
-  }, [query]);
+  }, [query, src]);
 
   const hasQuery = query.trim().length > 0;
   // 빈 쿼리는 파싱 대상이 아니므로 로딩에서 제외(전체 목록을 로딩 UI로 가리지 않기).
@@ -116,8 +169,8 @@ export function useSearchViewModel(
     if (!hasQuery) return [];
     if (parsing)
       return immediateBrand ? [{ label: immediateBrand, kind: "brand" as const }] : [];
-    return intentToChips(workingIntent);
-  }, [hasQuery, parsing, immediateBrand, workingIntent]);
+    return intentToChips(currentIntent);
+  }, [hasQuery, parsing, immediateBrand, currentIntent]);
 
   // 서버(또는 폴백)가 돌려준 후보 집합. 칩을 편집하면 그 위에서 searchTees로 재필터.
   const results = useMemo<SearchResult>(() => {
@@ -128,11 +181,14 @@ export function useSearchViewModel(
         : EMPTY_RESULT;
     }
     const candidates = [...parsed.results.exact, ...parsed.results.partial];
-    // workingIntent가 파싱 원본과 같으면 서버 순위 그대로, 편집됐으면 재필터.
-    return workingIntent === parsed.intent
+    // currentIntent가 파싱 원본과 같으면 서버 순위 그대로, 편집됐으면 재필터.
+    // (새 파싱 도착 프레임엔 currentIntent === parsed.intent라 서버 결과를 그대로 써 튐이 없다.)
+    return currentIntent === parsed.intent
       ? parsed.results
-      : searchTees(candidates, workingIntent);
-  }, [hasQuery, parsing, immediateBrand, tees, parsed, workingIntent]);
+      : searchTees(candidates, currentIntent);
+  }, [hasQuery, parsing, immediateBrand, tees, parsed, currentIntent]);
+
+  const resultType = useMemo(() => deriveResultType(results), [results]);
 
   // 브랜드가 즉시 잡히면 결과를 로딩으로 가리지 않는다(파싱은 뒤에서 계속 → 완료 시 정밀화).
   return {
@@ -140,5 +196,7 @@ export function useSearchViewModel(
     chips,
     results,
     removeConstraint,
+    searchId,
+    resultType,
   };
 }

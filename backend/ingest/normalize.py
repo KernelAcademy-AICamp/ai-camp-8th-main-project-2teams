@@ -37,16 +37,44 @@ def _is_tshirt(item: dict) -> bool:
     return "티셔츠" in cats
 
 
-def _is_short_sleeve(item: dict) -> bool:
-    """소매 스코프 = 반팔만. 소매 판단은 제목 우선 — 네이버 category4의 '긴팔티셔츠'
-    분류는 ≈24%가 실제로는 반팔이라 신뢰 불가. 규칙: 제목에 '긴팔'이 있으면 긴팔(제외),
-    '반팔/반소매'가 있으면 반팔(유지), 둘 다 없으면 category4로 폴백(긴팔티셔츠면 제외)."""
+# 티셔츠임을 나타내는 제목 단서(아우터 키워드 과차단 방지용 화이트리스트).
+_TSHIRT_WORDS = ("티셔츠", "반팔티", "반팔 티", "긴팔티", "티셔")
+# 제목에 있으면 티셔츠라도 제외하는 품목(카테고리 무관 항상 제외 — 네이버 오분류 방어).
+_EXCLUDE_ALWAYS = ("양말", "삭스")
+# 제목에 있으면 제외하되, '티셔츠' 단서가 함께 있으면 살려두는 품목(반집업 반팔티 등 보호).
+_EXCLUDE_UNLESS_TSHIRT = (
+    "맨투맨", "스웻", "스웨트", "후드", "집업", "자켓", "재킷", "바람막이",
+    "바지", "팬츠", "레깅스", "반바지",
+)
+
+
+def _has_tshirt_word(title: str) -> bool:
+    return any(w in title for w in _TSHIRT_WORDS)
+
+
+def _is_excluded_kind(item: dict) -> bool:
+    """티셔츠 카테고리로 위장한 비-티셔츠(아우터·바지·양말)를 제목으로 걸러낸다.
+    네이버 검색은 바지·양말을 '반팔티셔츠'로 오분류해 넣기도 해 카테고리 필터를 통과한다."""
     title = _clean_title(item.get("title", ""))
-    if "긴팔" in title:
+    if any(w in title for w in _EXCLUDE_ALWAYS):
+        return True
+    if _has_tshirt_word(title):
+        return False
+    return any(w in title for w in _EXCLUDE_UNLESS_TSHIRT)
+
+
+def _is_short_sleeve(item: dict) -> bool:
+    """소매 스코프 = 반팔만. category4='긴팔티셔츠'면 제목이 '반팔'이어도 무조건 제외(엄격 결정
+    — 오분류된 진짜 반팔을 일부 잃더라도 긴팔 유입을 원천 차단). 제목에 '긴팔/민소매/나시/
+    슬리브리스'가 있으면 제외, '반팔/반소매'면 유지, 단서가 없으면 반팔로 간주(유지)."""
+    if str(item.get("category4") or "") == "긴팔티셔츠":
+        return False
+    title = _clean_title(item.get("title", ""))
+    if any(w in title for w in ("긴팔", "민소매", "나시", "슬리브리스")):
         return False
     if "반팔" in title or "반소매" in title:
         return True
-    return str(item.get("category4") or "") != "긴팔티셔츠"
+    return True
 
 
 def normalize_item(item: dict, source: str = "naver_shopping", brand_resolver=None) -> dict | None:
@@ -60,6 +88,9 @@ def normalize_item(item: dict, source: str = "naver_shopping", brand_resolver=No
         return None
 
     if not _is_tshirt(item):
+        return None
+
+    if _is_excluded_kind(item):
         return None
 
     if not _is_short_sleeve(item):
