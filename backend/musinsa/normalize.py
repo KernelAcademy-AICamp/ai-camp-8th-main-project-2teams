@@ -31,11 +31,14 @@ def normalize_plp_item(item: dict) -> dict:
     }
 
 
-def design_key(brand_slug: str, goods_name: str) -> str:
+def design_key(brand_slug: str, goods_name: str, style_no: str | None = None) -> str:
+    b = (brand_slug or "").lower()
+    if style_no:
+        return f"{b}::style:{style_no}"
     name = _COLOR_PAREN.sub("", goods_name or "").strip()   # (COLOR) 제거
     name = _CODE_TAIL.sub("", name).strip()                 # 모델코드 제거
     name = re.sub(r"\s+", " ", name)
-    return f"{(brand_slug or '').lower()}::{name}"
+    return f"{b}::{name}"
 
 
 def is_multi_design_bundle(goods_name: str, gallery_len: int) -> bool:
@@ -83,12 +86,13 @@ def assemble(plp_item: dict, detail: dict, brand_id: str | None) -> dict:
     p = normalize_plp_item(plp_item)
     gallery = detail.get("gallery") or []
     bundle = is_multi_design_bundle(p["goods_name"], len(gallery))
-    dkey = design_key(p["brand_slug"], p["goods_name"])
+    dkey = design_key(p["brand_slug"], p["goods_name"], detail.get("style_no"))
     design = {
         "design_key": dkey,
         "title": _COLOR_PAREN.sub("", p["goods_name"]).strip(),
         "brand_id": brand_id,
         "category_full": detail.get("category_full"),
+        "style_no": detail.get("style_no"),
         "searchable": not bundle,
         "exclusion_reason": "multi_design_bundle" if bundle else None,
     }

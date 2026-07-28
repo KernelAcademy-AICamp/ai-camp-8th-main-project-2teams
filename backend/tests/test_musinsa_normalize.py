@@ -95,7 +95,8 @@ def test_assemble_normal_product():
     out = assemble(plp, detail, brand_id="b-1")
     assert out["product"]["goods_no"] == 4279165
     assert out["product"]["color"] == "IVORY"
-    assert out["design"]["design_key"] == design_key("while", "무등산 클라이밍 티셔츠 (IVORY)")
+    assert out["design"]["design_key"] == design_key("while", "무등산 클라이밍 티셔츠 (IVORY)", "WHSTMI")
+    assert out["design"]["style_no"] == "WHSTMI"
     assert out["design"]["searchable"] is True
     assert out["design"]["brand_id"] == "b-1"
     assert len(out["images"]) == 2
@@ -110,3 +111,26 @@ def test_assemble_flags_bundle():
     out = assemble(plp, detail, brand_id=None)
     assert out["design"]["searchable"] is False
     assert out["design"]["exclusion_reason"] == "multi_design_bundle"
+
+
+def test_design_key_prefers_style_no():
+    a = design_key("while", "무등산 티 (IVORY)", "WHSTMI")
+    b = design_key("while", "무등산 티 (BLACK)", "WHSTMI")
+    assert a == b and "style:WHSTMI" in a
+    # style_no 다르면 다른 디자인
+    assert design_key("while", "무등산 티 (IVORY)", "WHXXXX") != a
+
+
+def test_design_key_fallback_without_style_no():
+    # style_no 없으면 기존 이름-stripping 동작 유지(기존 테스트와 동일 결과)
+    assert design_key("while", "무등산 티 (IVORY)") == design_key("while", "무등산 티 (BLACK)")
+
+
+def test_assemble_stores_style_no_and_uses_it_for_key():
+    plp = {"goodsNo": 1, "goodsName": "무등산 티 (IVORY)", "goodsLinkUrl": "u",
+           "brand": "while", "brandName": "와일"}
+    detail = {"category_full": "c", "style_no": "WHSTMI", "season": "2",
+              "gallery": ["https://img/a.jpg"], "review_chars": {}}
+    out = assemble(plp, detail, brand_id=None)
+    assert out["design"]["style_no"] == "WHSTMI"
+    assert "style:WHSTMI" in out["design"]["design_key"]
