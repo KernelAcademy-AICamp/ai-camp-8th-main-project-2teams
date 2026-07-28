@@ -32,17 +32,19 @@ def run(client, mc: MusinsaClient, *, limit: int | None = None) -> dict:
                     upsert_brands(client, [payload["brand"]])
                     row = client.table("m_brands").select("id").eq(
                         "musinsa_brand", slug).limit(1).execute().data
-                    brand_id_by_slug[slug] = row[0]["id"] if row else None
-                payload["design"]["brand_id"] = brand_id_by_slug[slug]
+                    if row:  # None을 영구 캐시하지 않음
+                        brand_id_by_slug[slug] = row[0]["id"]
+                payload["design"]["brand_id"] = brand_id_by_slug.get(slug)
 
             # 디자인 upsert → id 확보
             dkey = payload["design"]["design_key"]
-            upsert_designs(client, [payload["design"]])
             if dkey not in seen_designs:
+                upsert_designs(client, [payload["design"]])
                 row = client.table("m_designs").select("id").eq(
                     "design_key", dkey).limit(1).execute().data
-                seen_designs[dkey] = row[0]["id"] if row else None
-            payload["product"]["design_id"] = seen_designs[dkey]
+                if row:
+                    seen_designs[dkey] = row[0]["id"]
+            payload["product"]["design_id"] = seen_designs.get(dkey)
 
             # 실측 사이즈
             try:
