@@ -1,5 +1,4 @@
 """무신사 API 응답 → m_* 행 변환. 순수 함수(부작용 없음)."""
-import html as _html
 import json
 import re
 
