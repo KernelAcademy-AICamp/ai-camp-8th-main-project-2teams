@@ -38,12 +38,13 @@ interface ProductRow {
   fit: string | null;
   material: string | null;
   functional: string[] | null;
+  review_tags: string[] | null;
   sizes: string[] | null;
 }
 
 const COLUMNS =
   "id,title,brand,maker,mall_name,lprice,link,image_url,gender," +
-  "base_color,print_color,print_position,graphic_type,fit,material,functional,sizes," +
+  "base_color,print_color,print_position,graphic_type,fit,material,functional,review_tags,sizes," +
   "brands(canonical)";
 
 // 허용값 배열 안이면 그 값, 아니면 undefined. (NULL·오타·미상 흡수)
@@ -74,6 +75,7 @@ export function mapRowToTee(row: ProductRow): Tee {
     fit: asEnum<Fit>(row.fit, FITS),
     material: asEnum<Material>(row.material, MATERIALS),
     functional: row.functional ?? [],
+    reviewTags: row.review_tags ?? [],
     sizes: row.sizes ?? [],
   };
 }

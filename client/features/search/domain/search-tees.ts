@@ -9,7 +9,11 @@ export interface SearchResult {
 }
 
 export function searchTees(tees: Tee[], intent: Intent): SearchResult {
-  const anyConstraint =
+  const excludeTags = intent.excludeTags ?? [];
+  // 원하는 태그 = 기능(냉감·통풍·신축·흡습속건) + 리뷰 긍정태그 합집합(중복 제거).
+  const wantedTags = [...new Set([...intent.functional, ...(intent.reviewTags ?? [])])];
+
+  const gained =
     intent.baseColor !== undefined ||
     intent.printColor !== undefined ||
     intent.printPosition !== undefined ||
@@ -17,14 +21,24 @@ export function searchTees(tees: Tee[], intent: Intent): SearchResult {
     intent.graphicType !== undefined ||
     intent.brand !== undefined ||
     intent.gender !== undefined ||
-    intent.functional.length > 0;
+    wantedTags.length > 0;
 
-  if (!anyConstraint) return { exact: tees, partial: [] };
+  if (!gained && excludeTags.length === 0) return { exact: tees, partial: [] };
 
-  const scored = tees.map((t) => {
+  // 부정 태그 = 제외 필터. 리뷰에서 결함이 보고된 상품(예: 비침있음)은 후보에서 뺀다.
+  const candidates = excludeTags.length
+    ? tees.filter((t) => !excludeTags.some((neg) => t.reviewTags.includes(neg)))
+    : tees;
+
+  // 제외 조건만 있고 가점 조건이 없으면, 걸러낸 나머지를 전부 exact로 반환.
+  if (!gained) return { exact: candidates, partial: [] };
+
+  const scored = candidates.map((t) => {
     let score = 0;
     let miss = 0;
     const bump = (cond: boolean, w = 1) => (cond ? (score += w) : (miss += 1));
+    // 상품 태그 풀 = 기능 + 리뷰태그 합집합.
+    const tagPool = new Set([...t.functional, ...t.reviewTags]);
 
     if (intent.brand) bump(t.brandCanonical === intent.brand, 2);
     if (intent.gender)
@@ -40,7 +54,7 @@ export function searchTees(tees: Tee[], intent: Intent): SearchResult {
       bump(t.printPosition === intent.printPosition || t.printPosition === "양면");
     if (intent.fit) bump(t.fit === intent.fit);
     if (intent.graphicType) bump(t.graphicType === intent.graphicType);
-    for (const fn of intent.functional) bump(t.functional.includes(fn));
+    for (const tag of wantedTags) bump(tagPool.has(tag), 2);
 
     return { t, score, miss };
   });

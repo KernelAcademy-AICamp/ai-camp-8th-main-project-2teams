@@ -2,6 +2,7 @@
 // ⚠️ 규칙 기반 임시 구현. 실제로는 LLM 파싱으로 교체된다 (인터페이스는 유지).
 import type { ColorKey, Gender, GraphicType } from "@/features/catalog/domain/tee";
 import { GENDER_LABEL } from "@/features/catalog/domain/tee";
+import { extractReviewTags } from "@/features/search/domain/extract-review-tags";
 import type { Intent, IntentChip } from "@/features/search/domain/intent";
 
 const COLOR_WORDS: Record<string, ColorKey> = {
@@ -149,6 +150,12 @@ export function parseQuery(q: string): { intent: Intent; chips: IntentChip[] } {
     const label = exclusive ? `${GENDER_LABEL[gender]} 전용` : GENDER_LABEL[gender];
     chips.push({ label, kind: "gender" });
   }
+
+  // 리뷰 정보태그 — 결정적 키워드 사전(LLM 경로와 동일 규칙). functional은 합집합.
+  const det = extractReviewTags(q);
+  intent.functional = [...new Set([...intent.functional, ...det.functional])];
+  intent.reviewTags = det.reviewTags;
+  intent.excludeTags = det.excludeTags;
 
   return { intent, chips };
 }

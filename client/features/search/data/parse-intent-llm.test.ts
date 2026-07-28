@@ -81,6 +81,38 @@ describe("parseIntentLLM", () => {
     expect(r.degraded).toBe(true);
   });
 
+  it("허용 목록 밖 태그는 걸러내고, 긍정 품질태그는 짝 결함태그를 자동 제외에 넣는다", async () => {
+    vi.stubEnv("NVIDIA_API_KEY", "k");
+    const content = JSON.stringify({
+      functional: [],
+      reviewTags: ["비침없음", "목안늘어남", "존재안함태그"],
+      excludeTags: ["까슬함"],
+    });
+    const fetchFn = vi.fn().mockResolvedValue(llmResponse(content));
+    const r = await parseIntentLLM(
+      "안 비치고 목 안 늘어나는 까슬하지 않은 티",
+      fetchFn,
+    );
+    // 허용 목록 밖 태그 제거
+    expect(r.intent.reviewTags).toEqual(["비침없음", "목안늘어남"]);
+    // LLM이 준 까슬함 + 짝 결함(비침있음·목늘어남) 자동 페어링(순서 무관)
+    expect(new Set(r.intent.excludeTags)).toEqual(
+      new Set(["까슬함", "비침있음", "목늘어남"]),
+    );
+  });
+
+  it("긍정태그가 excludeTags에 짝을 이미 포함해도 중복되지 않는다", async () => {
+    vi.stubEnv("NVIDIA_API_KEY", "k");
+    const content = JSON.stringify({
+      functional: [],
+      reviewTags: ["보풀안생김"],
+      excludeTags: ["보풀생김"],
+    });
+    const fetchFn = vi.fn().mockResolvedValue(llmResponse(content));
+    const r = await parseIntentLLM("보풀 안 생기는 티", fetchFn);
+    expect(r.intent.excludeTags).toEqual(["보풀생김"]);
+  });
+
   it("빈 쿼리는 실패가 아니다(degraded=false)", async () => {
     vi.stubEnv("NVIDIA_API_KEY", "k");
     const fetchFn = vi.fn();

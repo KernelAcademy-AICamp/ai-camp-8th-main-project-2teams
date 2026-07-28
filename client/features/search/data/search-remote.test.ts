@@ -14,6 +14,7 @@ function tee(over: Partial<Tee> & { id: string }): Tee {
     link: "x",
     gender: "unisex",
     functional: [],
+    reviewTags: [],
     sizes: [],
     ...over,
   };

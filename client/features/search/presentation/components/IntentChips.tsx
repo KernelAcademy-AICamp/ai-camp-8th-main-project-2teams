@@ -25,10 +25,15 @@ export default function IntentChips({
       </span>
       {chips.map((c, i) => {
         const hex = c.color ? COLOR_HEX[c.color] : undefined;
+        const isExclude = c.kind === "exclude";
         return (
           <span
             key={i}
-            className="inline-flex items-center gap-1.5 rounded-full border border-line bg-wall px-3 py-1 text-[13px] font-medium text-ink shadow-sm"
+            className={
+              isExclude
+                ? "inline-flex items-center gap-1.5 rounded-full border border-dashed border-red-300 bg-red-50 px-3 py-1 text-[13px] font-medium text-red-700 shadow-sm"
+                : "inline-flex items-center gap-1.5 rounded-full border border-line bg-wall px-3 py-1 text-[13px] font-medium text-ink shadow-sm"
+            }
           >
             {hex && (
               <span
@@ -36,6 +41,11 @@ export default function IntentChips({
                 style={{ background: hex }}
                 aria-hidden
               />
+            )}
+            {isExclude && (
+              <span className="font-mono text-[10px] uppercase tracking-wide opacity-70">
+                제외
+              </span>
             )}
             {c.label}
             {onRemove && (

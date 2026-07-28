@@ -33,6 +33,7 @@ export interface SearchRow {
   fit: string | null;
   material: string | null;
   functional: string[] | null;
+  review_tags: string[] | null;
   sizes: string[] | null;
   brand_canonical: string | null;
   score: number;
@@ -65,6 +66,7 @@ export function mapSearchRow(row: SearchRow): Tee {
     fit: asEnum<Fit>(row.fit, FITS),
     material: asEnum<Material>(row.material, MATERIALS),
     functional: row.functional ?? [],
+    reviewTags: row.review_tags ?? [],
     sizes: row.sizes ?? [],
   };
 }

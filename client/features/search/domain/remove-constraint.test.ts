@@ -58,4 +58,22 @@ describe("removeConstraintFromIntent", () => {
     expect(next.gender).toBeUndefined();
     expect(next.genderExclusive).toBeFalsy();
   });
+
+  it("reviewTag 칩은 라벨에 해당하는 리뷰태그만 제거한다", () => {
+    const chip: IntentChip = { label: "클라이밍", kind: "reviewTag" };
+    const next = removeConstraintFromIntent(
+      { functional: [], reviewTags: ["디자인귀여움", "클라이밍"] },
+      chip,
+    );
+    expect(next.reviewTags).toEqual(["디자인귀여움"]);
+  });
+
+  it("exclude 칩은 라벨에 해당하는 제외태그만 제거한다", () => {
+    const chip: IntentChip = { label: "목늘어남", kind: "exclude" };
+    const next = removeConstraintFromIntent(
+      { functional: [], excludeTags: ["목늘어남", "비침있음"] },
+      chip,
+    );
+    expect(next.excludeTags).toEqual(["비침있음"]);
+  });
 });

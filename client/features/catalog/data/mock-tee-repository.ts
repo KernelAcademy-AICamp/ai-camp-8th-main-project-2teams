@@ -18,6 +18,7 @@ const RAW: Omit<Tee, "link">[] = [
     fit: "오버",
     material: "기능성",
     functional: ["냉감", "통풍"],
+    reviewTags: ["디자인귀여움", "선물용", "클라이밍"],
     sizes: ["S", "M", "L", "XL"],
   },
   {
@@ -34,6 +35,7 @@ const RAW: Omit<Tee, "link">[] = [
     fit: "레귤러",
     material: "폴리",
     functional: ["흡습속건"],
+    reviewTags: ["크루티", "단체티·유니폼", "클라이밍"],
     sizes: ["M", "L", "XL"],
   },
   {
@@ -50,6 +52,7 @@ const RAW: Omit<Tee, "link">[] = [
     fit: "오버",
     material: "면",
     functional: [],
+    reviewTags: ["박시핏", "면느낌", "데일리", "비침있음"],
     sizes: ["프리"],
   },
   {
@@ -66,6 +69,7 @@ const RAW: Omit<Tee, "link">[] = [
     fit: "레귤러",
     material: "기능성",
     functional: ["신축", "통풍"],
+    reviewTags: ["디자인귀여움", "색상예쁨", "커플티"],
     sizes: ["S", "M", "L"],
   },
   {
@@ -82,6 +86,7 @@ const RAW: Omit<Tee, "link">[] = [
     fit: "오버",
     material: "기능성",
     functional: ["냉감", "흡습속건"],
+    reviewTags: ["클라이밍", "재질좋음", "흡습속건"],
     sizes: ["M", "L", "XL"],
   },
   {
@@ -98,6 +103,7 @@ const RAW: Omit<Tee, "link">[] = [
     fit: "레귤러",
     material: "면",
     functional: [],
+    reviewTags: ["선물용", "클라이밍", "마감깔끔"],
     sizes: ["S", "M", "L", "XL"],
   },
   {
@@ -114,6 +120,7 @@ const RAW: Omit<Tee, "link">[] = [
     fit: "슬림",
     material: "기능성",
     functional: ["냉감", "신축"],
+    reviewTags: ["냉감", "활동성좋음", "운동복"],
     sizes: ["S", "M", "L"],
   },
   {
@@ -130,6 +137,7 @@ const RAW: Omit<Tee, "link">[] = [
     fit: "오버",
     material: "폴리",
     functional: ["통풍"],
+    reviewTags: ["박시핏", "디자인귀여움", "데일리", "목늘어남"],
     sizes: ["프리"],
   },
   {
@@ -146,6 +154,7 @@ const RAW: Omit<Tee, "link">[] = [
     fit: "레귤러",
     material: "기능성",
     functional: ["신축", "흡습속건"],
+    reviewTags: ["색상예쁨", "신축성좋음", "클라이밍"],
     sizes: ["M", "L", "XL"],
   },
   {
@@ -162,6 +171,7 @@ const RAW: Omit<Tee, "link">[] = [
     fit: "오버",
     material: "기능성",
     functional: ["냉감", "통풍", "신축"],
+    reviewTags: ["냉감", "엉덩이커버기장", "여름용"],
     sizes: ["S", "M", "L", "XL"],
   },
 ];

@@ -50,6 +50,19 @@ export function intentToChips(intent: Intent): IntentChip[] {
   for (const fn of intent.functional) {
     chips.push({ label: fn, kind: "functional" });
   }
+  for (const tag of intent.reviewTags ?? []) {
+    chips.push({ label: tag, kind: "reviewTag" });
+  }
+  for (const tag of intent.excludeTags ?? []) {
+    // label은 원본 태그 그대로 — 제거 시 매칭에 쓴다. "제외" 표기는 View에서.
+    chips.push({ label: tag, kind: "exclude" });
+  }
 
-  return chips;
+  // 같은 라벨 중복 제거(예: fit "오버핏" + 리뷰태그 "오버핏"). 먼저 온 칩을 유지.
+  const seen = new Set<string>();
+  return chips.filter((c) => {
+    if (seen.has(c.label)) return false;
+    seen.add(c.label);
+    return true;
+  });
 }

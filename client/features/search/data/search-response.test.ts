@@ -19,6 +19,7 @@ const ROW: SearchRow = {
   fit: null,
   material: null,
   functional: ["냉감"],
+  review_tags: ["디자인귀여움"],
   sizes: ["M", "L"],
   brand_canonical: "포텐셜",
   score: 0.87,
