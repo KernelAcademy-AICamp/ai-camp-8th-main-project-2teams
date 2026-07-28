@@ -1,4 +1,6 @@
 """무신사 API 응답 → m_* 행 변환. 순수 함수(부작용 없음)."""
+import html as _html
+import json
 import re
 
 _COLOR_PAREN = re.compile(r"\(([^()]+)\)\s*$")  # 상품명 끝 (COLOR)
@@ -43,3 +45,35 @@ def is_multi_design_bundle(goods_name: str, gallery_len: int) -> bool:
     if gallery_len == 0:      # 개별 디자인 갤러리가 구조화 필드에 없음 = 번들/비정상
         return True
     return False
+
+
+_NEXT = re.compile(r'__NEXT_DATA__"[^>]*>(\{.*?\})</script>', re.S)
+_IMG_HOST = "https://image.msscdn.net"
+
+
+def parse_next_data(page_html: str) -> dict:
+    m = _NEXT.search(page_html or "")
+    if not m:
+        return {}
+    try:
+        d = json.loads(m.group(1))
+        return d["props"]["pageProps"]["meta"]["data"]
+    except (KeyError, ValueError):
+        return {}
+
+
+def detail_fields(data: dict) -> dict:
+    gallery = [_IMG_HOST + im["imageUrl"] for im in (data.get("goodsImages") or [])
+               if im.get("imageUrl")]
+    chars = {}
+    for grp in (data.get("goodsMaterial") or {}).get("materials", []):
+        sel = [it["name"] for it in grp.get("items", []) if it.get("isSelected")]
+        if sel:
+            chars[grp["name"]] = ", ".join(sel)
+    return {
+        "category_full": data.get("baseCategoryFullPath"),
+        "style_no": data.get("styleNo"),
+        "season": data.get("season"),
+        "gallery": gallery,
+        "review_chars": chars,
+    }

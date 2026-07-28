@@ -1,4 +1,5 @@
-from musinsa.normalize import normalize_plp_item, design_key, is_multi_design_bundle
+import json
+from musinsa.normalize import normalize_plp_item, design_key, is_multi_design_bundle, parse_next_data, detail_fields
 
 PLP = {
     "goodsNo": 4279165,
@@ -46,3 +47,37 @@ def test_bundle_detected_by_empty_gallery():
 
 def test_normal_product_not_bundle():
     assert is_multi_design_bundle("무등산 등산 클라이밍 티셔츠 (IVORY)", 8) is False
+
+
+def _wrap(meta_data: dict) -> str:
+    payload = {"props": {"pageProps": {"meta": {"data": meta_data}}}}
+    return f'<script id="__NEXT_DATA__" type="application/json">{json.dumps(payload)}</script>'
+
+
+META = {
+    "goodsNo": 4279165, "styleNo": "WHSTMI", "season": "2",
+    "baseCategoryFullPath": "Clothing > 티셔츠 > 반소매 티셔츠",
+    "goodsImages": [{"imageUrl": "/images/prd_img/a_500.jpg"},
+                    {"imageUrl": "/images/prd_img/b_500.jpg"}],
+    "goodsMaterial": {"materials": [
+        {"name": "핏", "items": [{"name": "루즈", "isSelected": True},
+                                 {"name": "슬림", "isSelected": False}]}]},
+}
+
+
+def test_parse_next_data_extracts_meta():
+    d = parse_next_data(_wrap(META))
+    assert d["goodsNo"] == 4279165
+
+
+def test_parse_next_data_missing_returns_empty():
+    assert parse_next_data("<html>no script</html>") == {}
+
+
+def test_detail_fields():
+    f = detail_fields(META)
+    assert f["category_full"] == "Clothing > 티셔츠 > 반소매 티셔츠"
+    assert f["style_no"] == "WHSTMI"
+    assert f["gallery"] == ["https://image.msscdn.net/images/prd_img/a_500.jpg",
+                            "https://image.msscdn.net/images/prd_img/b_500.jpg"]
+    assert f["review_chars"] == {"핏": "루즈"}
