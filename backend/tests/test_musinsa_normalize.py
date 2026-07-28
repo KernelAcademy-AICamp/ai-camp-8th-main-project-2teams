@@ -1,5 +1,5 @@
 import json
-from musinsa.normalize import normalize_plp_item, design_key, is_multi_design_bundle, parse_next_data, detail_fields
+from musinsa.normalize import normalize_plp_item, design_key, is_multi_design_bundle, parse_next_data, detail_fields, assemble
 
 PLP = {
     "goodsNo": 4279165,
@@ -81,3 +81,32 @@ def test_detail_fields():
     assert f["gallery"] == ["https://image.msscdn.net/images/prd_img/a_500.jpg",
                             "https://image.msscdn.net/images/prd_img/b_500.jpg"]
     assert f["review_chars"] == {"핏": "루즈"}
+
+
+def test_assemble_normal_product():
+    plp = {"goodsNo": 4279165, "goodsName": "무등산 클라이밍 티셔츠 (IVORY)",
+           "goodsLinkUrl": "https://www.musinsa.com/products/4279165",
+           "thumbnail": "t.jpg", "displayGenderText": "남성",
+           "price": 35000, "finalPrice": 33950, "reviewCount": 4, "reviewScore": 96,
+           "brand": "while", "brandName": "와일"}
+    detail = {"category_full": "Clothing > 티셔츠 > 반소매 티셔츠", "style_no": "WHSTMI",
+              "season": "2", "gallery": ["https://img/a.jpg", "https://img/b.jpg"],
+              "review_chars": {"핏": "루즈"}}
+    out = assemble(plp, detail, brand_id="b-1")
+    assert out["product"]["goods_no"] == 4279165
+    assert out["product"]["color"] == "IVORY"
+    assert out["design"]["design_key"] == design_key("while", "무등산 클라이밍 티셔츠 (IVORY)")
+    assert out["design"]["searchable"] is True
+    assert out["design"]["brand_id"] == "b-1"
+    assert len(out["images"]) == 2
+    assert out["images"][0] == {"goods_no": 4279165, "url": "https://img/a.jpg", "ord": 0}
+
+
+def test_assemble_flags_bundle():
+    plp = {"goodsNo": 1, "goodsName": "그래픽 반팔 티셔츠_5Type",
+           "goodsLinkUrl": "u", "brand": "ntbc", "brandName": "엔티비씨"}
+    detail = {"category_full": "c", "style_no": "x", "season": "1",
+              "gallery": [], "review_chars": {}}
+    out = assemble(plp, detail, brand_id=None)
+    assert out["design"]["searchable"] is False
+    assert out["design"]["exclusion_reason"] == "multi_design_bundle"

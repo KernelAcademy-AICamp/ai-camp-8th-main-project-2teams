@@ -77,3 +77,33 @@ def detail_fields(data: dict) -> dict:
         "gallery": gallery,
         "review_chars": chars,
     }
+
+
+def assemble(plp_item: dict, detail: dict, brand_id: str | None) -> dict:
+    """한 상품의 적재 페이로드 {brand, design, product, images} 조립."""
+    p = normalize_plp_item(plp_item)
+    gallery = detail.get("gallery") or []
+    bundle = is_multi_design_bundle(p["goods_name"], len(gallery))
+    dkey = design_key(p["brand_slug"], p["goods_name"])
+    design = {
+        "design_key": dkey,
+        "title": _COLOR_PAREN.sub("", p["goods_name"]).strip(),
+        "brand_id": brand_id,
+        "category_full": detail.get("category_full"),
+        "searchable": not bundle,
+        "exclusion_reason": "multi_design_bundle" if bundle else None,
+    }
+    product = {
+        "goods_no": p["goods_no"], "goods_name": p["goods_name"], "color": p["color"],
+        "price": p["price"], "final_price": p["final_price"],
+        "review_count": p["review_count"], "review_score": p["review_score"],
+        "gender": p["gender"], "season": detail.get("season"),
+        "url": p["url"], "thumbnail": p["thumbnail"],
+        "review_chars": detail.get("review_chars"), "raw": p["raw"],
+        # size_measures·design_id는 엔트리포인트에서 채움
+    }
+    images = [{"goods_no": p["goods_no"], "url": u, "ord": i}
+              for i, u in enumerate(gallery)]
+    brand = {"musinsa_brand": p["brand_slug"], "brand_name": p["brand_name"]} \
+        if p["brand_slug"] else None
+    return {"brand": brand, "design": design, "product": product, "images": images}
