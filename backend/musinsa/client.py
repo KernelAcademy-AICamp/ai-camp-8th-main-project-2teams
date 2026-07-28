@@ -10,6 +10,7 @@ _HEADERS = {
     "Referer": "https://www.musinsa.com/",
 }
 _PLP = "https://api.musinsa.com/api2/dp/v1/plp/goods"
+_FILTER = "https://api.musinsa.com/api2/dp/v1/plp/filter"
 _ACTUAL = "https://goods-detail.musinsa.com/api2/goods/{no}/actual-size"
 _PAGE = "https://www.musinsa.com/products/{no}"
 
@@ -30,7 +31,8 @@ class MusinsaClient:
         res.raise_for_status()
         return res
 
-    def list_page(self, category: str, page: int, size: int = 100) -> dict:
+    def list_page(self, category: str, page: int, size: int = 100,
+                  extra: dict | None = None) -> dict:
         params = {
             "category": category,
             "gf": "A",
@@ -38,12 +40,14 @@ class MusinsaClient:
             "size": size,
             "page": page,
         }
+        if extra:
+            params.update(extra)
         return self._get(_PLP, params=params).json()["data"]
 
-    def iter_goods(self, category: str, size: int = 100):
+    def iter_goods(self, category: str, size: int = 100, extra: dict | None = None):
         page = 1
         while True:
-            data = self.list_page(category, page, size)
+            data = self.list_page(category, page, size, extra)
             for item in data.get("list", []):
                 yield item
             pg = data.get("pagination", {})
@@ -51,6 +55,10 @@ class MusinsaClient:
                 break
             page += 1
             time.sleep(0.3)  # 레이트리밋
+
+    def filter_facets(self, category: str) -> dict:
+        params = {"category": category, "gf": "A", "caller": "CATEGORY"}
+        return self._get(_FILTER, params=params).json()["data"]
 
     def product_detail(self, goods_no: int) -> dict:
         html = self._get(_PAGE.format(no=goods_no)).text

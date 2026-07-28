@@ -46,3 +46,16 @@ def test_product_detail_parses_next_data(monkeypatch):
     c = MusinsaClient()
     monkeypatch.setattr(c, "_get", lambda url, *, params=None: FakeResp({}, text=html))
     assert c.product_detail(42)["goodsNo"] == 42
+
+
+def test_iter_goods_passes_extra(monkeypatch):
+    seen = {}
+    c = MusinsaClient()
+
+    def fake_get(url, *, params=None):
+        seen.update(params)
+        return FakeResp({"data": {"list": [], "pagination": {"hasNext": False}}})
+
+    monkeypatch.setattr(c, "_get", fake_get)
+    list(c.iter_goods("001001", extra={"color": "블랙"}))
+    assert seen.get("color") == "블랙"
