@@ -2,6 +2,8 @@
 import re
 
 _COLOR_PAREN = re.compile(r"\(([^()]+)\)\s*$")  # 상품명 끝 (COLOR)
+_CODE_TAIL = re.compile(r"[_/]?[A-Za-z0-9]{4,}\s*$")     # 끝의 모델코드
+_BUNDLE = re.compile(r"(_?\d+\s*type|\d+\s*종|\d+\s*color)", re.IGNORECASE)  # 번들 마커
 
 
 def _extract_color(name: str) -> str | None:
@@ -26,3 +28,18 @@ def normalize_plp_item(item: dict) -> dict:
         "brand_name": item.get("brandName"),
         "raw": item,
     }
+
+
+def design_key(brand_slug: str, goods_name: str) -> str:
+    name = _COLOR_PAREN.sub("", goods_name or "").strip()   # (COLOR) 제거
+    name = _CODE_TAIL.sub("", name).strip()                 # 모델코드 제거
+    name = re.sub(r"\s+", " ", name)
+    return f"{(brand_slug or '').lower()}::{name}"
+
+
+def is_multi_design_bundle(goods_name: str, gallery_len: int) -> bool:
+    if _BUNDLE.search(goods_name or ""):
+        return True
+    if gallery_len == 0:      # 개별 디자인 갤러리가 구조화 필드에 없음 = 번들/비정상
+        return True
+    return False
