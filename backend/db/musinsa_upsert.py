@@ -40,3 +40,14 @@ def upsert_products(client, products: list[dict]) -> int:
 def upsert_images(client, images: list[dict]) -> int:
     return _upsert(client, "m_images", images,
                    on_conflict="goods_no,url", key=lambda r: (r["goods_no"], r["url"]))
+
+
+def upsert_raw_goods(client, rows: list[dict]) -> int:
+    return _upsert(client, "m_raw_goods", rows,
+                   on_conflict="goods_no", key=lambda r: r["goods_no"])
+
+
+def upsert_raw_plp_page(client, rows: list[dict]) -> int:
+    return _upsert(client, "m_raw_plp_page", rows,
+                   on_conflict="ingest_tag,page",
+                   key=lambda r: (r["ingest_tag"], r["page"]))
