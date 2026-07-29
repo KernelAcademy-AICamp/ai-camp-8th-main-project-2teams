@@ -1,4 +1,6 @@
 """엔트리포인트 순회·집계 테스트. 실제 API/DB 미접속."""
+from unittest.mock import patch
+
 from run_musinsa_raw_ingest import iter_pages, run
 
 
@@ -63,3 +65,21 @@ def test_run_respects_limit():
     stats = run(c, FakeMC(), ingest_tag="test_v1", limit=1, workers=1)
     assert stats["items"] == 1
     assert stats["saved"] == 1
+
+
+def test_run_batch_sleep_defaults_to_no_extra_sleep():
+    c = FakeClient()
+    with patch("run_musinsa_raw_ingest.time.sleep") as mock_sleep:
+        run(c, FakeMC(), ingest_tag="test_v1", workers=1, batch=100)
+    # 페이지네이션 sleep(0.3)만 호출되고, batch_sleep 기본값(0.0)이라 배치 간 sleep은 없다.
+    assert mock_sleep.call_args_list == [((0.3,), {})]
+
+
+def test_run_batch_sleep_plumbing_skips_final_batch():
+    c = FakeClient()
+    with patch("run_musinsa_raw_ingest.time.sleep") as mock_sleep:
+        stats = run(c, FakeMC(), ingest_tag="test_v1", workers=1, batch=1, batch_sleep=0.2)
+    assert stats["items"] == 3
+    # 3개 아이템을 batch=1로 나누면 배치 3개 → 배치 간 sleep은 마지막 배치 뒤 제외 2회.
+    batch_sleeps = [c for c in mock_sleep.call_args_list if c == ((0.2,), {})]
+    assert len(batch_sleeps) == 2

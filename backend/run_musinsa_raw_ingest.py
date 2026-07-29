@@ -1,5 +1,5 @@
 """무신사 스포츠/레저 반소매T(패턴 보유) 원본 raw 적재.
-사용: cd backend && python run_musinsa_raw_ingest.py [--limit N] [--workers 4] [--ingest-tag sports_patterned_v1]"""
+사용: cd backend && python run_musinsa_raw_ingest.py [--limit N] [--workers 4] [--ingest-tag sports_patterned_v1] [--sleep 0.5]"""
 import argparse
 import time
 
@@ -30,7 +30,8 @@ def _partial_fail(row: dict) -> bool:
     return any(str(v).startswith("error") for v in row["source_status"].values())
 
 
-def run(client, mc, *, ingest_tag: str, limit=None, workers: int = 4, batch: int = 100) -> dict:
+def run(client, mc, *, ingest_tag: str, limit=None, workers: int = 4, batch: int = 100,
+        batch_sleep: float = 0.0) -> dict:
     items: list = []
     pages = 0
     for page, data in iter_pages(mc, CATEGORY, EXTRA):
@@ -53,6 +54,8 @@ def run(client, mc, *, ingest_tag: str, limit=None, workers: int = 4, batch: int
         saved += upsert_raw_goods(client, rows)
         failed += sum(1 for r in rows if _partial_fail(r))
         print(f"...{saved}/{len(items)} 적재 (부분실패 {failed})")
+        if batch_sleep and i + batch < len(items):
+            time.sleep(batch_sleep)
     return {"pages": pages, "items": len(items), "saved": saved, "partial_fail": failed}
 
 
@@ -61,9 +64,10 @@ def main() -> None:
     ap.add_argument("--limit", type=int, default=None)
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--ingest-tag", default="sports_patterned_v1")
+    ap.add_argument("--sleep", type=float, default=0.5)
     args = ap.parse_args()
     stats = run(get_client(), MusinsaClient(), ingest_tag=args.ingest_tag,
-                limit=args.limit, workers=args.workers)
+                limit=args.limit, workers=args.workers, batch_sleep=args.sleep)
     print(f"완료: 페이지 {stats['pages']} · 상품 {stats['items']} · "
           f"적재 {stats['saved']} · 부분실패 {stats['partial_fail']}")
 
