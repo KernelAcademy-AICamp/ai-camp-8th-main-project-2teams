@@ -59,3 +59,24 @@ def test_iter_goods_passes_extra(monkeypatch):
     monkeypatch.setattr(c, "_get", fake_get)
     list(c.iter_goods("001001", extra={"color": "블랙"}))
     assert seen.get("color") == "블랙"
+
+
+def test_detail_json_returns_full_envelope(monkeypatch):
+    c = MusinsaClient()
+    env = {"meta": {"result": "SUCCESS"}, "data": {"goodsNo": 7, "styleNo": "S7"}, "error": None}
+    monkeypatch.setattr(c, "_get", lambda url, *, params=None: FakeResp(env))
+    assert c.detail_json(7) == env
+
+
+def test_options_json_returns_full_envelope(monkeypatch):
+    c = MusinsaClient()
+    env = {"meta": {"result": "SUCCESS"}, "data": {"basic": []}}
+    monkeypatch.setattr(c, "_get", lambda url, *, params=None: FakeResp(env))
+    assert c.options_json(7)["data"]["basic"] == []
+
+
+def test_actual_size_json_returns_full_envelope(monkeypatch):
+    c = MusinsaClient()
+    env = {"meta": {"result": "SUCCESS"}, "data": {"sizes": []}}
+    monkeypatch.setattr(c, "_get", lambda url, *, params=None: FakeResp(env))
+    assert c.actual_size_json(7)["data"]["sizes"] == []

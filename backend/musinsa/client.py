@@ -11,6 +11,8 @@ _HEADERS = {
 }
 _PLP = "https://api.musinsa.com/api2/dp/v1/plp/goods"
 _FILTER = "https://api.musinsa.com/api2/dp/v1/plp/filter"
+_DETAIL = "https://goods-detail.musinsa.com/api2/goods/{no}"
+_OPTIONS = "https://goods-detail.musinsa.com/api2/goods/{no}/options"
 _ACTUAL = "https://goods-detail.musinsa.com/api2/goods/{no}/actual-size"
 _PAGE = "https://www.musinsa.com/products/{no}"
 
@@ -66,3 +68,15 @@ class MusinsaClient:
 
     def actual_size(self, goods_no: int) -> dict:
         return self._get(_ACTUAL.format(no=goods_no)).json().get("data", {})
+
+    def detail_json(self, goods_no: int) -> dict:
+        """상세 JSON API 응답 전체(봉투 그대로). HTML 파싱 불필요."""
+        return self._get(_DETAIL.format(no=goods_no)).json()
+
+    def options_json(self, goods_no: int) -> dict:
+        """옵션(색칩·사이즈) 응답 전체."""
+        return self._get(_OPTIONS.format(no=goods_no)).json()
+
+    def actual_size_json(self, goods_no: int) -> dict:
+        """실측 사이즈 응답 전체(봉투 그대로)."""
+        return self._get(_ACTUAL.format(no=goods_no)).json()
