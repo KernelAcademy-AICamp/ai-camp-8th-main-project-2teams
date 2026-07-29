@@ -24,13 +24,14 @@ def _load_existing(client) -> set:
 
 def run(client, mc: MusinsaClient, *, limit=None, workers: int = 4, batch: int = 100) -> dict:
     existing = _load_existing(client)
-    processed = new = 0
+    processed = new = failed = 0
     buf: list = []
 
     def flush():
-        nonlocal new
+        nonlocal new, failed
         if buf:
             payloads = fetch_payloads(mc, buf, workers=workers)
+            failed += len(buf) - len(payloads)
             new += write_batch(client, payloads)
             buf.clear()
 
@@ -43,9 +44,9 @@ def run(client, mc: MusinsaClient, *, limit=None, workers: int = 4, batch: int =
         buf.append(item)
         if len(buf) >= batch:
             flush()
-            print(f"...{processed} 순회 / {new} 신규 적재")
+            print(f"...{processed} 순회 / {new} 신규 / {failed} 실패")
     flush()
-    return {"processed": processed, "new": new}
+    return {"processed": processed, "new": new, "failed": failed}
 
 
 def main() -> None:
@@ -54,7 +55,7 @@ def main() -> None:
     ap.add_argument("--workers", type=int, default=4)
     args = ap.parse_args()
     stats = run(get_client(), MusinsaClient(), limit=args.limit, workers=args.workers)
-    print(f"완료: 순회 {stats['processed']} · 신규 {stats['new']}")
+    print(f"완료: 순회 {stats['processed']} · 신규 {stats['new']} · 실패 {stats['failed']}")
 
 
 if __name__ == "__main__":
