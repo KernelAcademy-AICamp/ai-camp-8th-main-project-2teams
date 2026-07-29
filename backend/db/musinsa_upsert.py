@@ -51,3 +51,10 @@ def upsert_raw_plp_page(client, rows: list[dict]) -> int:
     return _upsert(client, "m_raw_plp_page", rows,
                    on_conflict="ingest_tag,page",
                    key=lambda r: (r["ingest_tag"], r["page"]))
+
+
+def upsert_raw_facets(client, rows: list[dict]) -> int:
+    return _upsert(client, "m_raw_facets", rows,
+                   on_conflict="ingest_tag,goods_no,parameter_key,value",
+                   key=lambda r: (r["ingest_tag"], r["goods_no"],
+                                  r["parameter_key"], r["value"]))

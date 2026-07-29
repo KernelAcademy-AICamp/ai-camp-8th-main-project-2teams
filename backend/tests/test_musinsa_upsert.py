@@ -49,3 +49,25 @@ def test_upsert_raw_plp_page_uses_composite_conflict():
     assert n == 1
     assert c.log[0][0] == "m_raw_plp_page"
     assert c.log[0][1] == "ingest_tag,page"
+
+
+from db.musinsa_upsert import upsert_raw_facets
+
+
+def test_upsert_raw_facets_uses_composite_conflict():
+    c = _FakeClient()
+    n = upsert_raw_facets(c, [
+        {"ingest_tag": "t", "goods_no": 1, "parameter_key": "color", "value": "WHITE"},
+    ])
+    assert n == 1
+    assert c.log[0][0] == "m_raw_facets"
+    assert c.log[0][1] == "ingest_tag,goods_no,parameter_key,value"
+
+
+def test_upsert_raw_facets_dedupes_same_tag():
+    c = _FakeClient()
+    n = upsert_raw_facets(c, [
+        {"ingest_tag": "t", "goods_no": 1, "parameter_key": "attributeMaterial", "value": "1^3", "display_text": "면"},
+        {"ingest_tag": "t", "goods_no": 1, "parameter_key": "attributeMaterial", "value": "1^3", "display_text": "면"},
+    ])
+    assert n == 1  # 동일 (tag,goods,pk,value) 중복은 접힘
