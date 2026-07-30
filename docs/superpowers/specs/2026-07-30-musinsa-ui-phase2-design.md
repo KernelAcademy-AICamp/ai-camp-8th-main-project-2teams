@@ -35,8 +35,8 @@ Phase 2는 클라이언트 4개 층(data·domain·viewmodel·presentation)과 �
 ## 4. 검색 결과 화면
 
 ### 4.1 의도칩 (유지 · 재매핑)
-- `QueryIntent`(gender·sizeStd·priceMin/Max·style{colors·patterns·materials·fits·keywords}·exclude) → 칩 목록으로 변환하는 `queryIntentToChips`.
-- **칩 X = 해당 조건 제거 후 재검색**. `QueryIntent` 기준으로 `removeConstraint`/`reconcileWorkingIntent` 재작성. 제거 단위: 각 색/패턴/소재/핏 값 개별, 성별, 사이즈(전체), 가격(전체), exclude 값.
+- `QueryIntent`(gender·sizeStd·priceMin/Max·style{colors·patterns·materials·fits·keywords}·**wearChars{촉감·두께·비침·신축성·계절}**·exclude) → 칩 목록으로 변환하는 `queryIntentToChips`. **wearChars는 Phase 1.5a에서 실재하게 된 축**(구어 "부드러운/시원한"→착용감 값). 칩 라벨은 "촉감:부드러움"처럼 축:값. 5축 각 값이 개별 칩.
+- **칩 X = 해당 조건 제거 후 재검색**. `QueryIntent` 기준으로 `removeConstraint`/`reconcileWorkingIntent` 재작성. 제거 단위: 각 색/패턴/소재/핏 값 개별, **각 wearChars 축 값 개별**, 성별, 사이즈(전체), 가격(전체), exclude 값.
 - 읽기전용이 아닌 상호작용 칩(기존 UX 자산 계승).
 
 ### 4.2 결과 카드 (이미지 중심 커머스)
@@ -53,6 +53,7 @@ Phase 2는 클라이언트 4개 층(data·domain·viewmodel·presentation)과 �
 
 - `gallery[]` 캐러셀 + 브랜드·제목·가격·⭐리뷰(리뷰 없으면 미노출).
 - 구조화 속성 뱃지: 색·패턴·소재·핏(핏은 43%만 존재 → 있을 때만).
+- **착용감(wearChars) 표시**: `Goods.wearChars`(1.5a 배선)의 촉감·두께·비침·신축성·계절을 요약 노출(값 있는 축만). 표준화 사이즈 표와 함께 "우리 기준"을 이룸.
 - **표준화 사이즈(cm) 실측 표** — `size_measures`(98% 채워짐) 기반. 구조: `[{name:"M", items:[{name:"총장",value:66,...},{name:"어깨너비"...},{name:"가슴단면"...},{name:"소매길이"...}]}]`. 사이즈행 × 4측정치 표로. 프리사이즈(12%)는 단일 Free 행.
 - 하단 **"무신사에서 구매"** 아웃바운드 버튼(`Goods.url`, 새 탭 `rel=noopener`, `track` 이벤트).
 - 라우트 `/tee/[id]` → `/goods/[goodsNo]`. 단건 로드: `goods-repository.getByGoodsNo(goodsNo)`.
@@ -72,7 +73,7 @@ Phase 2는 클라이언트 4개 층(data·domain·viewmodel·presentation)과 �
 
 ## 7. 애널리틱스
 
-- `shared/analytics-params.ts`: `Intent` 필드(baseColor·printColor·printPosition·graphicType·fit) → `QueryIntent` 필드(colors·patterns·materials·fits·sizeStd·priceMin/Max·gender)로 `flattenParsedAttributes`/`hasParsedConstraint` 재작성.
+- `shared/analytics-params.ts`: `Intent` 필드(baseColor·printColor·printPosition·graphicType·fit) → `QueryIntent` 필드(colors·patterns·materials·fits·**wearChars**·sizeStd·priceMin/Max·gender)로 `flattenParsedAttributes`/`hasParsedConstraint` 재작성.
 - `resultType`(exact/partial)은 무신사가 랭킹 top-N 단일 리스트라 의미 소멸 → 단순화(제거 또는 상수화). `deriveResultType`/`entryTypeFromSrc` 정리.
 - 검색 이벤트(`search`)·아웃바운드(`outbound_click`) 추적 지점 유지·필드만 교체.
 
