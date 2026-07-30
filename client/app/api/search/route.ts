@@ -71,8 +71,9 @@ export async function POST(request: Request): Promise<Response> {
     } satisfies SearchPayload);
   }
 
-  // 3) 매핑 + 앱단 소프트 랭킹 → top 60.
+  // 3) 매핑 + 앱단 소프트 랭킹 → 상위 N. 스타일은 하드 필터라 후보=조건 매칭(빈결과는 빈결과).
+  //    상한 300(옛 60 → 넓힘). 전체(예: 흰티 734) 노출은 페이지네이션 후속.
   const candidates = data.map(mapGoodsRow);
-  const results = rankGoods(candidates, intent, 60);
+  const results = rankGoods(candidates, intent, 300);
   return Response.json({ results, intent, degraded } satisfies SearchPayload);
 }
