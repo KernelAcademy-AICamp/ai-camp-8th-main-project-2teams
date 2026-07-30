@@ -2,7 +2,7 @@
 
 // ViewModel (MVVM) — 검색 결과 화면. query(=URL)로 로딩·의도칩·결과·degraded 계산.
 // 서버 /api/search(무신사) 호출. 칩은 읽기 전용(2a). 상태 변경은 .then()/이벤트 콜백에서만.
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type { Goods } from "@/features/catalog/domain/goods";
 import { searchRemote } from "@/features/search/data/search-remote";
@@ -44,7 +44,6 @@ const EMPTY_PARSED: Parsed = {
 };
 
 export function useSearchViewModel(query: string, src: string | null): SearchViewModel {
-  const searchIdRef = useRef("");
   const [searchId, setSearchId] = useState("");
   const [parsed, setParsed] = useState<Parsed>(EMPTY_PARSED);
   const [attempt, setAttempt] = useState(0);
@@ -59,7 +58,6 @@ export function useSearchViewModel(query: string, src: string | null): SearchVie
     let active = true;
     if (!query.trim()) return; // 동기 setState 금지 — 빈 상태는 파생값으로 처리.
     const id = newSearchId();
-    searchIdRef.current = id;
     const startedAt = performance.now();
     void searchRemote(query).then(({ results, intent, degraded }) => {
       if (!active) return;

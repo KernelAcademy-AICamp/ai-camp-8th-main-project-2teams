@@ -25,11 +25,14 @@ export default function SearchResults() {
       <main className="mx-auto w-full max-w-5xl flex-1 px-5 py-6">
         <SearchBar key={query} initialValue={query} onSearch={go} />
 
-        {query.trim() && !vm.loading && !vm.degraded && (
-          <div className="rise mt-5">
-            <IntentChips chips={vm.chips} />
-          </div>
-        )}
+        {query.trim() &&
+          !vm.loading &&
+          !vm.degraded &&
+          (vm.chips.length > 0 || vm.results.length === 0) && (
+            <div className="rise mt-5">
+              <IntentChips chips={vm.chips} />
+            </div>
+          )}
 
         {(() => {
           if (vm.loading) {
