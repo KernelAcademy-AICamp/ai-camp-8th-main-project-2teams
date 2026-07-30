@@ -138,3 +138,31 @@ def test_derive_row_includes_size_parses():
     assert r["size_numbers"] == [95, 100, 105]
     assert r["size_letters"] == ["M", "L", "XL"]
     assert r["size_free"] is False
+
+
+from musinsa.normalize_search import compute_size_std
+
+
+def test_size_std_men_number_and_letter():
+    assert compute_size_std([95, 100], ["M", "L"], "남성") == [95, 100]
+    assert compute_size_std([], ["S", "M", "L"], "남성") == [90, 95, 100]   # 글자→cm
+    assert compute_size_std([110], ["2XL"], "남성") == [110]                # XXL=2XL=110
+
+
+def test_size_std_women_44_system():
+    assert compute_size_std([44, 55, 66], [], "여성") == [85, 90, 95]       # 44체계→cm
+    assert compute_size_std([44], [], "여성") == [85]                       # 44반은 파서가 44로 → 85
+
+
+def test_size_std_keeps_cm_drops_small_nonwomen():
+    assert compute_size_std([90, 100], [], "남성") == [90, 100]             # cm 유지
+    assert compute_size_std([55], [], "남성") == []                        # 남성 <85 44체계 아님 → 무시
+
+
+def test_derive_row_includes_size_std():
+    from musinsa.normalize_search import derive_row
+    raw = {"goods_no": 1, "plp": {"displayGenderText": "여성"},
+           "detail": {"goodsNm": "t", "goodsImages": [{"imageUrl": "/a.jpg"}, {"imageUrl": "/b.jpg"}]},
+           "actual_size": {"sizes": [{"name": "44"}, {"name": "55"}, {"name": "66"}]}}
+    r = derive_row(raw, [])
+    assert r["size_std"] == [85, 90, 95]

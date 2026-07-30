@@ -66,6 +66,27 @@ def is_free_size(sizes: list, numbers: list, letters: list) -> bool:
     return False
 
 
+LETTER_CM = {"XS": 85, "S": 90, "M": 95, "L": 100, "XL": 105,
+             "XXL": 110, "2XL": 110, "XXXL": 115, "3XL": 115,
+             "4XL": 120, "5XL": 125, "6XL": 130}
+W44_CM = {44: 85, 55: 90, 66: 95, 77: 100}
+
+
+def compute_size_std(size_numbers: list, size_letters: list, gender) -> list:
+    out = set()
+    women = gender == "여성"
+    for n in size_numbers or []:
+        if n >= 85:
+            out.add(n)
+        elif women and n in W44_CM:
+            out.add(W44_CM[n])
+    for lab in size_letters or []:
+        cm = LETTER_CM.get(lab)
+        if cm:
+            out.add(cm)
+    return sorted(out)
+
+
 def derive_row(raw: dict, facet_rows: list[dict]) -> dict:
     detail = raw.get("detail") or {}
     plp = raw.get("plp") or {}
@@ -87,6 +108,7 @@ def derive_row(raw: dict, facet_rows: list[dict]) -> dict:
     slug = (brand_info.get("brand") or "").lower()
     sn = parse_size_numbers(sizes)
     sl = parse_size_letters(sizes)
+    size_std = compute_size_std(sn, sl, plp.get("displayGenderText"))
     return {
         "goods_no": raw["goods_no"],
         "style_key": f"{slug}::{style_no}" if style_no else None,
@@ -115,4 +137,5 @@ def derive_row(raw: dict, facet_rows: list[dict]) -> dict:
         "size_numbers": sn,
         "size_letters": sl,
         "size_free": is_free_size(sizes, sn, sl),
+        "size_std": size_std,
     }
