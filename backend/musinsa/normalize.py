@@ -4,7 +4,7 @@ import re
 
 _COLOR_PAREN = re.compile(r"\(([^()]+)\)\s*$")  # 상품명 끝 (COLOR)
 _CODE_TAIL = re.compile(r"[_/]?[A-Za-z0-9]{4,}\s*$")     # 끝의 모델코드
-_BUNDLE = re.compile(r"(_?\d+\s*type|\d+\s*종|\d+\s*color)", re.IGNORECASE)  # 번들 마커
+_BUNDLE = re.compile(r"_?\d+\s*type|\d+\s*종", re.IGNORECASE)  # 번들 마커 (N-Color는 단일 디자인 색상 변형이라 제외)
 
 
 def _extract_color(name: str) -> str | None:

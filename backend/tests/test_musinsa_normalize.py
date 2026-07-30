@@ -49,6 +49,15 @@ def test_normal_product_not_bundle():
     assert is_multi_design_bundle("무등산 등산 클라이밍 티셔츠 (IVORY)", 8) is False
 
 
+def test_bundle_ignores_color_marker():
+    # 색 변형(단일 디자인)은 번들 아님
+    assert is_multi_design_bundle("데일리 크롭 티셔츠-3Color", 5) is False
+    assert is_multi_design_bundle("Vintage t-shirt_7colors", 5) is False
+    # 진짜 다중디자인(type/종)은 여전히 번들
+    assert is_multi_design_bundle("그래픽 반팔 티셔츠_5Type", 5) is True
+    assert is_multi_design_bundle("클라이밍 3종 세트", 5) is True
+
+
 def _wrap(meta_data: dict) -> str:
     payload = {"props": {"pageProps": {"meta": {"data": meta_data}}}}
     return f'<script id="__NEXT_DATA__" type="application/json">{json.dumps(payload)}</script>'
