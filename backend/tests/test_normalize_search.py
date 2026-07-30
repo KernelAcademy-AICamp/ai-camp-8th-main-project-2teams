@@ -49,12 +49,11 @@ def test_wear_chars_takes_selected():
     assert wear_chars(_detail()) == {"핏": "루즈", "촉감": "보통"}
 
 
-def test_is_bundle_markers_and_empty_gallery():
-    assert is_bundle("반팔티 3종 세트", ["x"]) is True
-    assert is_bundle("오버핏 반팔티_5Type", ["x"]) is True
-    assert is_bundle("그래픽 반팔티", []) is True          # 갤러리 빔
-    assert is_bundle("데일리 크롭 티셔츠_3Color", ["x"]) is False   # 색옵션은 번들 아님
-    assert is_bundle("머슬핏 반팔 티셔츠 (BLACK)", ["x"]) is False
+def test_is_bundle_markers():
+    assert is_bundle("반팔티 3종 세트") is True
+    assert is_bundle("오버핏 반팔티_5Type") is True
+    assert is_bundle("데일리 크롭 티셔츠_3Color") is False   # 색옵션은 번들 아님
+    assert is_bundle("머슬핏 반팔 티셔츠 (BLACK)") is False
 
 
 def test_derive_row_full():
@@ -83,6 +82,13 @@ def test_derive_row_bundle_and_nulls():
     assert r["searchable"] is False
     assert r["exclusion_reason"] == "multi_design_bundle"
     assert r["sizes"] == [] and r["colors"] == []       # facet·actual 없음
+
+
+def test_derive_row_insufficient_images_not_bundle():
+    d = _detail(); d["goodsImages"] = [{"imageUrl": "/a.jpg"}]   # 컷 1장뿐, 번들 아님
+    r = derive_row(_raw(detail=d), [])
+    assert r["searchable"] is False
+    assert r["exclusion_reason"] == "insufficient_images"
 
 
 def test_derive_row_sizes_from_actual():

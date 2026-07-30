@@ -34,7 +34,7 @@ def _goods(n):
     return {"goods_no": n, "plp": {"displayGenderText": "남성"},
             "detail": {"goodsNm": f"티셔츠 {n} (BLACK)", "styleNo": f"S{n}",
                        "brandInfo": {"brand": "b", "brandName": "브"},
-                       "goodsImages": [{"imageUrl": "/a.jpg"}]},
+                       "goodsImages": [{"imageUrl": "/a.jpg"}, {"imageUrl": "/b.jpg"}]},
             "actual_size": {"sizes": [{"name": "M"}]}}
 
 

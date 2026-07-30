@@ -34,10 +34,8 @@ def wear_chars(detail: dict) -> dict:
     return out
 
 
-def is_bundle(goods_nm: str, gallery: list) -> bool:
-    if _BUNDLE.search(goods_nm or ""):
-        return True
-    return not gallery
+def is_bundle(goods_nm: str) -> bool:
+    return bool(_BUNDLE.search(goods_nm or ""))
 
 
 def parse_size_numbers(sizes: list) -> list:
@@ -77,7 +75,9 @@ def derive_row(raw: dict, facet_rows: list[dict]) -> dict:
     fa = facet_arrays(facet_rows)
     gallery = [IMG_HOST + im["imageUrl"] for im in (detail.get("goodsImages") or [])
                if im.get("imageUrl")]
-    bundle = is_bundle(nm, gallery)
+    bundle = is_bundle(nm)
+    enough_images = len(gallery) >= 2
+    searchable = (not bundle) and enough_images
     m = _COLOR_PAREN.search(nm)
     color = m.group(1).strip() if m else (fa["colors"][0] if fa["colors"] else None)
     price = (detail.get("goodsPrice") or {}).get("finalPrice")
@@ -90,8 +90,9 @@ def derive_row(raw: dict, facet_rows: list[dict]) -> dict:
     return {
         "goods_no": raw["goods_no"],
         "style_key": f"{slug}::{style_no}" if style_no else None,
-        "searchable": not bundle,
-        "exclusion_reason": "multi_design_bundle" if bundle else None,
+        "searchable": searchable,
+        "exclusion_reason": ("multi_design_bundle" if bundle
+                             else "insufficient_images" if not enough_images else None),
         "title": _COLOR_PAREN.sub("", nm).strip(),
         "brand": brand_info.get("brandName"),
         "category": detail.get("baseCategoryFullPath"),
