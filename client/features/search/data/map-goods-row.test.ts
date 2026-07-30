@@ -25,6 +25,7 @@ const base: SearchGoodsRow = {
   url: "https://musinsa.com/goods/1085371",
   thumbnail: "t.jpg",
   wear_chars: null,
+  size_measures: null,
 };
 
 describe("mapGoodsRow", () => {
@@ -71,5 +72,22 @@ describe("mapGoodsRow wearChars", () => {
   it("null이면 빈 객체", () => {
     const g = mapGoodsRow({ ...base, wear_chars: null });
     expect(g.wearChars).toEqual({});
+  });
+});
+
+describe("mapGoodsRow sizeMeasures", () => {
+  it("size_measures 구조를 그대로 매핑", () => {
+    const g = mapGoodsRow({
+      ...base,
+      size_measures: [
+        { name: "M", items: [{ name: "총장", value: 66, recommendSizeRange: 5 }] },
+      ],
+    });
+    expect(g.sizeMeasures).toEqual([
+      { name: "M", items: [{ name: "총장", value: 66, recommendSizeRange: 5 }] },
+    ]);
+  });
+  it("null이면 빈 배열", () => {
+    expect(mapGoodsRow({ ...base, size_measures: null }).sizeMeasures).toEqual([]);
   });
 });

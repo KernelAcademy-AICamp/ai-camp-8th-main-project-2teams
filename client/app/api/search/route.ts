@@ -14,6 +14,11 @@ import { rankGoods } from "@/features/search/domain/rank-goods";
 
 export const maxDuration = 30;
 
+// 검색 카드/랭킹에 필요한 컬럼만. 상세 전용(gallery·size_measures)은 제외 → 응답 경량화.
+const SEARCH_SUMMARY_COLUMNS =
+  "goods_no,style_key,title,brand,category,gender,season,color,colors,patterns," +
+  "materials,fits,sizes,size_free,size_std,price,review_count,review_score,url,thumbnail,wear_chars";
+
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 // publishable(=anon) 키. search_goods는 anon SELECT 허용.
 const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "";
@@ -50,7 +55,9 @@ export async function POST(request: Request): Promise<Response> {
 
   // 2) 하드 필터 쿼리 → 후보 전량 페치.
   const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-  const base = supabase.from("search_goods").select("*") as unknown as GoodsQuery;
+  const base = supabase
+    .from("search_goods")
+    .select(SEARCH_SUMMARY_COLUMNS) as unknown as GoodsQuery;
   const queryBuilder = buildGoodsQuery(base, intent);
   const { data, error } = await (queryBuilder as unknown as PromiseLike<{
     data: SearchGoodsRow[] | null;

@@ -1,5 +1,5 @@
 // search_goods 뷰 행 → Goods 도메인. 얇은 매핑(뷰가 이미 정제). null 코얼레싱만.
-import type { Goods } from "@/features/catalog/domain/goods";
+import type { Goods, SizeMeasureRow } from "@/features/catalog/domain/goods";
 
 export interface SearchGoodsRow {
   goods_no: string | number;
@@ -24,6 +24,7 @@ export interface SearchGoodsRow {
   url: string | null;
   thumbnail: string | null;
   wear_chars: Record<string, string> | null;
+  size_measures: SizeMeasureRow[] | null;
 }
 
 export function mapGoodsRow(row: SearchGoodsRow): Goods {
@@ -50,5 +51,6 @@ export function mapGoodsRow(row: SearchGoodsRow): Goods {
     url: row.url ?? "",
     thumbnail: row.thumbnail ?? "",
     wearChars: row.wear_chars ?? {},
+    sizeMeasures: row.size_measures ?? [],
   };
 }
