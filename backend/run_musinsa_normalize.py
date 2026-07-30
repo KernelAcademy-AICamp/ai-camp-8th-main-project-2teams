@@ -16,7 +16,7 @@ def load_facets(client, ingest_tag: str) -> dict:
     while True:
         b = (client.table("m_raw_facets")
              .select("goods_no,parameter_key,value,display_text")
-             .eq("ingest_tag", ingest_tag).range(off, off + 999).execute().data)
+             .eq("ingest_tag", ingest_tag).order("goods_no").range(off, off + 999).execute().data)
         if not b:
             break
         for r in b:
@@ -41,7 +41,7 @@ def run(client, *, ingest_tag: str, limit=None, batch: int = 200) -> dict:
     off = 0
     while True:
         rows = (client.table(TABLE).select("goods_no,plp,detail,actual_size")
-                .eq("ingest_tag", ingest_tag).range(off, off + 999).execute().data)
+                .eq("ingest_tag", ingest_tag).order("goods_no").range(off, off + 999).execute().data)
         if not rows:
             break
         for raw in rows:

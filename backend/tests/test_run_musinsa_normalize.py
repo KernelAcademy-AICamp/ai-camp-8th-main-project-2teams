@@ -16,6 +16,8 @@ class FakeClient:
                 self._sel = sel; return self
             def eq(self, col, val):
                 self._eq = (col, val); return self
+            def order(self, *a, **k):
+                return self
             def range(self, lo, hi):
                 self._range = (lo, hi); return self
             def upsert(self, rows, on_conflict=None):
