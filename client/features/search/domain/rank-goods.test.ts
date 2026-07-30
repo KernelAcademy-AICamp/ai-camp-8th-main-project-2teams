@@ -24,6 +24,7 @@ function goods(p: Partial<Goods> & { goodsNo: string }): Goods {
     gallery: [],
     url: "",
     thumbnail: "",
+    wearChars: {},
     ...p,
   };
 }

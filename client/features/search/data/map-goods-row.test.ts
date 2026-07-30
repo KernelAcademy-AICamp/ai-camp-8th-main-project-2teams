@@ -24,6 +24,7 @@ const base: SearchGoodsRow = {
   gallery: ["a.jpg", "b.jpg"],
   url: "https://musinsa.com/goods/1085371",
   thumbnail: "t.jpg",
+  wear_chars: null,
 };
 
 describe("mapGoodsRow", () => {
@@ -58,5 +59,17 @@ describe("mapGoodsRow", () => {
     expect(g.reviewScore).toBe(0);
     expect(g.sizeFree).toBe(false);
     expect(g.brand).toBe("");
+  });
+});
+
+describe("mapGoodsRow wearChars", () => {
+  it("wear_chars 딕셔너리를 그대로 매핑", () => {
+    const g = mapGoodsRow({ ...base, wear_chars: { 촉감: "부드러움", 두께: "얇음" } });
+    expect(g.wearChars).toEqual({ 촉감: "부드러움", 두께: "얇음" });
+  });
+
+  it("null이면 빈 객체", () => {
+    const g = mapGoodsRow({ ...base, wear_chars: null });
+    expect(g.wearChars).toEqual({});
   });
 });

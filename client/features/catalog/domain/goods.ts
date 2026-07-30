@@ -21,4 +21,6 @@ export interface Goods {
   gallery: string[];
   url: string;
   thumbnail: string;
+  // 착용감 축별 단일값. 상품은 축을 다 갖지 않으므로 partial(인덱스 접근 = string | undefined).
+  wearChars: Partial<Record<string, string>>;
 }

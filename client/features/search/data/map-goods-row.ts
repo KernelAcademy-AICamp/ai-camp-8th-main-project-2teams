@@ -23,6 +23,7 @@ export interface SearchGoodsRow {
   gallery: string[] | null;
   url: string | null;
   thumbnail: string | null;
+  wear_chars: Record<string, string> | null;
 }
 
 export function mapGoodsRow(row: SearchGoodsRow): Goods {
@@ -48,5 +49,6 @@ export function mapGoodsRow(row: SearchGoodsRow): Goods {
     gallery: row.gallery ?? [],
     url: row.url ?? "",
     thumbnail: row.thumbnail ?? "",
+    wearChars: row.wear_chars ?? {},
   };
 }
