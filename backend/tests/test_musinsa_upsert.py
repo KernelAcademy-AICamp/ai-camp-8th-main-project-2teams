@@ -71,3 +71,14 @@ def test_upsert_raw_facets_dedupes_same_tag():
         {"ingest_tag": "t", "goods_no": 1, "parameter_key": "attributeMaterial", "value": "1^3", "display_text": "면"},
     ])
     assert n == 1  # 동일 (tag,goods,pk,value) 중복은 접힘
+
+
+from db.musinsa_upsert import update_derived
+
+
+def test_update_derived_targets_goods_no():
+    c = _FakeClient()
+    n = update_derived(c, [{"goods_no": 1, "title": "t", "searchable": True}])
+    assert n == 1
+    assert c.log[0][0] == "m_raw_goods"
+    assert c.log[0][1] == "goods_no"

@@ -58,3 +58,8 @@ def upsert_raw_facets(client, rows: list[dict]) -> int:
                    on_conflict="ingest_tag,goods_no,parameter_key,value",
                    key=lambda r: (r["ingest_tag"], r["goods_no"],
                                   r["parameter_key"], r["value"]))
+
+
+def update_derived(client, rows: list[dict]) -> int:
+    return _upsert(client, "m_raw_goods", rows,
+                   on_conflict="goods_no", key=lambda r: r["goods_no"])
