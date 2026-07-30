@@ -2,6 +2,7 @@
 사용: cd backend && python run_musinsa_facets.py [--ingest-tag sports_patterned_v1]
       [--groups attributeMaterial,color] [--page-sleep 0.3] [--value-sleep 0.5]"""
 import argparse
+import time
 
 from db.client import get_client
 from db.musinsa_upsert import upsert_raw_facets
@@ -31,14 +32,24 @@ def run(client, mc, *, ingest_tag: str, groups=None,
     fvals = parse_facet_values(mc.filter_facets(CATEGORY))
     if groups:
         fvals = [v for v in fvals if v["parameter_key"] in set(groups)]
-    rows = collect_memberships(mc, CATEGORY, fvals, our,
-                               page_sleep=page_sleep, value_sleep=value_sleep)
-    for r in rows:
-        r["ingest_tag"] = ingest_tag
-    upsert_raw_facets(client, rows)
-    covered = len({r["goods_no"] for r in rows})
-    print(f"facet값 {len(fvals)} · 멤버십 {len(rows)} · 커버 goods {covered}/{len(our)}")
-    return {"facet_values": len(fvals), "memberships": len(rows), "goods_covered": covered}
+    total = 0
+    covered: set = set()
+    by_group: dict = {}
+    for i, fv in enumerate(fvals):
+        rows = collect_memberships(mc, CATEGORY, [fv], our,
+                                   page_sleep=page_sleep, value_sleep=0.0)
+        for r in rows:
+            r["ingest_tag"] = ingest_tag
+        upsert_raw_facets(client, rows)  # 값 단위 즉시 반영: 도중 실패해도 여기까지는 보존
+        total += len(rows)
+        covered |= {r["goods_no"] for r in rows}
+        by_group[fv["parameter_key"]] = by_group.get(fv["parameter_key"], 0) + len(rows)
+        if value_sleep and i + 1 < len(fvals):
+            time.sleep(value_sleep)
+    for pk, n in sorted(by_group.items()):
+        print(f"  {pk}: 태그 {n}")
+    print(f"facet값 {len(fvals)} · 멤버십 {total} · 커버 goods {len(covered)}/{len(our)}")
+    return {"facet_values": len(fvals), "memberships": total, "goods_covered": len(covered)}
 
 
 def main() -> None:
