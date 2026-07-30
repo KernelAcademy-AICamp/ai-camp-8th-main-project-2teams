@@ -4,7 +4,7 @@
 
 ## 프로젝트
 - **search-by-llm** — 프린팅 티 발견 검색 (LLM 상품검색 MVP). 첫 타겟 = "등이 보이는 운동"을 하는 사람(D15), 데이터 소스 = 무신사(D14)
-- 팀: 고양이가 세상을 구한다 (김홍교·홍상호·신유정·라진우) · Kernel Academy AI Camp 8기 메인 2팀
+- 팀: 고양이가 세상을 구한다 (4명 — 개발 / 카탈로그 / 시각속성 검증 / 감각속성·인터뷰) · Kernel Academy AI Camp 8기 메인 2팀
 - 기획 문서: [`docs/product-methodology/`](docs/product-methodology/) — 상세 결정은 그 안 README(D1~D12) 참고
 - 실행: 3×2주 Build-Measure-Learn 린 루프 (핵심 = 데이터로 의사결정)
 
