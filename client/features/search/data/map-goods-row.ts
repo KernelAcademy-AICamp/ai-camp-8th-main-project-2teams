@@ -20,11 +20,13 @@ export interface SearchGoodsRow {
   price: number | null;
   review_count: number | null;
   review_score: number | null;
-  gallery: string[] | null;
+  // gallery·size_measures는 상세 전용 컬럼. 검색 summary select엔 없어서 optional
+  // (검색 응답 경량화 — mapGoodsRow가 `?? []`로 흡수).
+  gallery?: string[] | null;
   url: string | null;
   thumbnail: string | null;
   wear_chars: Record<string, string> | null;
-  size_measures: SizeMeasureRow[] | null;
+  size_measures?: SizeMeasureRow[] | null;
 }
 
 export function mapGoodsRow(row: SearchGoodsRow): Goods {

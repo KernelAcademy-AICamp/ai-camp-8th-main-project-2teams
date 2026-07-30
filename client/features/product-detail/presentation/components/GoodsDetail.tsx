@@ -31,8 +31,8 @@ function Gallery({ goods }: { goods: Goods }) {
         )}
       </div>
       {imgs.length > 1 && (
-        <div className="grid grid-cols-5 gap-2">
-          {imgs.slice(0, 10).map((src) => (
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {imgs.map((src) => (
             <button
               key={src}
               type="button"
@@ -40,13 +40,13 @@ function Gallery({ goods }: { goods: Goods }) {
                 setMain(src);
               }}
               aria-label="이미지 보기"
-              className={`relative aspect-square overflow-hidden rounded-lg border bg-chalk ${src === main ? "border-ink" : "border-line"}`}
+              className={`relative aspect-square w-16 shrink-0 overflow-hidden rounded-lg border bg-chalk ${src === main ? "border-ink" : "border-line"}`}
             >
               <Image
                 src={src}
                 alt={goods.title}
                 fill
-                sizes="20vw"
+                sizes="64px"
                 className="object-cover"
               />
             </button>
@@ -77,14 +77,14 @@ function Badges({ label, values }: { label: string; values: string[] }) {
 }
 
 function SizeTableView({ goods }: { goods: Goods }) {
-  const table = buildSizeTable(goods.sizeMeasures, goods.color);
+  const table = buildSizeTable(goods.sizeMeasures);
   if (table.rows.length === 0 || table.cols.length === 0) return null;
   return (
     <div className="flex flex-col gap-2">
       <span className="font-mono text-[12px] uppercase tracking-wide text-ink-soft">
         사이즈 실측(cm)
       </span>
-      <div className="overflow-x-auto rounded-2xl border border-line">
+      <div className="max-h-80 overflow-auto rounded-2xl border border-line">
         <table className="w-full border-collapse text-[13px]">
           <thead>
             <tr className="bg-chalk text-ink-soft">
@@ -146,7 +146,9 @@ export default function GoodsDetail({ goodsNo }: { goodsNo: string }) {
         <button
           type="button"
           onClick={() => {
-            router.back();
+            // 앱 내 히스토리가 있으면 이전 검색으로, 직접 진입(새 탭/공유링크)이면 /search 폴백.
+            if (window.history.length > 1) router.back();
+            else router.push("/search");
           }}
           className="mb-5 inline-flex items-center gap-1 font-mono text-[12px] text-ink-soft transition hover:text-ink"
         >
