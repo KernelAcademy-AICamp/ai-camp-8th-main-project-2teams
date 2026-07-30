@@ -36,8 +36,7 @@ Phase 2는 클라이언트 4개 층(data·domain·viewmodel·presentation)과 �
 
 ### 4.1 의도칩 (유지 · 재매핑)
 - `QueryIntent`(gender·sizeStd·priceMin/Max·style{colors·patterns·materials·fits·keywords}·**wearChars{촉감·두께·비침·신축성·계절}**·exclude) → 칩 목록으로 변환하는 `queryIntentToChips`. **wearChars는 Phase 1.5a에서 실재하게 된 축**(구어 "부드러운/시원한"→착용감 값). 칩 라벨은 "촉감:부드러움"처럼 축:값. 5축 각 값이 개별 칩.
-- **칩 X = 해당 조건 제거 후 재검색**. `QueryIntent` 기준으로 `removeConstraint`/`reconcileWorkingIntent` 재작성. 제거 단위: 각 색/패턴/소재/핏 값 개별, **각 wearChars 축 값 개별**, 성별, 사이즈(전체), 가격(전체), exclude 값.
-- 읽기전용이 아닌 상호작용 칩(기존 UX 자산 계승).
+- **2a는 읽기 전용 칩**("AI가 이해한 조건" 표시). 제약 제거(칩 X→재검색)는 서버가 이미 후보를 top-N(60)으로 pre-slice하므로 클라 재랭크만으로는 조건 완화가 무의미(하드 제약은 복구 불가, 소프트도 60개 내 재정렬뿐)하다. → **인터랙티브 제거는 파싱된 `QueryIntent`를 받는 서버 재검색 endpoint가 생긴 뒤**(백로그). 그때 `removeConstraint`/재검색 배선.
 
 ### 4.2 결과 카드 (이미지 중심 커머스)
 - `thumbnail` 크게 + 브랜드 + 제목 + 가격 + ⭐`reviewScore`·`reviewCount`.
