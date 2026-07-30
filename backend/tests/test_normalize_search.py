@@ -1,0 +1,97 @@
+"""정규화 순수 함수 테스트."""
+from musinsa.normalize_search import derive_row, facet_arrays, wear_chars, is_bundle
+
+
+def _detail():
+    return {
+        "goodsNm": "머슬핏 반팔 티셔츠 (BLACK)",
+        "styleNo": "ST123",
+        "brandInfo": {"brand": "drix", "brandName": "드릭스"},
+        "baseCategoryFullPath": "Sportswear > 상의 > 반소매 티셔츠",
+        "season": "1",
+        "goodsPrice": {"finalPrice": 35600},
+        "goodsReview": {"totalCount": 12, "satisfactionScore": 4.6},
+        "goodsImages": [{"imageUrl": "/a.jpg"}, {"imageUrl": "/b.jpg"}],
+        "goodsMaterial": {"materials": [
+            {"name": "핏", "items": [{"name": "루즈", "isSelected": True},
+                                     {"name": "레귤러", "isSelected": False}]},
+            {"name": "촉감", "items": [{"name": "보통", "isSelected": True}]},
+        ]},
+    }
+
+
+def _raw(detail=None, actual=None, plp=None):
+    return {"goods_no": 1, "plp": plp or {"displayGenderText": "남성",
+            "thumbnail": "t.jpg", "goodsLinkUrl": "u"},
+            "detail": detail if detail is not None else _detail(),
+            "actual_size": actual}
+
+
+def _facets():
+    return [
+        {"parameter_key": "attributeMaterial", "value": "1^3", "display_text": "면"},
+        {"parameter_key": "attributeMaterial", "value": "1^17", "display_text": "폴리에스테르"},
+        {"parameter_key": "attributePattern", "value": "6^898", "display_text": "카모플라쥬"},
+        {"parameter_key": "color", "value": "BLACK", "display_text": "블랙"},
+        {"parameter_key": "attributeFit", "value": "2^90", "display_text": "루즈핏"},
+    ]
+
+
+def test_facet_arrays_groups_by_key():
+    a = facet_arrays(_facets())
+    assert a["materials"] == ["면", "폴리에스테르"]
+    assert a["patterns"] == ["카모플라쥬"]
+    assert a["colors"] == ["블랙"]
+    assert a["fits"] == ["루즈핏"]
+
+
+def test_wear_chars_takes_selected():
+    assert wear_chars(_detail()) == {"핏": "루즈", "촉감": "보통"}
+
+
+def test_is_bundle_markers_and_empty_gallery():
+    assert is_bundle("반팔티 3종 세트", ["x"]) is True
+    assert is_bundle("오버핏 반팔티_5Type", ["x"]) is True
+    assert is_bundle("그래픽 반팔티", []) is True          # 갤러리 빔
+    assert is_bundle("데일리 크롭 티셔츠_3Color", ["x"]) is False   # 색옵션은 번들 아님
+    assert is_bundle("머슬핏 반팔 티셔츠 (BLACK)", ["x"]) is False
+
+
+def test_derive_row_full():
+    r = derive_row(_raw(), _facets())
+    assert r["goods_no"] == 1
+    assert r["style_key"] == "drix::ST123"
+    assert r["title"] == "머슬핏 반팔 티셔츠"           # (BLACK) 제거
+    assert r["brand"] == "드릭스"
+    assert r["category"].startswith("Sportswear")
+    assert r["gender"] == "남성"
+    assert r["price"] == 35600
+    assert r["review_score"] == 4.6
+    assert r["gallery"] == ["https://image.msscdn.net/a.jpg",
+                            "https://image.msscdn.net/b.jpg"]
+    assert r["color"] == "BLACK"                        # 제목 (BLACK)
+    assert r["materials"] == ["면", "폴리에스테르"]
+    assert r["patterns"] == ["카모플라쥬"]
+    assert r["wear_chars"] == {"핏": "루즈", "촉감": "보통"}
+    assert r["searchable"] is True
+    assert r["exclusion_reason"] is None
+
+
+def test_derive_row_bundle_and_nulls():
+    d = _detail(); d["goodsNm"] = "스포츠 반팔티 5종"; d["goodsImages"] = []
+    r = derive_row(_raw(detail=d, actual=None), [])
+    assert r["searchable"] is False
+    assert r["exclusion_reason"] == "multi_design_bundle"
+    assert r["sizes"] == [] and r["colors"] == []       # facet·actual 없음
+
+
+def test_derive_row_sizes_from_actual():
+    r = derive_row(_raw(actual={"sizes": [{"name": "S"}, {"name": "M"}, {"name": "L"}]}), [])
+    assert r["sizes"] == ["S", "M", "L"]
+    assert r["color"] == "BLACK"
+
+
+def test_derive_row_color_falls_back_to_facet_when_no_paren():
+    d = _detail(); d["goodsNm"] = "그냥 반팔티"          # (COLOR) 없음
+    r = derive_row(_raw(detail=d), _facets())
+    assert r["color"] == "블랙"                          # colors[0]
