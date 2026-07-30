@@ -158,6 +158,7 @@ function sanitize(raw: ParsedRaw): QueryIntent {
     style: styleOf(raw.style),
     promote,
     exclude: styleOf(raw.exclude),
+    wearChars: EMPTY_INTENT.wearChars,
     sort,
   };
 }
