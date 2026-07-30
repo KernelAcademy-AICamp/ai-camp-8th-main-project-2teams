@@ -47,7 +47,8 @@ export function buildGoodsQuery<T extends GoodsQuery>(base: T, intent: QueryInte
     q = q.not("title", "ilike", `%${kw}%`);
   }
 
-  // 안전 백스톱(코퍼스 2,472) — 리뷰순으로 자름
-  q = q.order("review_score", { ascending: false }).limit(2000);
+  // 안전 백스톱 — 리뷰순 정렬 후 현재 코퍼스(2,472)를 덮는 상한으로 자른다.
+  // soft 속성(색·wear 등)은 랭킹 전에 배제하지 않도록 후보를 넓게 확보한다.
+  q = q.order("review_score", { ascending: false }).limit(3000);
   return q as T;
 }

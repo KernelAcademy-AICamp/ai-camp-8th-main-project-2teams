@@ -69,7 +69,7 @@ describe("buildGoodsQuery", () => {
     const r = recorder();
     buildGoodsQuery(r, EMPTY_INTENT);
     expect(r.calls).toContainEqual(["order", "review_score", { ascending: false }]);
-    expect(r.calls).toContainEqual(["limit", 2000]);
+    expect(r.calls).toContainEqual(["limit", 3000]);
   });
 
   it("하드 필터: gender·size(or)·price", () => {
@@ -127,5 +127,26 @@ describe("buildGoodsQuery", () => {
     expect(r.calls).toContainEqual(["not", "colors", "ov", '{"블랙"}']);
     expect(r.calls).toContainEqual(["not", "materials", "ov", '{"면"}']);
     expect(r.calls).toContainEqual(["not", "title", "ilike", "%로고%"]);
+  });
+});
+
+describe("buildGoodsQuery wear-chars 불변식·후보 상한", () => {
+  it("wearChars가 있어도 wear 관련 필터를 만들지 않는다(soft-only)", () => {
+    const r = recorder();
+    buildGoodsQuery(
+      r,
+      intent({ wearChars: { ...EMPTY_INTENT.wearChars, 촉감: ["부드러움"] } }),
+    );
+    const mentionsWear = r.calls.some((c) =>
+      c.some((a) => typeof a === "string" && a.includes("wear")),
+    );
+    expect(mentionsWear).toBe(false);
+  });
+
+  it("후보 상한이 현재 코퍼스(2,472)를 덮는다", () => {
+    const r = recorder();
+    buildGoodsQuery(r, EMPTY_INTENT);
+    const limitCall = r.calls.find((c) => c[0] === "limit");
+    expect(limitCall?.[1]).toBeGreaterThanOrEqual(2500);
   });
 });
