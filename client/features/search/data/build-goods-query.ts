@@ -47,8 +47,11 @@ export function buildGoodsQuery<T extends GoodsQuery>(base: T, intent: QueryInte
     q = q.not("title", "ilike", `%${kw}%`);
   }
 
-  // 안전 백스톱 — 리뷰순 정렬 후 현재 코퍼스(2,472)를 덮는 상한으로 자른다.
-  // soft 속성(색·wear 등)은 랭킹 전에 배제하지 않도록 후보를 넓게 확보한다.
+  // 안전 백스톱 — 리뷰순 정렬 후 상한으로 자른다.
+  // ⚠️ 실질 상한은 PostgREST `max_rows`(backend/supabase/config.toml = 1000)라,
+  // 이 .limit(3000)은 도달하지 못한다: 리뷰순 상위 ~1000건만 후보가 되고
+  // 나머지(~1,472/2,472)는 랭킹 전에 탈락한다 → soft 속성(색·wear 등) recall 손실.
+  // 전체 코퍼스 후보화(경량 후보→top-N 재조회 or range 페이지네이션)는 Phase 1.5b.
   q = q.order("review_score", { ascending: false }).limit(3000);
   return q as T;
 }

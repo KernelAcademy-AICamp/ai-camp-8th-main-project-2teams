@@ -143,7 +143,10 @@ describe("buildGoodsQuery wear-chars 불변식·후보 상한", () => {
     expect(mentionsWear).toBe(false);
   });
 
-  it("후보 상한이 현재 코퍼스(2,472)를 덮는다", () => {
+  it("클라이언트가 코퍼스보다 큰 상한을 요청한다(단, 서버 max_rows=1000이 실질 상한 — 1.5b)", () => {
+    // 이 테스트는 클라가 보내는 .limit 인자만 검증한다. 실제 반환 행 수는
+    // PostgREST max_rows(=1000)로 잘리므로 이 값(>=2500)이 곧 recall 커버리지는 아니다.
+    // build-goods-query.ts 주석 참고. 전체 후보화는 Phase 1.5b.
     const r = recorder();
     buildGoodsQuery(r, EMPTY_INTENT);
     const limitCall = r.calls.find((c) => c[0] === "limit");

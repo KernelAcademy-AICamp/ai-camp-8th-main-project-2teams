@@ -648,3 +648,4 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 
 - **Phase 2 UI**: 의도칩에 `wearChars` 축 노출·조건제거, 상세 착용감 표시 → [Phase 2 스펙](../specs/2026-07-30-musinsa-ui-phase2-design.md) §9 반영.
 - **Phase 1.5b (백로그)**: 검증 쿼리 DSL 엔진·소프트 필터링·progressive relaxation·퍼지 스냅(목록 밖 근사매칭)·`title~`→FTS.
+- **후보 생성 recall(중요, 1.5b)**: `search_goods` 후보가 PostgREST `max_rows`(config.toml=1000)에 잘려, `.limit(3000)`이 무력. 리뷰순 상위 ~1000건만 wear 소프트 랭킹에 들어가고 나머지 ~1,472/2,472는 탈락. 해법: 경량 컬럼만 후보화→top-N 재조회, 또는 `.range()` 페이지네이션(단 `select("*")`가 gallery까지 끌어와 payload·지연 큼 → 부하 검증 필요).
