@@ -134,8 +134,6 @@ def derive_row(raw: dict, facet_rows: list[dict]) -> dict:
         "wear_chars": wear_chars(detail),
         "sizes": sizes,
         "size_measures": actual.get("sizes"),
-        "size_numbers": sn,
-        "size_letters": sl,
         "size_free": is_free_size(sizes, sn, sl),
         "size_std": size_std,
     }

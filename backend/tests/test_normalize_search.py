@@ -130,14 +130,15 @@ def test_is_free_size():
     assert is_free_size(["블랙", "화이트"], [], []) is False           # 색-오라벨은 프리 아님
 
 
-def test_derive_row_includes_size_parses():
+def test_derive_row_drops_intermediate_size_keys():
     from musinsa.normalize_search import derive_row
-    raw = {"goods_no": 1, "plp": {}, "detail": {"goodsNm": "t", "goodsImages": [{"imageUrl": "/a.jpg"}]},
+    raw = {"goods_no": 1, "plp": {},
+           "detail": {"goodsNm": "t", "goodsImages": [{"imageUrl": "/a.jpg"}, {"imageUrl": "/b.jpg"}]},
            "actual_size": {"sizes": [{"name": "M(95)"}, {"name": "L(100)"}, {"name": "XL(105)"}]}}
     r = derive_row(raw, [])
-    assert r["size_numbers"] == [95, 100, 105]
-    assert r["size_letters"] == ["M", "L", "XL"]
-    assert r["size_free"] is False
+    assert "size_numbers" not in r and "size_letters" not in r   # 중간 산물 미저장
+    assert r["size_free"] is False                               # size_free는 유지(내부 sn/sl로 계산)
+    assert r["size_std"] == [95, 100, 105]                       # 통일은 유지
 
 
 from musinsa.normalize_search import compute_size_std
