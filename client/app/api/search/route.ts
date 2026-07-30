@@ -1,17 +1,26 @@
-// Route Handler — 하이브리드 검색. 서버에서 LLM 파싱 → 쿼리 임베딩 → search_products RPC.
+// Route Handler — 무신사 구조화 검색. 서버에서 LLM 파싱 → search_goods 하드필터 → 앱단 소프트 랭킹.
 // ⚠️ 서버 전용. NVIDIA/Supabase 키는 여기서만.
 import { createClient } from "@supabase/supabase-js";
 
-import type { Tee } from "@/features/catalog/domain/tee";
-import { embedQuery } from "@/features/search/data/embed-query";
-import { EMPTY_INTENT, parseIntentLLM } from "@/features/search/data/parse-intent-llm";
-import { mapSearchRow, type SearchRow } from "@/features/search/data/search-response";
-import type { Intent } from "@/features/search/domain/intent";
+import type { Goods } from "@/features/catalog/domain/goods";
+import {
+  buildGoodsQuery,
+  type GoodsQuery,
+} from "@/features/search/data/build-goods-query";
+import { mapGoodsRow, type SearchGoodsRow } from "@/features/search/data/map-goods-row";
+import { parseQueryIntent } from "@/features/search/data/parse-query-intent";
+import { EMPTY_INTENT, type QueryIntent } from "@/features/search/domain/query-intent";
+import { rankGoods } from "@/features/search/domain/rank-goods";
 
 export const maxDuration = 30;
 
+// 검색 카드/랭킹에 필요한 컬럼만. 상세 전용(gallery·size_measures)은 제외 → 응답 경량화.
+const SEARCH_SUMMARY_COLUMNS =
+  "goods_no,style_key,title,brand,category,gender,season,color,colors,patterns," +
+  "materials,fits,sizes,size_free,size_std,price,review_count,review_score,url,thumbnail,wear_chars";
+
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-// 이 repo는 anon이 아니라 publishable 키 이름을 쓴다(supabase-client.ts와 동일). 읽기 RLS는 public.
+// publishable(=anon) 키. search_goods는 anon SELECT 허용.
 const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "";
 
 function readQuery(body: unknown): string {
@@ -21,46 +30,49 @@ function readQuery(body: unknown): string {
 }
 
 interface SearchPayload {
-  results: Tee[];
-  intent: Intent;
-  semanticQuery: string;
+  results: Goods[];
+  intent: QueryIntent;
   degraded: boolean;
 }
 
 export async function POST(request: Request): Promise<Response> {
   const body: unknown = await request.json().catch(() => null);
   const query = readQuery(body);
-  const empty: SearchPayload = {
-    results: [],
-    intent: EMPTY_INTENT,
-    semanticQuery: "",
-    degraded: false,
-  };
-  if (!query) return Response.json(empty);
-
-  // 1) LLM 파싱(intent + 확장 쿼리 + keywords). 실패해도 EMPTY intent + 원쿼리로 진행.
-  const { intent, semanticQuery, keywords } = await parseIntentLLM(query);
-
-  // 2) 확장 쿼리 임베딩. 실패하면 의미검색 불가 → degraded 신호로 클라 폴백 유도.
-  const vector = await embedQuery(semanticQuery);
-  if (!vector || !SUPABASE_URL || !SUPABASE_KEY) {
-    return Response.json({ results: [], intent, semanticQuery, degraded: true });
+  if (!query) {
+    const empty: SearchPayload = { results: [], intent: EMPTY_INTENT, degraded: false };
+    return Response.json(empty);
   }
 
-  // 3) RPC 호출.
+  // 1) LLM 파싱 → 구조화 QueryIntent.
+  const { intent, degraded } = await parseQueryIntent(query);
+  if (!SUPABASE_URL || !SUPABASE_KEY) {
+    return Response.json({
+      results: [],
+      intent,
+      degraded: true,
+    } satisfies SearchPayload);
+  }
+
+  // 2) 하드 필터 쿼리 → 후보 전량 페치.
   const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-  const rpcResponse = await supabase.rpc("search_products", {
-    query_embedding: vector,
-    intent,
-    keywords,
-    match_limit: 60,
-  });
-  // data만 구조분해하면 (createClient에 Database 제네릭이 없어) any로 추론돼
-  // no-unsafe-assignment에 걸린다 — error만 분해하고 data는 아래서 캐스트해 사용한다.
-  const { error } = rpcResponse;
-  if (error) {
-    return Response.json({ results: [], intent, semanticQuery, degraded: true });
+  const base = supabase
+    .from("search_goods")
+    .select(SEARCH_SUMMARY_COLUMNS) as unknown as GoodsQuery;
+  const queryBuilder = buildGoodsQuery(base, intent);
+  const { data, error } = await (queryBuilder as unknown as PromiseLike<{
+    data: SearchGoodsRow[] | null;
+    error: unknown;
+  }>);
+  if (error || !data) {
+    return Response.json({
+      results: [],
+      intent,
+      degraded: true,
+    } satisfies SearchPayload);
   }
-  const results = (rpcResponse.data as SearchRow[]).map(mapSearchRow);
-  return Response.json({ results, intent, semanticQuery, degraded: false });
+
+  // 3) 매핑 + 앱단 소프트 랭킹 → top 60.
+  const candidates = data.map(mapGoodsRow);
+  const results = rankGoods(candidates, intent, 60);
+  return Response.json({ results, intent, degraded } satisfies SearchPayload);
 }

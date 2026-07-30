@@ -6,7 +6,8 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "shopping-phinf.pstatic.net",
+        hostname: "image.msscdn.net",
+        pathname: "/**",
       },
     ],
   },

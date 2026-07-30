@@ -1,81 +1,65 @@
-// View: 간략 결과 리스트 — 행마다 작은 스와치 + 핵심 정보. 클릭 시 상세로.
+// View: 이미지 중심 결과 카드 — 썸네일 + 브랜드 + 제목 + 가격 + ⭐리뷰. 클릭 시 상세로.
+import Image from "next/image";
 import Link from "next/link";
 
-import { COLOR_HEX, type Tee } from "@/features/catalog/domain/tee";
-import TeeSwatch from "@/features/catalog/presentation/TeeSwatch";
+import type { Goods } from "@/features/catalog/domain/goods";
 import { track } from "@/shared/analytics";
 import type { ResultType } from "@/shared/analytics-params";
 
-function Dot({ color }: { color?: Tee["baseColor"] }) {
-  if (!color) return null;
-  return (
-    <span
-      className="inline-block size-2.5 rounded-full ring-1 ring-black/10"
-      style={{ background: COLOR_HEX[color] }}
-      aria-hidden
-    />
-  );
-}
-
 export default function ResultList({
-  tees,
+  goods,
   searchId,
   resultType,
 }: {
-  tees: Tee[];
+  goods: Goods[];
   searchId: string;
   resultType: ResultType;
 }) {
   return (
-    <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-wall">
-      {tees.map((tee, rank) => (
-        <li key={tee.id}>
+    <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+      {goods.map((item, rank) => (
+        <li key={item.goodsNo}>
           <Link
-            href={`/tee/${tee.id}?sid=${encodeURIComponent(searchId)}&rank=${rank}&rt=${resultType}`}
+            href={`/goods/${item.goodsNo}?sid=${encodeURIComponent(searchId)}&rank=${rank}&rt=${resultType}`}
             onClick={() => {
               track("result_clicked", {
                 search_id: searchId,
-                product_id: tee.id,
+                product_id: item.goodsNo,
                 rank,
                 result_type: resultType,
               });
             }}
-            className="flex items-center gap-4 px-3 py-3 transition hover:bg-chalk sm:px-4"
+            className="group block overflow-hidden rounded-2xl border border-line bg-wall transition hover:shadow-md"
           >
-            <TeeSwatch
-              tee={tee}
-              showLabel={false}
-              className="size-16 shrink-0 rounded-xl border border-line"
-            />
-
-            <div className="min-w-0 flex-1">
-              <p className="font-mono text-[11px] uppercase tracking-wide text-ink-soft">
-                {tee.brand}
+            <div className="relative aspect-square overflow-hidden bg-chalk">
+              {item.thumbnail && (
+                <Image
+                  src={item.thumbnail}
+                  alt={item.title}
+                  fill
+                  sizes="(max-width: 640px) 50vw, 25vw"
+                  className="object-cover transition group-hover:scale-105"
+                />
+              )}
+            </div>
+            <div className="p-3">
+              <p className="truncate font-mono text-[11px] uppercase tracking-wide text-ink-soft">
+                {item.brand}
               </p>
-              <h3 className="truncate font-sans text-[15px] font-semibold text-ink">
-                {tee.name}
+              <h3 className="mt-0.5 line-clamp-2 min-h-[2.5em] font-sans text-[14px] font-semibold text-ink">
+                {item.title}
               </h3>
-              <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 font-mono text-[11px] text-ink-soft">
-                {(tee.baseColor ?? tee.printColor) && (
-                  <span className="inline-flex items-center gap-1">
-                    <Dot color={tee.baseColor} />
-                    바탕
-                    <Dot color={tee.printColor} />
-                    프린팅
+              <div className="mt-1.5 flex items-center justify-between">
+                <span className="font-display text-[15px] font-bold text-ink">
+                  {item.price.toLocaleString()}
+                  <span className="text-[11px] font-medium text-ink-soft">원</span>
+                </span>
+                {item.reviewCount > 0 && (
+                  <span className="font-mono text-[11px] text-ink-soft">
+                    ★ {item.reviewScore.toFixed(1)} ({item.reviewCount})
                   </span>
                 )}
-                {tee.printPosition && <span>· {tee.printPosition}면</span>}
-                {tee.fit && <span>· {tee.fit}핏</span>}
-                {tee.functional[0] && <span>· {tee.functional[0]}</span>}
               </div>
-            </div>
-
-            <div className="flex shrink-0 items-center gap-3">
-              <span className="font-display text-[15px] font-bold text-ink">
-                {tee.price.toLocaleString()}
-                <span className="text-[11px] font-medium text-ink-soft">원</span>
-              </span>
-              <span className="font-mono text-[12px] text-ink-soft">→</span>
             </div>
           </Link>
         </li>

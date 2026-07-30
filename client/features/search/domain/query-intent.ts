@@ -1,0 +1,52 @@
+// 무신사 검색 의도 — LLM 출력 계약. 도메인 타입.
+export type SortIntent = "relevance" | "price_asc" | "review_count";
+
+// 착용감 축(도메인 형상). 유효값 목록은 data/wear-chars-vocab.ts.
+// 핏은 style.fits와 중복이라 제외(Global Constraints).
+export const WEAR_AXES = ["촉감", "두께", "비침", "신축성", "계절"] as const;
+export type WearAxis = (typeof WEAR_AXES)[number];
+export type WearCharsFilter = Record<WearAxis, string[]>;
+
+// 소프트 스타일 필터. 각 배열은 통제 어휘(enum)에서 0..N개 (keywords만 자유어).
+export interface StyleFilter {
+  colors: string[];
+  patterns: string[];
+  materials: string[];
+  fits: string[];
+  keywords: string[];
+}
+
+export interface QueryIntent {
+  // 코어 = 하드 필터
+  gender?: "남성" | "여성" | "공용";
+  sizeStd: number[];
+  priceMin?: number;
+  priceMax?: number;
+  // 스타일 = 소프트 랭킹
+  style: StyleFilter;
+  // 자율권 신호
+  promote: (keyof StyleFilter)[]; // 소프트→하드 승격(값 하나라도 보유 요구)
+  exclude: StyleFilter; // NOT 필터
+  wearChars: WearCharsFilter; // 착용감 소프트 신호(촉감·두께·비침·신축성·계절)
+  sort: SortIntent;
+}
+
+function emptyStyle(): StyleFilter {
+  return { colors: [], patterns: [], materials: [], fits: [], keywords: [] };
+}
+
+function emptyWear(): WearCharsFilter {
+  return WEAR_AXES.reduce<WearCharsFilter>(
+    (acc, axis) => ({ ...acc, [axis]: [] }),
+    {} as WearCharsFilter,
+  );
+}
+
+export const EMPTY_INTENT: QueryIntent = {
+  sizeStd: [],
+  style: emptyStyle(),
+  promote: [],
+  exclude: emptyStyle(),
+  wearChars: emptyWear(),
+  sort: "relevance",
+};
