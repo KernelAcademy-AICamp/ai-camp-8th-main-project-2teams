@@ -8,6 +8,11 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "shopping-phinf.pstatic.net",
       },
+      {
+        protocol: "https",
+        hostname: "image.msscdn.net",
+        pathname: "/**",
+      },
     ],
   },
 };

@@ -1,31 +1,41 @@
-// 이벤트 파라미터 가공 — node 환경 단위 테스트 가능한 순수 함수만 둔다(DOM/GA 접근 금지).
-import type { Intent } from "@/features/search/domain/intent";
-import type { SearchResult } from "@/features/search/domain/search-tees";
+// 이벤트 파라미터 가공 — node 단위 테스트 가능한 순수 함수만(DOM/GA 접근 금지).
+import type { Goods } from "@/features/catalog/domain/goods";
+import { type QueryIntent, WEAR_AXES } from "@/features/search/domain/query-intent";
 
-export type ResultType = "exact" | "partial" | "none";
+export type ResultType = "results" | "none";
 export type EntryType = "typed" | "example_chip" | "direct";
 
-export function deriveResultType(result: SearchResult): ResultType {
-  if (result.exact.length > 0) return "exact";
-  if (result.partial.length > 0) return "partial";
-  return "none";
+export function deriveResultType(results: Goods[]): ResultType {
+  return results.length > 0 ? "results" : "none";
 }
 
-// GA4는 중첩 객체를 못 받으므로 속성별로 펼친다. 값 없는 속성은 생략.
-export function flattenParsedAttributes(intent: Intent): Record<string, string> {
+export function flattenParsedAttributes(intent: QueryIntent): Record<string, string> {
   const out: Record<string, string> = {};
-  if (intent.baseColor) out.parsed_base_color = intent.baseColor;
-  if (intent.printColor) out.parsed_print_color = intent.printColor;
-  if (intent.printPosition) out.parsed_print_position = intent.printPosition;
-  if (intent.fit) out.parsed_fit = intent.fit;
-  if (intent.graphicType) out.parsed_graphic = intent.graphicType;
-  if (intent.brand) out.parsed_brand = intent.brand;
+  const { style, exclude } = intent;
+  if (style.colors.length) out.parsed_colors = style.colors.join(",");
+  if (style.patterns.length) out.parsed_patterns = style.patterns.join(",");
+  if (style.materials.length) out.parsed_materials = style.materials.join(",");
+  if (style.fits.length) out.parsed_fits = style.fits.join(",");
+  if (style.keywords.length) out.parsed_keywords = style.keywords.join(",");
+  const wear = WEAR_AXES.flatMap((axis) =>
+    intent.wearChars[axis].map((v) => `${axis}:${v}`),
+  );
+  if (wear.length) out.parsed_wear = wear.join(",");
+  if (exclude.colors.length) out.parsed_exclude_colors = exclude.colors.join(",");
+  if (exclude.patterns.length) out.parsed_exclude_patterns = exclude.patterns.join(",");
+  if (exclude.materials.length)
+    out.parsed_exclude_materials = exclude.materials.join(",");
+  if (exclude.fits.length) out.parsed_exclude_fits = exclude.fits.join(",");
+  if (exclude.keywords.length) out.parsed_exclude_keywords = exclude.keywords.join(",");
   if (intent.gender) out.parsed_gender = intent.gender;
-  if (intent.functional.length > 0) out.parsed_functional = intent.functional.join(",");
+  if (intent.sizeStd.length) out.parsed_size_std = intent.sizeStd.join(",");
+  if (intent.priceMin != null) out.parsed_price_min = String(intent.priceMin);
+  if (intent.priceMax != null) out.parsed_price_max = String(intent.priceMax);
+  if (intent.sort !== "relevance") out.parsed_sort = intent.sort;
   return out;
 }
 
-export function hasParsedConstraint(intent: Intent): boolean {
+export function hasParsedConstraint(intent: QueryIntent): boolean {
   return Object.keys(flattenParsedAttributes(intent)).length > 0;
 }
 

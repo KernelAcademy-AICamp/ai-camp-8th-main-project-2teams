@@ -1,6 +1,6 @@
 "use client";
 
-// 페이지 2 본체 — URL의 q를 읽어 검색. 간략 리스트로 표시.
+// 페이지 2 본체 — URL의 q를 읽어 무신사 검색. 이미지 카드 그리드로 표시.
 import { useRouter, useSearchParams } from "next/navigation";
 
 import AppHeader from "@/components/AppHeader";
@@ -14,7 +14,6 @@ export default function SearchResults() {
   const router = useRouter();
   const params = useSearchParams();
   const query = params.get("q") ?? "";
-
   const vm = useSearchViewModel(query, params.get("src"));
   const go = (q: string, src = "refine") => {
     router.push(`/search?q=${encodeURIComponent(q)}&src=${src}`);
@@ -23,19 +22,16 @@ export default function SearchResults() {
   return (
     <div className="flex flex-1 flex-col">
       <AppHeader />
-
       <main className="mx-auto w-full max-w-5xl flex-1 px-5 py-6">
-        <SearchBar initialValue={query} onSearch={go} />
+        <SearchBar key={query} initialValue={query} onSearch={go} />
 
-        {query && !vm.loading && (
+        {query.trim() && !vm.loading && !vm.degraded && (
           <div className="rise mt-5">
-            <IntentChips chips={vm.chips} onRemove={vm.removeConstraint} />
+            <IntentChips chips={vm.chips} />
           </div>
         )}
 
         {(() => {
-          // 파싱·카탈로그 로딩 중엔 이전 결과를 그대로 두지 않고 즉시 로딩 표시.
-          // (LLM 파싱이 1~2초 걸려, 피드백이 없으면 "찾기 눌러도 반응 없음"으로 보인다.)
           if (vm.loading) {
             return (
               <div className="mt-6 grid place-items-center rounded-2xl border border-dashed border-line py-16 text-center">
@@ -46,41 +42,57 @@ export default function SearchResults() {
               </div>
             );
           }
-
-          const { exact, partial } = vm.results;
-          const showing = exact.length > 0 ? exact : partial;
-          const isPartial = exact.length === 0 && partial.length > 0;
-
-          if (showing.length === 0) {
+          if (!query.trim()) {
             return (
               <div className="mt-6 grid place-items-center rounded-2xl border border-dashed border-line py-16 text-center">
                 <p className="font-display text-lg font-bold text-ink">
-                  딱 맞는 티가 없어요
+                  말로 찾아보세요
                 </p>
                 <p className="mt-1 max-w-xs text-[13px] text-ink-soft">
-                  조건을 조금 줄이거나 다른 색·핏으로 다시 찾아보세요.
+                  색·핏·소재·사이즈·가격을 한 문장으로.
                 </p>
               </div>
             );
           }
-
+          if (vm.degraded) {
+            return (
+              <div className="mt-6 grid place-items-center rounded-2xl border border-dashed border-line py-16 text-center">
+                <p className="font-display text-lg font-bold text-ink">
+                  검색을 완료하지 못했어요
+                </p>
+                <p className="mt-1 max-w-xs text-[13px] text-ink-soft">
+                  잠시 후 다시 시도해 주세요.
+                </p>
+                <button
+                  type="button"
+                  onClick={vm.retry}
+                  className="mt-4 rounded-xl bg-ink px-5 py-2.5 font-display text-sm font-bold text-chalk transition hover:opacity-90"
+                >
+                  다시 시도
+                </button>
+              </div>
+            );
+          }
+          if (vm.results.length === 0) {
+            return (
+              <div className="mt-6 grid place-items-center rounded-2xl border border-dashed border-line py-16 text-center">
+                <p className="font-display text-lg font-bold text-ink">결과가 없어요</p>
+                <p className="mt-1 max-w-xs text-[13px] text-ink-soft">
+                  조건을 조금 줄이거나 다시 검색해 보세요.
+                </p>
+              </div>
+            );
+          }
           return (
             <>
               <div className="mb-3 mt-6 flex items-baseline justify-between">
-                <h2 className="font-display text-lg font-bold text-ink">
-                  {isPartial ? "비슷한 결과" : "검색 결과"}
-                </h2>
+                <h2 className="font-display text-lg font-bold text-ink">검색 결과</h2>
                 <span className="font-mono text-[12px] text-ink-soft">
-                  {showing.length}개
+                  {vm.results.length}개
                 </span>
               </div>
-              {isPartial && (
-                <p className="mb-3 text-[13px] text-ink-soft">
-                  딱 맞는 티는 없어서, 조건에 가까운 상품을 보여드려요.
-                </p>
-              )}
               <ResultList
-                tees={showing}
+                goods={vm.results}
                 searchId={vm.searchId}
                 resultType={vm.resultType}
               />
@@ -88,10 +100,9 @@ export default function SearchResults() {
           );
         })()}
       </main>
-
       <footer className="border-t border-line px-5 py-6">
         <p className="mx-auto max-w-5xl font-mono text-[11px] text-ink-soft">
-          목업 데이터 · Loop 1 UI 프로토타입 — 검색은 임시 규칙 파서(LLM 대체 예정)
+          무신사 상품 · 자연어 발견 검색
         </p>
       </footer>
     </div>
