@@ -84,27 +84,29 @@ describe("buildGoodsQuery", () => {
     expect(r.calls).toContainEqual(["lte", "price", 40000]);
   });
 
-  it("promote된 스타일은 overlaps 하드필터(keywords 제외)", () => {
+  it("스타일(색·패턴·소재·핏)은 항상 overlaps 하드필터, keywords는 소프트 유지", () => {
     const r = recorder();
     buildGoodsQuery(
       r,
       intent({
         style: {
-          colors: ["블랙"],
+          colors: ["화이트"],
           patterns: [],
-          materials: [],
+          materials: ["면"],
           fits: ["오버"],
           keywords: ["빈티지"],
         },
-        promote: ["fits", "keywords"],
       }),
     );
+    // 색·소재·핏 모두 하드필터(promote 없이도)
+    expect(r.calls).toContainEqual(["overlaps", "colors", ["화이트"]]);
+    expect(r.calls).toContainEqual(["overlaps", "materials", ["면"]]);
     expect(r.calls).toContainEqual(["overlaps", "fits", ["오버"]]);
-    // colors는 promote 안 됨 → 하드 아님
+    // 빈 배열(patterns)은 필터 안 함
     expect(
-      r.calls.find((c) => c[0] === "overlaps" && c[1] === "colors"),
+      r.calls.find((c) => c[0] === "overlaps" && c[1] === "patterns"),
     ).toBeUndefined();
-    // keywords는 promote돼도 하드 승격 안 함
+    // keywords는 하드 승격 안 함(소프트 랭킹)
     expect(
       r.calls.find((c) => c[0] === "overlaps" && c[1] === "keywords"),
     ).toBeUndefined();

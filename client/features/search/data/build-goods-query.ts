@@ -31,9 +31,10 @@ export function buildGoodsQuery<T extends GoodsQuery>(base: T, intent: QueryInte
   if (intent.priceMin != null) q = q.gte("price", intent.priceMin);
   if (intent.priceMax != null) q = q.lte("price", intent.priceMax);
 
-  // (A) promote된 스타일 → 하드(overlaps: 선택값 중 하나라도 보유). keywords는 소프트 유지.
-  for (const key of intent.promote) {
-    if (key === "keywords") continue;
+  // (A) 스타일(색·패턴·소재·핏)은 하드 필터(overlaps: 선택값 중 하나라도 보유) — 조건 매칭만 반환.
+  // 빈결과는 빈결과로(소프트 폴백 없음). keywords·wearChars는 소프트 랭킹 유지(rank-goods).
+  const HARD_STYLE_KEYS = ["colors", "patterns", "materials", "fits"] as const;
+  for (const key of HARD_STYLE_KEYS) {
     const vals = intent.style[key];
     if (vals.length) q = q.overlaps(key, vals);
   }
