@@ -72,3 +72,17 @@ def test_run_groups_filter_limits_scope():
     stats = run(c, FakeMC(), ingest_tag="sports_patterned_v1", groups=["attributeMaterial"])
     pks = {r["parameter_key"] for r in c.store["m_raw_facets"]}
     assert pks == {"attributeMaterial"}   # color 제외됨
+
+
+def test_run_workers_param_behavior_preserving():
+    # workers=1(순차와 동등) vs 기본 workers(스레드풀 동시성)가 동일한 멤버십/stats를 내야 함
+    c1 = FakeClient([1, 2, 9])
+    stats1 = run(c1, FakeMC(), ingest_tag="sports_patterned_v1", workers=1)
+    got1 = {(r["goods_no"], r["parameter_key"], r["value"]) for r in c1.store["m_raw_facets"]}
+
+    c4 = FakeClient([1, 2, 9])
+    stats4 = run(c4, FakeMC(), ingest_tag="sports_patterned_v1", workers=4)
+    got4 = {(r["goods_no"], r["parameter_key"], r["value"]) for r in c4.store["m_raw_facets"]}
+
+    assert got1 == got4
+    assert stats1 == stats4
