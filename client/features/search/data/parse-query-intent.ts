@@ -67,7 +67,7 @@ const SYSTEM_PROMPT = `너는 무신사 반소매 티셔츠 쇼핑몰의 검색�
 - keywords: "티","반팔","티셔츠","옷","상의" 같은 일반어와 색은 넣지 마라.
 - wearChars: 사용자의 착용감 표현(부드러운·도톰한·쫀쫀한·비침없는 등)을 위 목록 값으로 매핑. 정도를 아우르면 인접값도 함께(예 "부드러운"→촉감:["부드러움","약간|부드러움"]). 값은 목록과 정확히 일치. 언급 없으면 전부 [].
 - 계절은 "봄/여름"이 명시되거나 "시원한"(→여름)일 때만. "두꺼운·부드러운·오버핏"만으로 계절을 추측해 넣지 마라.
-- 명시 안 된 필드는 null 또는 [](추측·환각 금지). 색·성별은 사용자가 말한 것만 — "무지 반팔"처럼 색이 없으면 색을 지어내지 마라.
+- ⚠️환각 절대 금지: 사용자가 **명시하지 않은** 색·소재·사이즈·패턴·핏·가격은 넣지 마라. 성별만 말했으면 gender만 채우고 나머지는 전부 빈 값/null. 예 "여자 전용상품만"→gender:"여성"이고 sizeStd·colors·materials 등은 모두 비운다("여자"에서 사이즈 90이나 색을 유추하지 마라). "무지 반팔"→patterns:["단색"]뿐, 색 지어내지 마라.
 
 사이즈 사전(반드시 gender와 함께 해석):
 - 글자→cm: XS=85, S=90, M=95, L=100, XL=105, XXL=2XL=110, XXXL=3XL=115, 4XL=120, 5XL=125, 6XL=130
@@ -84,7 +84,9 @@ const SYSTEM_PROMPT = `너는 무신사 반소매 티셔츠 쇼핑몰의 검색�
 입력: "부드부드하고 시원한 반팔"
 출력: {"gender":null,"sizeStd":[],"priceMin":null,"priceMax":null,"style":{"colors":[],"patterns":[],"materials":[],"fits":[],"keywords":[]},"promote":[],"exclude":{"colors":[],"patterns":[],"materials":[],"fits":[],"keywords":[]},"wearChars":{"촉감":["부드러움","약간|부드러움"],"두께":["얇음","약간 얇음"],"비침":["없음","거의 없음"],"신축성":[],"계절":["여름"]},"sort":"relevance"}
 입력: "화이트 면 반팔 3만원 이하"
-출력: {"gender":null,"sizeStd":[],"priceMin":null,"priceMax":30000,"style":{"colors":["화이트"],"patterns":[],"materials":["면"],"fits":[],"keywords":[]},"promote":[],"exclude":{"colors":[],"patterns":[],"materials":[],"fits":[],"keywords":[]},"wearChars":{"촉감":[],"두께":[],"비침":[],"신축성":[],"계절":[]},"sort":"relevance"}`;
+출력: {"gender":null,"sizeStd":[],"priceMin":null,"priceMax":30000,"style":{"colors":["화이트"],"patterns":[],"materials":["면"],"fits":[],"keywords":[]},"promote":[],"exclude":{"colors":[],"patterns":[],"materials":[],"fits":[],"keywords":[]},"wearChars":{"촉감":[],"두께":[],"비침":[],"신축성":[],"계절":[]},"sort":"relevance"}
+입력: "여자 전용상품만 추천해줘"
+출력: {"gender":"여성","sizeStd":[],"priceMin":null,"priceMax":null,"style":{"colors":[],"patterns":[],"materials":[],"fits":[],"keywords":[]},"promote":[],"exclude":{"colors":[],"patterns":[],"materials":[],"fits":[],"keywords":[]},"wearChars":{"촉감":[],"두께":[],"비침":[],"신축성":[],"계절":[]},"sort":"relevance"}`;
 
 interface RawStyle {
   colors?: unknown;
