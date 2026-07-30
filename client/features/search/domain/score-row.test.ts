@@ -118,3 +118,32 @@ describe("scoreRow", () => {
     expect(s).toBeCloseTo(4); // 3 + 1
   });
 });
+
+describe("styleScore wearChars", () => {
+  it("착용감 축이 하나라도 매칭되면 1회 가점", () => {
+    const g = goods({ wearChars: { 촉감: "부드러움" } });
+    const i = intent({
+      wearChars: { ...EMPTY_INTENT.wearChars, 촉감: ["부드러움", "약간|부드러움"] },
+    });
+    expect(styleScore(g, i)).toBe(2);
+  });
+
+  it("여러 축이 매칭돼도 누적하지 않고 1회만(다축 과대계상 방지)", () => {
+    const g = goods({ wearChars: { 촉감: "부드러움", 두께: "얇음", 계절: "여름" } });
+    const i = intent({
+      wearChars: {
+        ...EMPTY_INTENT.wearChars,
+        촉감: ["부드러움"],
+        두께: ["얇음"],
+        계절: ["여름"],
+      },
+    });
+    expect(styleScore(g, i)).toBe(2); // 3축 매칭이지만 6이 아니라 2
+  });
+
+  it("불일치·미보유는 0점", () => {
+    const g = goods({ wearChars: { 촉감: "보통" } });
+    const i = intent({ wearChars: { ...EMPTY_INTENT.wearChars, 촉감: ["부드러움"] } });
+    expect(styleScore(g, i)).toBe(0);
+  });
+});
