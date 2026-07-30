@@ -95,3 +95,40 @@ def test_derive_row_color_falls_back_to_facet_when_no_paren():
     d = _detail(); d["goodsNm"] = "그냥 반팔티"          # (COLOR) 없음
     r = derive_row(_raw(detail=d), _facets())
     assert r["color"] == "블랙"                          # colors[0]
+
+
+from musinsa.normalize_search import parse_size_numbers, parse_size_letters, is_free_size
+
+
+def test_size_numbers_range_and_ranges():
+    assert parse_size_numbers(["XL(105)", "2XL(107)"]) == [105, 107]   # 2XL의 2 배제
+    assert parse_size_numbers(["S(90)", "L(100-105)"]) == [90, 100, 105]
+    assert parse_size_numbers(["XS(44)", "S(55)", "44반"]) == [44, 55]  # 44반→44
+    assert parse_size_numbers(["1", "2", "3"]) == []                    # 슬롯 배제
+    assert parse_size_numbers(["DN085", "DN090"]) == [85, 90]           # 코드 접두 숫자=사이즈
+
+
+def test_size_letters_ignores_noise():
+    assert parse_size_letters(["M(95)", "L(100)", "XL(105)"]) == ["M", "L", "XL"]
+    assert parse_size_letters(["블랙_M", "블랙_L", "블랙_2XL"]) == ["M", "L", "2XL"]
+    assert parse_size_letters(["S(오버핏)", "M(오버핏)"]) == ["S", "M"]
+    assert parse_size_letters(["DN085", "씨그래스"]) == []              # 코드·잡음 무시
+    assert parse_size_letters(["ONE SIZE"]) == []                      # SIZE의 S 오매칭 안함
+
+
+def test_is_free_size():
+    assert is_free_size(["OS"], [], []) is True
+    assert is_free_size(["NONE"], [], []) is True
+    assert is_free_size(["1", "2", "3"], [], []) is True               # 슬롯=프리
+    assert is_free_size(["M(95)"], [95], ["M"]) is False               # 실사이즈 있음
+    assert is_free_size(["블랙", "화이트"], [], []) is False           # 색-오라벨은 프리 아님
+
+
+def test_derive_row_includes_size_parses():
+    from musinsa.normalize_search import derive_row
+    raw = {"goods_no": 1, "plp": {}, "detail": {"goodsNm": "t", "goodsImages": [{"imageUrl": "/a.jpg"}]},
+           "actual_size": {"sizes": [{"name": "M(95)"}, {"name": "L(100)"}, {"name": "XL(105)"}]}}
+    r = derive_row(raw, [])
+    assert r["size_numbers"] == [95, 100, 105]
+    assert r["size_letters"] == ["M", "L", "XL"]
+    assert r["size_free"] is False
