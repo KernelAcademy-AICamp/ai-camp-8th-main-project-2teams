@@ -1,29 +1,33 @@
 "use client";
 
-// 데이터 접근: 자연어 쿼리 → /api/search(서버 무신사 구조화 검색).
-// 폴백 없음 — degraded/오류 시 빈 결과 + degraded=true(화면에서 재시도 안내).
+// 데이터 접근: 자연어 쿼리 → /api/search. mode 계약(설계 §4.4) 소비.
+// lexical_only는 결과 보존. 오류/타임아웃/비정상 응답 → failed 빈 결과.
 import type { Goods } from "@/features/catalog/domain/goods";
 import { EMPTY_INTENT, type QueryIntent } from "@/features/search/domain/query-intent";
+import type { SearchMode } from "@/features/search/domain/search-mode";
 
 const SEARCH_TIMEOUT_MS = 9000;
+const MODES: readonly SearchMode[] = ["full", "lexical_only", "failed"];
 
 export interface SearchOutcome {
   results: Goods[];
   intent: QueryIntent;
-  degraded: boolean;
+  mode: SearchMode;
 }
 
 interface SearchApiResponse {
   results?: Goods[];
   intent?: QueryIntent;
-  degraded?: boolean;
+  mode?: string;
 }
+
+const FAILED: SearchOutcome = { results: [], intent: EMPTY_INTENT, mode: "failed" };
 
 export async function searchRemote(
   query: string,
   fetchFn: typeof fetch = fetch,
 ): Promise<SearchOutcome> {
-  if (!query.trim()) return { results: [], intent: EMPTY_INTENT, degraded: false };
+  if (!query.trim()) return FAILED;
 
   const controller = new AbortController();
   const timer = setTimeout(() => {
@@ -38,16 +42,14 @@ export async function searchRemote(
     });
     if (!httpRes.ok) throw new Error(`search route ${String(httpRes.status)}`);
     const data = (await httpRes.json()) as SearchApiResponse;
-    if (data.degraded || !Array.isArray(data.results)) {
-      return { results: [], intent: data.intent ?? EMPTY_INTENT, degraded: true };
+    const mode = MODES.find((m) => m === data.mode);
+    if (!mode || !Array.isArray(data.results)) return FAILED;
+    if (mode === "failed") {
+      return { results: [], intent: data.intent ?? EMPTY_INTENT, mode };
     }
-    return {
-      results: data.results,
-      intent: data.intent ?? EMPTY_INTENT,
-      degraded: false,
-    };
+    return { results: data.results, intent: data.intent ?? EMPTY_INTENT, mode };
   } catch {
-    return { results: [], intent: EMPTY_INTENT, degraded: true };
+    return FAILED;
   } finally {
     clearTimeout(timer);
   }
