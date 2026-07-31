@@ -8,7 +8,8 @@ export interface BrandAlias {
   catalogBrand: string;
 }
 
-const MAX_NGRAM = 3;
+// 현 카탈로그 최대 3토큰이나, 향후 4~5토큰 브랜드(예: 로우클래식 등 복합명) 대비 확장.
+const MAX_NGRAM = 5;
 
 export function matchBrand(query: string, aliases: BrandAlias[]): string | undefined {
   if (!aliases.length) return undefined;

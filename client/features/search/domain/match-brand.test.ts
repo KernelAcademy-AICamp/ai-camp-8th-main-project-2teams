@@ -53,4 +53,11 @@ describe("matchBrand", () => {
   it("빈 사전이면 undefined", () => {
     expect(matchBrand("나이키", [])).toBeUndefined();
   });
+
+  it("4토큰 n-gram 매칭(MAX_NGRAM 확장 대비)", () => {
+    const fourToken: BrandAlias[] = [
+      { aliasNormalized: "afewgoodkids", catalogBrand: "A FEW GOOD KIDS" },
+    ];
+    expect(matchBrand("a few good kids 반팔", fourToken)).toBe("A FEW GOOD KIDS");
+  });
 });

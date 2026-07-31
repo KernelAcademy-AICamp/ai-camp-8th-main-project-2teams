@@ -28,6 +28,12 @@ def is_safe_alias(key: str, brand_count_by_key: dict[str, int]) -> bool:
     return len(key) >= 3
 
 
+def stale_brands(existing: set[str], current: set[str]) -> set[str]:
+    """search_brand_aliases에 남아있는 catalog_brand 중 현재 search_goods distinct 브랜드
+    집합에는 없는 것들(브랜드 개명·삭제 시 잔존 alias → 모호 키 방지 위해 삭제 대상)."""
+    return existing - current
+
+
 def build_alias_rows(brands: list[str]) -> list[dict]:
     """distinct 카탈로그 브랜드 → self-alias 행. 규칙 통과분만 hard_filter_safe=True."""
     pairs = [(normalize_brand_key(b), b) for b in brands if b and b.strip()]

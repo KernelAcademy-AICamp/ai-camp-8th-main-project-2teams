@@ -16,15 +16,22 @@ interface FakeDb {
   selects: () => number;
 }
 
+// rows: 단일 페이지 응답을 흉내낼 배열, 또는 range(from,to)별 응답을 미리 정한 페이지 배열의 배열.
 function fakeDb(rows: unknown, error: unknown = null): FakeDb {
   let count = 0;
+  const pages =
+    Array.isArray(rows) && Array.isArray(rows[0]) ? (rows as unknown[][]) : null;
   const db: AliasDb = {
     from: () => ({
       select: () => ({
-        eq: () => {
-          count += 1;
-          return Promise.resolve({ data: rows as never, error });
-        },
+        eq: () => ({
+          range: (_from: number) => {
+            const idx = count;
+            count += 1;
+            const data = pages ? (pages[idx] ?? []) : rows;
+            return Promise.resolve({ data: data as never, error });
+          },
+        }),
       }),
     }),
   };
@@ -48,5 +55,21 @@ describe("getSafeBrandAliases", () => {
   it("조회 실패는 throw(호출자가 failed 처리)", async () => {
     const { db } = fakeDb(null, { message: "boom" });
     await expect(getSafeBrandAliases(db)).rejects.toThrow();
+  });
+
+  it("1000행 초과는 페이지네이션으로 전부 로드한다(조용한 절단 없음)", async () => {
+    const page1 = Array.from({ length: 1000 }, (_, i) => ({
+      alias_normalized: `brand${i}`,
+      catalog_brand: `BRAND${i}`,
+    }));
+    const page2 = [
+      { alias_normalized: "x1", catalog_brand: "X1" },
+      { alias_normalized: "x2", catalog_brand: "X2" },
+      { alias_normalized: "x3", catalog_brand: "X3" },
+    ];
+    const { db, selects } = fakeDb([page1, page2]);
+    const out = await getSafeBrandAliases(db);
+    expect(out).toHaveLength(1003);
+    expect(selects()).toBe(2);
   });
 });

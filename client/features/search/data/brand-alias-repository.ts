@@ -14,15 +14,21 @@ export interface AliasDb {
       eq(
         column: string,
         value: unknown,
-      ): PromiseLike<{
-        data: AliasRow[] | null;
-        error: unknown;
-      }>;
+      ): {
+        range(
+          from: number,
+          to: number,
+        ): PromiseLike<{
+          data: AliasRow[] | null;
+          error: unknown;
+        }>;
+      };
     };
   };
 }
 
 const TTL_MS = 5 * 60_000;
+const PAGE_SIZE = 1000; // PostgREST max_rows=1000 — 이 이상은 페이지네이션 없이 조용히 절단된다.
 let cache: { at: number; aliases: BrandAlias[] } | null = null;
 
 export function _clearAliasCache(): void {
@@ -31,14 +37,22 @@ export function _clearAliasCache(): void {
 
 export async function getSafeBrandAliases(db: AliasDb): Promise<BrandAlias[]> {
   if (cache && Date.now() - cache.at < TTL_MS) return cache.aliases;
-  const { data, error } = await db
-    .from("search_brand_aliases")
-    .select("alias_normalized,catalog_brand")
-    .eq("hard_filter_safe", true);
-  if (error || !data) {
-    throw new Error("search_brand_aliases 조회 실패");
+
+  const rows: AliasRow[] = [];
+  for (let off = 0; ; off += PAGE_SIZE) {
+    const { data, error } = await db
+      .from("search_brand_aliases")
+      .select("alias_normalized,catalog_brand")
+      .eq("hard_filter_safe", true)
+      .range(off, off + PAGE_SIZE - 1);
+    if (error || !data) {
+      throw new Error("search_brand_aliases 조회 실패");
+    }
+    rows.push(...data);
+    if (data.length < PAGE_SIZE) break;
   }
-  const aliases = data.map((r) => ({
+
+  const aliases = rows.map((r) => ({
     aliasNormalized: r.alias_normalized,
     catalogBrand: r.catalog_brand,
   }));

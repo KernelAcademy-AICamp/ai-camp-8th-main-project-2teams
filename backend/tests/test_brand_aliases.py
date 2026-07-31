@@ -1,7 +1,12 @@
 import json
 from pathlib import Path
 
-from musinsa.brand_aliases import build_alias_rows, is_safe_alias, normalize_brand_key
+from musinsa.brand_aliases import (
+    build_alias_rows,
+    is_safe_alias,
+    normalize_brand_key,
+    stale_brands,
+)
 
 VECTORS = json.loads(
     (Path(__file__).resolve().parents[2]
@@ -44,3 +49,15 @@ def test_build_alias_rows_conflict_both_unsafe():
     keys2 = [r for r in rows2 if r["alias_normalized"] == "drawfit"]
     assert len(keys2) == 2 and all(r["hard_filter_safe"] is False for r in keys2)
     assert any(r["hard_filter_safe"] for r in rows)
+
+
+def test_stale_brands_returns_existing_minus_current():
+    existing = {"나이키", "구브랜드", "커버낫"}
+    current = {"나이키", "커버낫", "신규브랜드"}
+    assert stale_brands(existing, current) == {"구브랜드"}
+
+
+def test_stale_brands_empty_when_no_removed():
+    existing = {"나이키", "커버낫"}
+    current = {"나이키", "커버낫", "신규브랜드"}
+    assert stale_brands(existing, current) == set()
