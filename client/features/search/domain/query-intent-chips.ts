@@ -6,6 +6,7 @@ import {
 } from "@/features/search/domain/query-intent";
 
 export type ChipKind =
+  | "brand"
   | "gender"
   | "size"
   | "price"
@@ -41,6 +42,7 @@ function priceLabel(min?: number, max?: number): string | null {
 export function queryIntentToChips(intent: QueryIntent): IntentChip[] {
   const chips: IntentChip[] = [];
 
+  if (intent.brand) chips.push({ kind: "brand", label: intent.brand });
   if (intent.gender) chips.push({ kind: "gender", label: intent.gender });
   if (intent.sizeStd.length > 0)
     chips.push({ kind: "size", label: `사이즈 ${intent.sizeStd.join("·")}` });
