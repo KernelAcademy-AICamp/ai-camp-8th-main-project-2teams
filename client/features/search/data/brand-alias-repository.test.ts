@@ -21,19 +21,20 @@ function fakeDb(rows: unknown, error: unknown = null): FakeDb {
   let count = 0;
   const pages =
     Array.isArray(rows) && Array.isArray(rows[0]) ? (rows as unknown[][]) : null;
+  // order()는 체이닝 가능해야 한다(복합 PK 2회 정렬) — 자기 자신을 반환.
+  const ordered = {
+    order: () => ordered,
+    range: (_from: number) => {
+      const idx = count;
+      count += 1;
+      const data = pages ? (pages[idx] ?? []) : rows;
+      return Promise.resolve({ data: data as never, error });
+    },
+  };
   const db: AliasDb = {
     from: () => ({
       select: () => ({
-        eq: () => ({
-          order: () => ({
-            range: (_from: number) => {
-              const idx = count;
-              count += 1;
-              const data = pages ? (pages[idx] ?? []) : rows;
-              return Promise.resolve({ data: data as never, error });
-            },
-          }),
-        }),
+        eq: () => ordered,
       }),
     }),
   };

@@ -27,12 +27,15 @@ def main() -> None:
 
     existing_brands: set[str] = set()
     off = 0
-    # offset 페이지네이션에 order()는 필수 — 정렬 없으면 alias 누락 가능 → stale 오판 위험
+    # offset 페이지네이션에 order()는 필수 — 정렬 없으면 alias 누락 가능 → stale 오판 위험.
+    # 복합 PK(alias_normalized, catalog_brand) 전체로 정렬해야 total order —
+    # alias_normalized만으로는 동률(같은 키·다른 브랜드)이 페이지 경계에서 중복·누락될 수 있다.
     while True:
         rows = (
             client.table("search_brand_aliases")
             .select("catalog_brand")
             .order("alias_normalized")
+            .order("catalog_brand")
             .range(off, off + 999)
             .execute()
             .data
