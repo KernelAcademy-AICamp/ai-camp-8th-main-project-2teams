@@ -23,6 +23,10 @@ const EXCLUDE_ARRAY_KEYS = ["colors", "patterns", "materials", "fits"] as const;
 export function buildGoodsQuery<T extends GoodsQuery>(base: T, intent: QueryIntent): T {
   let q: GoodsQuery = base;
 
+  // lexical 레인 — safe alias로 resolve된 카탈로그 정확 브랜드명 하드필터(설계 §4.3).
+  // eq는 supabase-js가 값을 파라미터로 인코딩하므로 LIKE escaping 불필요(특수문자 안전 테스트로 보증).
+  if (intent.brand) q = q.eq("brand", intent.brand);
+
   if (intent.gender) q = q.eq("gender", intent.gender);
   if (intent.sizeStd.length) {
     // size_std 겹치거나 프리사이즈면 통과
