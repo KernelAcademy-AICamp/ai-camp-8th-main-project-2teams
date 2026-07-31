@@ -83,4 +83,28 @@ describe("extractExplicitPrice", () => {
       priceMin: 10000,
     });
   });
+
+  it("'3만원 이상인 상품' → 활용형 '인'은 단어경계 인정 = priceMin", () => {
+    expect(extractExplicitPrice("3만원 이상인 상품")).toEqual({
+      priceMin: 30000,
+    });
+  });
+
+  it("'3만원 이상으로 보여줘' → 활용형 '으로'는 단어경계 인정 = priceMin", () => {
+    expect(extractExplicitPrice("3만원 이상으로 보여줘")).toEqual({
+      priceMin: 30000,
+    });
+  });
+
+  it("'2만원 넘는거' → 활용형 '거'는 단어경계 인정 = priceMin", () => {
+    expect(extractExplicitPrice("2만원 넘는거")).toEqual({
+      priceMin: 20000,
+    });
+  });
+
+  it("'1만원 이하인 티' → 활용형 '인'은 단어경계 인정 = priceMax", () => {
+    expect(extractExplicitPrice("1만원 이하인 티")).toEqual({
+      priceMax: 10000,
+    });
+  });
 });

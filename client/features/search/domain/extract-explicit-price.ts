@@ -26,13 +26,26 @@ function toNumber(raw: string): number {
 }
 
 function isWordBoundary(word: string, matchLength: number): boolean {
-  // 방향어 다음 문자가 없거나 조사류인 경우만 방향어로 인정
+  // 방향어 다음 문자가 없거나 조사류/활용형인 경우만 방향어로 인정
   if (matchLength >= word.length) return true;
   const nextChar = word[matchLength];
-  // 조사류: 은/는/이/가/을/를/에/도/만/로
-  return ["은", "는", "이", "가", "을", "를", "에", "도", "만", "로"].includes(
-    nextChar,
-  );
+  // 조사류: 은/는/이/가/을/를/에/도/만/로 + 활용형: 으/인/거/건
+  return [
+    "은",
+    "는",
+    "이",
+    "가",
+    "을",
+    "를",
+    "에",
+    "도",
+    "만",
+    "로",
+    "으",
+    "인",
+    "거",
+    "건",
+  ].includes(nextChar);
 }
 
 function detectDirection(rest: string): "min" | "max" | null {
