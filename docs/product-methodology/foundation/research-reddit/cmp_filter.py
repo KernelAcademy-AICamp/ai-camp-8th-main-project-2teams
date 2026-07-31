@@ -4,11 +4,8 @@ CLOTH = re.compile(r'\b(shirt|t-?shirt|tee|tees|hoodie|sweater|jacket|dress|pant
 SHOP = re.compile(r'\b(shop|store|site|website|online|amazon|asos|zara|uniqlo|shein|etsy|ebay|nordstrom|retail|search|filter|browse|depop|poshmark|grailed)\b', re.I)
 
 def load(f):
-    try:
-        d = json.load(open(f))
-        return d.get('data') or []
-    except Exception:
-        return []
+    with open(f) as fh:
+        return json.load(fh).get('data') or []
 
 def show(files, phrase, need_cloth=True, need_shop=False, limit=200):
     seen = set()

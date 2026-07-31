@@ -13,22 +13,23 @@ n=1이고, 웹 근거는 창업자·언론 중심이라 **개인의 육성이 �
 
 조사는 4갈래로 나눠 돌렸다.
 
-| # | 대상 | 상태 |
-|---|---|---|
-| 1 | **한국 커뮤니티** (디시·에펨·더쿠·네이트판·지식iN 등) | ✅ 완료 — **분리 묘사 8건. 단 "사진 못 올릴 때만" 나옴** |
-| 2 | **앱스토어·구글플레이 리뷰 + SNS** | ✅ 완료 — 아래 |
-| 3 | **영어권 Reddit + 이커머스 검색 업계** | ✅ 완료 — **n=312 정량 + 업계 판정: 아무도 안 풀었음** |
-| 4 | **"장비색 깔맞춤" 트리거 실존 검증** | ✅ 완료 — **판정 (b) 소수 존재. 클라이밍 최약, 러닝 최강** |
+| # | 대상                                                            | 상태                                                             |
+| - | --------------------------------------------------------------- | ---------------------------------------------------------------- |
+| 1 | **한국 커뮤니티** (디시·에펨·더쿠·네이트판·지식iN 등) | ✅ 완료 —**분리 묘사 8건. 단 "사진 못 올릴 때만" 나옴**   |
+| 2 | **앱스토어·구글플레이 리뷰 + SNS**                       | ✅ 완료 — 아래                                                  |
+| 3 | **영어권 Reddit + 이커머스 검색 업계**                    | ✅ 완료 —**n=308 정량 + 업계 판정: 아무도 안 풀었음**     |
+| 4 | **"장비색 깔맞춤" 트리거 실존 검증**                      | ✅ 완료 —**판정 (b) 소수 존재. 클라이밍 최약, 러닝 최강** |
 
 ## 네 갈래를 합친 결론 (2026-07-31)
 
 **1. 문제는 확인됐다. 그런데 우리가 대던 근거가 틀렸다.**
 "사용자가 원래 바탕색/프린트색을 나눠 말한다"는 **약한 주장**이다 — 한국 커뮤니티 반례 다수,
-영어권도 색 미언급이 77%다. 사진을 던질 수 있으면 아무도 색을 안 쓴다.
+영어권도 색 미언급이 76%다. 사진을 던질 수 있으면 아무도 색을 안 쓴다.
 
 **2. 대신 훨씬 센 주장이 나왔다 — 두 언어권에서 독립적으로 재현됨.**
+
 > **사진 없이 설명해야 하는 순간, 사람들은 예외 없이 `바탕색 / 프린트색 / 프린트위치`로 쪼갠다.**
-> 프린트색을 말한 29건 중 **21건(72%)** 이 바탕색도 함께 말했다(영어권 n=312).
+> 프린트색을 말한 29건 중 **21건(72%)** 이 바탕색도 함께 말했다(영어권 n=308).
 > 한국은 지식iN(사진 못 올림)에서만 이 어순이 나왔다.
 > **평소엔 사진으로 때우지만, 사진은 검색창에 넣을 수 없다.**
 
@@ -38,7 +39,7 @@ n=1이고, 웹 근거는 창업자·언론 중심이라 **개인의 육성이 �
 지원하지 않는다. 업계 방향은 "한 색 필드에 여러 값"이 아니라 **속성을 쪼개는 것**이고, 우리 설계가 그 방향이다.
 
 **4. 세그먼트는 다시 봐야 한다.** 장비색 깔맞춤 트리거는 **클라이밍이 가장 약하고 러닝이 가장 강하다.**
-[problem-validation](problem-validation.md) D15 재검토 필요.
+[problem-validation](problem-validation.md) 세그먼트 재검토 → **D17로 재정의 완료**(정의 = 문제 축, 트리거는 인터뷰 검증 가설).
 
 ---
 
@@ -57,6 +58,7 @@ n=1이고, 웹 근거는 창업자·언론 중심이라 **개인의 육성이 �
 
 **[fmkorea 9879086076](https://www.fmkorea.com/best/9879086076) · 2026-05-27 · 포텐 · 댓글 84**
 제목 "무신사 진짜 너무 별로인 점" (본문은 이미지). 댓글(순화):
+
 - "**블랙인줄알고 누르면 네이비ㅋㅋ 아 그럼 아까꺼가 블랙이었겠구나? 하고 누르려고하면 위치바껴있음** 아 그럼 이건가? 하고 누르면 응 다크그레이"
 - "**다른 색상 누를때마다 위치 매번 달라짐** 진짜 이거 너무 엉망임"
 - "**위에 글자 뜨게 하는 게 어려운 것도 아니고** 진짜 짜증나긴함"
@@ -64,11 +66,13 @@ n=1이고, 웹 근거는 창업자·언론 중심이라 **개인의 육성이 �
 - "심지어 블랙 찾으면 품절인 경우가 있음"
 
 **[fmkorea 9888625472](https://www.fmkorea.com/best/9888625472) · 2026-05-29 · 댓글 28** — "펨코 의식하는듯한 무신사 피드백 근황" / "하루도 안걸려서 바꿨네 대처 빠른거보소"
+
 - "**저거 볼때마다 이게 무슨색이야 싶어서 터치해서 봐야했는데**"
 - "**이것때문에 안쓰고 있었는데** 이제야 바꿨다고? 응 안써~"
 - "진짜 몇년을 쳐 안하던걸 이렇게 딸깍"
 
 **나머지 8건**
+
 - **Play · 2022-01-09 · 5★ 👍374** — "다른 컬러는 어떠신가요에 **색상기입해주세요 어두운색은 클릭해서 확대사진을 봐야만 확인가능하네요** 그리고 색상순번은 고정이었음 하네요 다른 색상 클릭하면 순서가 바뀌어서 어두운 색 확인하기가 더 힘들어요"
   → **2022년에 이미 같은 지적, 좋아요 374개. 2026년 5월까지 4년 4개월 방치.**
 - [fmkorea 9891403416](https://www.fmkorea.com/9891403416) · 2026-05-30 — "네이비 차콜 다크그레이 블랙 건메탈 다크브라운 **이거 완전 헷갈렸음** / **나만 완전 미로같이 왔다갔다한게 아니구나**"
@@ -84,22 +88,22 @@ n=1이고, 웹 근거는 창업자·언론 중심이라 **개인의 육성이 �
 
 ## A. 검색이 원하는 걸 안 보여준다 (14건)
 
-| 출처 | 날짜/별점 | 인용 |
-|---|---|---|
-| [fmkorea 9210611459](https://www.fmkorea.com/9210611459) | 2025-11-26 · 댓글 9 | 제목 "무신사에서 **이런 자켓을 머라 검색해야 나오지**" / 작성자 "**봄버 검색했었는데 먼가 이런 느낌이 안 나와서**" → 댓글 9개가 "후드 봄버?" "캔버스 후드" "탱커자켓" 으로 검색어를 대신 찍어줌 |
-| Play | 2023-12-13 · 2★ 👍13 | "너무 과도해서 **원하는 상품을 찾기 어려워요** ... 스포츠 볼캡을 사고 싶어 카테고리를 찾아 들어가면 스포츠 모자에 여성 바라클라바가 나와요" |
-| Play | 2020-09-11 · 1★ 👍119 | "상품 검색해서 보는데 왜 전혀 상관없는 강아지옷들이 계속 나오는지.." |
-| Play | 2020-09-06 · 1★ 👍51 | "상품을 검색할때 반팔티를 검색했는데 바지,긴팔 신발등이 막 나옴" |
-| Play | 2025-12-14 · 3★ | "왜 조거팬츠를 검색했는데 검색어대로 안나오고 다른 바지들만 나오는거임?" |
-| Play | 2025-07-01 · 3★ | "검색하면 불필요한 상품과 광고가 많이 노출됩니다 ... 여름 바지라고 쳤는데, 내복 나오네요;" |
-| Play | 2020-09-18 · 4★ | "제품검색 시스템이 왜케 불편한겁까? 너무 비효율적이고 검색하기가 여간 힘든 것이 아닙니다" |
-| Play | 2024-12-14 · 4★ | "검색어 연관성이 좀 떨어지네요" |
-| Play | 2023-02-13 · 2★ 👍4 | "왜검색하면 키즈까지 같이나오나요" |
-| Play | 2025-12-17 · 1★ | "AI의 정확도가 많이 떨어지고 필터를 거치지 않네요" |
-| Play | 2026-04-02 · 4★ | "검색기능만 조금 더 개선됐으면 좋겠어요" |
-| App Store | 2026-05-17 · 3★ | "요즘 뭐만 치면 못생기고 인기도 없는 옷들이 왜 맨 위부터 뜨는지" |
-| App Store | 2026-04-11 · 2★ | "해당 작품 검색해도 안뜨는데 왜 배급사로 검색해야" |
-| App Store | 2026-04-07 · 1★ | "브랜드 이름 검색하니까 뭔 중고옷이나 쳐뜨네요" |
+| 출처                                                    | 날짜/별점               | 인용                                                                                                                                                                                                        |
+| ------------------------------------------------------- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [fmkorea 9210611459](https://www.fmkorea.com/9210611459) | 2025-11-26 · 댓글 9    | 제목 "무신사에서**이런 자켓을 머라 검색해야 나오지**" / 작성자 "**봄버 검색했었는데 먼가 이런 느낌이 안 나와서**" → 댓글 9개가 "후드 봄버?" "캔버스 후드" "탱커자켓" 으로 검색어를 대신 찍어줌 |
+| Play                                                    | 2023-12-13 · 2★ 👍13  | "너무 과도해서**원하는 상품을 찾기 어려워요** ... 스포츠 볼캡을 사고 싶어 카테고리를 찾아 들어가면 스포츠 모자에 여성 바라클라바가 나와요"                                                            |
+| Play                                                    | 2020-09-11 · 1★ 👍119 | "상품 검색해서 보는데 왜 전혀 상관없는 강아지옷들이 계속 나오는지.."                                                                                                                                        |
+| Play                                                    | 2020-09-06 · 1★ 👍51  | "상품을 검색할때 반팔티를 검색했는데 바지,긴팔 신발등이 막 나옴"                                                                                                                                            |
+| Play                                                    | 2025-12-14 · 3★       | "왜 조거팬츠를 검색했는데 검색어대로 안나오고 다른 바지들만 나오는거임?"                                                                                                                                    |
+| Play                                                    | 2025-07-01 · 3★       | "검색하면 불필요한 상품과 광고가 많이 노출됩니다 ... 여름 바지라고 쳤는데, 내복 나오네요;"                                                                                                                  |
+| Play                                                    | 2020-09-18 · 4★       | "제품검색 시스템이 왜케 불편한겁까? 너무 비효율적이고 검색하기가 여간 힘든 것이 아닙니다"                                                                                                                   |
+| Play                                                    | 2024-12-14 · 4★       | "검색어 연관성이 좀 떨어지네요"                                                                                                                                                                             |
+| Play                                                    | 2023-02-13 · 2★ 👍4   | "왜검색하면 키즈까지 같이나오나요"                                                                                                                                                                          |
+| Play                                                    | 2025-12-17 · 1★       | "AI의 정확도가 많이 떨어지고 필터를 거치지 않네요"                                                                                                                                                          |
+| Play                                                    | 2026-04-02 · 4★       | "검색기능만 조금 더 개선됐으면 좋겠어요"                                                                                                                                                                    |
+| App Store                                               | 2026-05-17 · 3★       | "요즘 뭐만 치면 못생기고 인기도 없는 옷들이 왜 맨 위부터 뜨는지"                                                                                                                                            |
+| App Store                                               | 2026-04-11 · 2★       | "해당 작품 검색해도 안뜨는데 왜 배급사로 검색해야"                                                                                                                                                          |
+| App Store                                               | 2026-04-07 · 1★       | "브랜드 이름 검색하니까 뭔 중고옷이나 쳐뜨네요"                                                                                                                                                             |
 
 > 맨 위 건이 특히 중요하다 — **"이미지로는 아는데 텍스트로 표현 못 해서 못 찾는다"** 의 실물 증거이고,
 > 커뮤니티가 검색어 대신 찍어주는 **우회 행동**까지 한 글에 다 있다.
@@ -107,12 +111,14 @@ n=1이고, 웹 근거는 창업자·언론 중심이라 **개인의 육성이 �
 ## B. 필터가 부족·부정확하다 (11건 + 성별필터 10건)
 
 **색상 필터 결핍 — 직격탄**
+
 - App Store · 2026-04-06 · 4★ — "**검색 카테고리 색깔 편에 차콜 좀 추가해주세요 저는 옷 차콜색밖에 안입는데 차콜이 없어서 옷을 살 수가 없습니다** 차콜 무시하지마세요"
 - Play · 2025-02-12 · 1★ — "색상 찾기 불편함" (전문)
 - Play · 2022-11-22 · 1★ — "**필터 검색 누락되는 제품 있음**"
 - Play · 2024-11-07 · 1★ 👍2 — "검색 필터가 다소 아쉽고"
 
 **필터를 걸어도 결과가 안 맞는다 (AND/OR 문제)**
+
 - Play · 2024-10-10 · 1★ 👍141 — "총장과 가슴단면을 제한해서 검색하고 싶은데 두 옵션이 다 적용된 제품들이 안 나와요. **and문을 원하는데 or문으로 적용되는거 같음** ... **원하는 사이즈의 제품 찾기가 너무너무 힘듦** ... 점점 퇴화하는 것 같음"
 - App Store · 2025-11-06 · 4★ — "**or처리해서 따로따로 검색되던데요. and로 검색해야 하는거 아닙니까?** 조건을 다 충족하는 옷을 찾는건데"
 - [fmkorea 9012739575](https://www.fmkorea.com/9012739575) · 2025-10-10 — "필터를 먹이고 검색을 해도 **전혀 관련없는 제품들이 뜨는데**"
@@ -124,6 +130,7 @@ n=1이고, 웹 근거는 창업자·언론 중심이라 **개인의 육성이 �
 > 실측 사이즈에서조차 안 된다. 하물며 "바탕색 × 프린트색 × 위치"라는 축은 **존재 자체가 없다.**
 
 **성별 필터 강제 적용 — 10건** (앱스토어 6 + Play 3 + 커뮤니티 1)
+
 - App Store · 2026-06-23 · 5★ — "여성이라고 여성 필터로 자동설정 되게 하는 거 ... 맨날 번거롭게 필터 해제하고 사용합니다"
 - App Store · 2026-05-01 · 1★ — "성별 필터 해제해도 들어갈 때마다 적용됩니까? **상품 수 적게 보이면 그쪽에 이득인지**"
 - [fmkorea 9621777798](https://www.fmkorea.com/9621777798) · 2026-03-22 — "자꾸 남성으로 자동 필터링돼서 ... 매번 초기화시키기 귀찮;;"
@@ -164,10 +171,10 @@ problem-validation 4체크 ③(못 찾아 포기·우회)의 **웹 근거 🟡 �
 
 ## ★ 가장 중요한 발견: 분리 묘사는 "사진을 못 올릴 때"만 나온다
 
-| 환경 | 분리 묘사 |
-|---|---|
-| **지식iN**(사진 못 올림, 기억에 의존) | 거의 예외 없이 `[바탕색] 바탕에 + [프린트색] + 글씨/그림 + [위치]` 어순 |
-| **디시·네이트판**(사진 던질 수 있음) | 색 묘사를 통째로 **생략**. 남패갤 본문에 "바탕"은 전체 3건뿐 |
+| 환경                                        | 분리 묘사                                                                |
+| ------------------------------------------- | ------------------------------------------------------------------------ |
+| **지식iN**(사진 못 올림, 기억에 의존) | 거의 예외 없이`[바탕색] 바탕에 + [프린트색] + 글씨/그림 + [위치]` 어순 |
+| **디시·네이트판**(사진 던질 수 있음) | 색 묘사를 통째로**생략**. 남패갤 본문에 "바탕"은 전체 3건뿐        |
 
 → **스키마 정당화 논리를 이렇게 써야 한다.**
 "사용자가 원래 그렇게 말한다"(❌ 약함, 반례 많음)가 아니라
@@ -211,7 +218,7 @@ problem-validation 4체크 ③(못 찾아 포기·우회)의 **웹 근거 🟡 �
 
 ## C. 검색·필터 불만 (13건)
 
-1. **★색상 필터가 실제로 안 걸린다** — [mf/1045745 "이런 바지는 대체 무슨 컬러로 검색해야 나오나"](https://gall.dcinside.com/mgallery/board/view/?id=mf&no=1045745) (2026-06-22)
+1. **★색상 필터가 실제로 안 걸린다** — [mf/1045745 &#34;이런 바지는 대체 무슨 컬러로 검색해야 나오나&#34;](https://gall.dcinside.com/mgallery/board/view/?id=mf&no=1045745) (2026-06-22)
    - 본문 "**연청으로 검색해도 안나오고 회색으로 해도 안나오고**"
    - 댓글 "**무신사에 컬러 필터적용해서 바지 검색해도 안나오더라구**"
    - 다른 댓글 "연청 아이스블루 아이스그레이 ㄱㄱ" / "차콜아님?" ← **같은 색을 두고 사람마다 라벨이 갈림**
@@ -243,31 +250,32 @@ problem-validation 4체크 ③(못 찾아 포기·우회)의 **웹 근거 🟡 �
 
 # 3. 영어권 Reddit + 이커머스 검색 업계 (완료)
 
-> **재현 자료: [`research-reddit/`](research-reddit/)** — `corpus.json.gz`(원시 5,137건), `rows.json`(n=312 분류 결과),
+> **재현 자료: [`research-reddit/`](research-reddit/)** — `corpus.json.gz`(원시 5,137건), `rows.json`(n=308 분류 결과),
 > `fetch.py`·`analyze.py`(수집·집계 스크립트). `python3 analyze.py`로 아래 A 수치 전부 재현된다.
 
-## A. 묘사 방식 정량 집계 (n=312)
+## A. 묘사 방식 정량 집계 (n=308)
 
 **표본 방법(재현 가능)**: arctic-shift API(curl) → 5개 서브레딧(findfashion, HelpMeFind, streetwear,
 malefashionadvice, femalefashionadvice) × 7쿼리(print/graphic/tee/shirt/hoodie/logo/sweatshirt) × 3페이지
-→ 원시 **5,137건** → 로컬 필터(상의 + 그래픽 프린트 + 찾기요청 + 중복제거) → **n=312**
+→ 원시 **5,137건** → 로컬 필터(상의 + 그래픽 프린트 + 찾기요청 + 중복제거) → **n=308**
 
-| 항목 | 건수 | 비율 |
-|---|---|---|
-| 바탕색 언급 | 65 | 21% |
-| 프린트색 언급 | 29 | 9% |
-| 프린트 위치 언급 | 76 | 24% |
+| 항목                                | 건수         | 비율         |
+| ----------------------------------- | ------------ | ------------ |
+| 바탕색 언급                         | 65           | 21%          |
+| 프린트색 언급                       | 29           | 9%           |
+| 프린트 위치 언급                    | 75           | 24%          |
 | **바탕색+프린트색 분리 서술** | **21** | **7%** |
-| 바탕+프린트색+위치 3개 모두 | 10 | 3% |
-| 색을 아예 안 씀 | 239 | 77% |
+| 바탕+프린트색+위치 3개 모두         | 10           | 3%           |
+| 색을 아예 안 씀                     | 235          | 76%          |
 
 > **★ 가장 중요한 수치: 프린트색을 말한 29건 중 21건(72%)이 바탕색도 함께 말한다.**
 > 즉 **프린트색을 말하기 시작하면 거의 항상 바탕색과 나눠서 말한다.** 다만 애초에 색을 텍스트로 쓰는 사람이 적다(사진을 첨부하니까).
 > → **1번(한국) 조사의 "사진 못 올릴 때만 분리 묘사가 나온다"와 완전히 같은 결론. 두 언어권에서 독립적으로 재현됐다.**
 
 **대표 인용**
+
 1. **사용자가 스스로 라벨을 붙인 글** ([r/findfashion](https://reddit.com/r/findfashion/comments/1uhg5me/)) — "**Color:** Cloud Dancer (White) … **Design:** **Front:** Small Mickey Mouse eating noodles with the text 'Yummm!' **Back:** Large print of Mickey eating noodles"
-   → `Color / Design / Front / Back` — **우리 스키마와 사실상 동일.** 이렇게 라벨까지 붙인 글은 312건 중 3건.
+   → `Color / Design / Front / Back` — **우리 스키마와 사실상 동일.** 이렇게 라벨까지 붙인 글은 308건 중 3건.
 2. [r/findfashion](https://reddit.com/r/findfashion/comments/1tepuis/) — "**black shirt** with a **tiny logo on the left side of the chest** and **for the back it was pink letters**"
 3. [r/HelpMeFind](https://reddit.com/r/HelpMeFind/comments/1ufvttc/) — "black hoodie with **skull on the front** and **red text on the arm** … **on the side in red**"
 4. [r/streetwear](https://reddit.com/r/streetwear/comments/qress1/) — "**white sweatshirt with red lettering**" (제목만으로 완결)
@@ -276,16 +284,18 @@ malefashionadvice, femalefashionadvice) × 7쿼리(print/graphic/tee/shirt/hoodi
 7. [r/findfashion](https://reddit.com/r/findfashion/comments/1ughrmb/) — "**Color:** Cream/beige … **Graphic:** 3 minimalist **black line-art** silhouettes **across the chest**"
 
 **편향 (반드시 같이 쓸 것)**
-- **최근 편중**: 2026년 글이 234/312(75%). arctic-shift가 최신순 반환. **시계열 주장 불가.**
-- **서브레딧 편중**: findfashion 166 / MFA 65 / HelpMeFind 48 / streetwear 23 / **FFA 10(단독 인용 금지)**
+
+- **최근 편중**: 2026년 글이 230/308(75%). arctic-shift가 최신순 반환. **시계열 주장 불가.**
+- **서브레딧 편중**: findfashion 162 / MFA 65 / HelpMeFind 48 / streetwear 23 / **FFA 10(단독 인용 금지)**
 - **과소집계**: 정규식 자동 분류라 `"Color: Cloud Dancer (White)"` 같은 구조화 표기를 못 잡음.
   실제 색 언급률은 위보다 높다 → **"최소 추정치"로 표현할 것.**
-- **색 미언급 77%는 노이즈가 아니라 발견이다** — 사진이 있으면 색을 안 쓴다.
+- **색 미언급 76%는 노이즈가 아니라 발견이다** — 사진이 있으면 색을 안 쓴다.
   뒤집으면 **텍스트 검색만 있는 환경에서는 이 정보가 아예 유실된다**는 뜻.
 
 ## B. 검색 불가 불만·우회 행동
 
 **B1. 색/프린트로 검색·필터가 안 된다는 직접 불만 (5건)**
+
 - [r/ThredUp 2023](https://reddit.com/r/ThredUp/comments/17vjzfr/) — "I can search for dress with long sleeves or patterns or condition as filters. However, **I can't filter by color anymore.**" ← 소매·패턴·컨디션은 있는데 **색만 없음**
 - [r/sewing 2025](https://reddit.com/r/sewing/comments/1j74gwc/) — "a few website that at least list a pantone color, but **don't let you actually search by the pantone**" ← **표기는 하면서 검색축으로는 안 줌.** 우리 문제의식과 정확히 동일
 - [r/coloranalysis 2022](https://reddit.com/r/coloranalysis/comments/zffu1x/) — "are there stores that **allow you to filter by color season**?"
@@ -293,6 +303,7 @@ malefashionadvice, femalefashionadvice) × 7쿼리(print/graphic/tee/shirt/hoodi
 - [r/SEO 2023](https://reddit.com/r/SEO/comments/1625ytq/) (판매자 측) — faceted navigation을 "**can't wrap my head around it**", 2주째 헤맴 ← 공급 측 근거
 
 **B2. 우회 행동 (12건) — 상위 3건**
+
 - **★[r/HelpMeFind 2025](https://reddit.com/r/HelpMeFind/comments/1jhpnvb/)** — "google reverse image search and google lens does nothing for me. **Even searching for 'blue T-shirt with yellow or gold pocket' doesn't yield anything also.**"
   → **역이미지도 실패 + "바탕색+부위색" 자연어 검색도 실패 → 커뮤니티행.
   우리 제품이 정확히 이 쿼리를 받아내는 물건이다.**
@@ -302,13 +313,15 @@ malefashionadvice, femalefashionadvice) × 7쿼리(print/graphic/tee/shirt/hoodi
   → 브랜드+색으로도 변별 실패. 게다가 스스로 **"white on top of grey"로 바탕/프린트를 분리 서술**
 
 커뮤니티가 우회를 **표준 절차로 권장**:
+
 - "**reverse image searching is by far the best way to find an item**" (사이트 검색은 언급조차 안 됨)
 - "your best bet would be to either Google something like **gray hoodie with red laces** or Google lens it"
 
-> ⚠️ **수치 합산 금지.** A코퍼스(n=312, 역이미지 언급 27건=9%, 실패 명시 14건)와 B스윕(B1 5건 + B2 12건)은
+> ⚠️ **수치 합산 금지.** A코퍼스(n=308, 역이미지 언급 27건=9%, 실패 명시 14건)와 B스윕(B1 5건 + B2 12건)은
 > **표본틀이 다르고 중복 가능하다.** "총 41건" 식으로 더하지 말고 각각 분모와 함께 따로 쓸 것.
 
 **시사점 3가지**
+
 1. **불만글보다 우회 행동이 압도적으로 많다.** 사용자는 항의하지 않고 **조용히 Google Lens와 커뮤니티로 이탈**한다.
    낮은 불만 건수는 문제가 작다는 뜻이 아니라 **이탈이 조용하다**는 뜻 — 오히려 강한 근거.
 2. **색 필터가 있어도 실패한다.** 경쟁사가 색 필터를 가졌다는 사실이 우리 차별점을 무효화하지 않는다.
@@ -326,11 +339,11 @@ malefashionadvice, femalefashionadvice) × 7쿼리(print/graphic/tee/shirt/hoodi
 
 ## D. Google/Amazon/Shopify는 부위별 색을 지원하는가 → **전부 미지원**
 
-| 플랫폼 | 부위별 색(바탕vs프린트) | 다중 색상값 | 프린트 속성 | 그래픽 위치 | 판정 |
-|---|---|---|---|---|---|
-| Google Merchant | 없음 | 1필드 최대 3색(`/`) | `pattern` 1개 | 없음 | 부분 지원 |
-| Amazon | 없음 | dominant color 1개 | `pattern_type` | 없음 | **사실상 미지원** |
-| Shopify Taxonomy | 카테고리별 존재(**T셔츠엔 미배정**) | Color 단일 19색 | Pattern / Decoration technique | **`Print placement` 존재** | 부분 지원(가장 앞섬) |
+| 플랫폼           | 부위별 색(바탕vs프린트)                   | 다중 색상값           | 프린트 속성                    | 그래픽 위치                        | 판정                    |
+| ---------------- | ----------------------------------------- | --------------------- | ------------------------------ | ---------------------------------- | ----------------------- |
+| Google Merchant  | 없음                                      | 1필드 최대 3색(`/`) | `pattern` 1개                | 없음                               | 부분 지원               |
+| Amazon           | 없음                                      | dominant color 1개    | `pattern_type`               | 없음                               | **사실상 미지원** |
+| Shopify Taxonomy | 카테고리별 존재(**T셔츠엔 미배정**) | Color 단일 19색       | Pattern / Decoration technique | **`Print placement` 존재** | 부분 지원(가장 앞섬)    |
 
 - **Google** — "**Include up to 3 colors** … **1 primary color followed by up to 2 secondary colors**" / "Submit only one attribute per variant"
   → `White/Yellow`는 "흰색이 주, 노랑이 보조"일 뿐 **"바탕 흰색 + 프린트 노랑"이 아니다.**
@@ -373,13 +386,13 @@ malefashionadvice, femalefashionadvice) × 7쿼리(print/graphic/tee/shirt/hoodi
 
 동일 쿼리(`"match my shoes"` 정확일치, PullPush 코멘트 원시 히트):
 
-| 종목 | 서브레딧 | 원시 히트 | 검증 유효 | 성격 |
-|---|---|---|---|---|
-| **러닝** | r/running + r/RunningShoeGeeks | **25** | **17** | 상의·싱글렛·양말을 신발색에 맞춤. **한국어 사례도 여기서만 나옴** |
-| 골프 | r/golf | 11 | 5 | 벨트·모자·공 중심 — **상의 매칭이 아님** |
-| 테니스 | r/10s | 3 | 7 | 색보다 **브랜드 통일**이 주제. 깔맞춤은 조롱 대상 |
-| **클라이밍** | r/climbing + r/bouldering | **1** | **1** | 담론 전체가 **핏·사이즈**. 색 언급 사실상 없음 |
-| 배드민턴 | r/badminton | 0 | 0 | 없음 |
+| 종목               | 서브레딧                       | 원시 히트    | 검증 유효    | 성격                                                                     |
+| ------------------ | ------------------------------ | ------------ | ------------ | ------------------------------------------------------------------------ |
+| **러닝**     | r/running + r/RunningShoeGeeks | **25** | **17** | 상의·싱글렛·양말을 신발색에 맞춤.**한국어 사례도 여기서만 나옴** |
+| 골프               | r/golf                         | 11           | 5            | 벨트·모자·공 중심 —**상의 매칭이 아님**                         |
+| 테니스             | r/10s                          | 3            | 7            | 색보다**브랜드 통일**이 주제. 깔맞춤은 조롱 대상                   |
+| **클라이밍** | r/climbing + r/bouldering      | **1**  | **1**  | 담론 전체가**핏·사이즈**. 색 언급 사실상 없음                     |
+| 배드민턴           | r/badminton                    | 0            | 0            | 없음                                                                     |
 
 **러닝 ≫ 골프 > 테니스 ≫ 클라이밍 > 배드민턴.**
 r/climbing이 r/10s보다 서브레딧 규모가 훨씬 큰데도 1건인 건 **의미 있는 음성 신호**다.
@@ -389,13 +402,14 @@ r/climbing이 r/10s보다 서브레딧 규모가 훨씬 큰데도 1건인 건 **
 ## A. ★ 옷 살 때 실제 불편을 말한 사례 (6건) — 제품이 붙을 자리
 
 1. [r/RunningShoeGeeks](https://reddit.com/r/RunningShoeGeeks/comments/1j6eu7w/weekend_discussion_adidas_running_shoes/mgpcyge/) — "I want my race kit to match my shoes but **Adidas doesn't make racing shorts or tanks?!**"
-2. [디시 러닝갤 "깔맞춤 쉽지않네"](https://gall.dcinside.com/mgallery/board/view/?id=running&no=1085409) (2026-07-19) — "아디다스 런닝화가 맘애 들어서 싱글렛 쇼츠 이런것도 아디다스로 맞출려고하니 ... 아쉽네 **걍 딴거사야겠다**" ← **신발에 맞춰 사려다 구매 포기**
-3. [디시 러닝갤 "메타스피드 양말깔맞춤"](https://gall.dcinside.com/mgallery/board/view/?id=running&no=1088874) (조회 689, 댓글 11) — "이렇게 이쁘게 세팅할 수 있는데 **왜 따로 파는거지 마케팅 진짜 노이해다**"
+2. [디시 러닝갤 &#34;깔맞춤 쉽지않네&#34;](https://gall.dcinside.com/mgallery/board/view/?id=running&no=1085409) (2026-07-19) — "아디다스 런닝화가 맘애 들어서 싱글렛 쇼츠 이런것도 아디다스로 맞출려고하니 ... 아쉽네 **걍 딴거사야겠다**" ← **신발에 맞춰 사려다 구매 포기**
+3. [디시 러닝갤 &#34;메타스피드 양말깔맞춤&#34;](https://gall.dcinside.com/mgallery/board/view/?id=running&no=1088874) (조회 689, 댓글 11) — "이렇게 이쁘게 세팅할 수 있는데 **왜 따로 파는거지 마케팅 진짜 노이해다**"
 4. [r/running](https://reddit.com/r/running/comments/12c7or7/what_are_you_wearing_wednesday_weekly_gear_thread/jf4kjei/) — "I'd love something in red **to match my shoes** but **I've had a tough time finding a lot of variety**."
 5. [브런치 테니스룩](https://brunch.co.kr/@wonlytoon/30) — "옷과 신발은 보라색인데 모자는 주황색이라면? **깔맞춤 성애자에겐 정말 참기 힘든 상황이다**" / "**너무 다양한 색상을 사다보면 나중에 맞춰 입기 매우 어렵다**"
 6. [r/10s](https://reddit.com/r/10s/comments/1ip1vnw/is_there_anybody_else_whose_tennis_outfits_are/mcoldfh/) — "I would have loved to get nike **to match their shoes** ... but I am not paying 2x just for the logo."
 
 **러닝 — 행동 자체 (발췌)**
+
 - "ordered the perfect matching singlet **to match my shoes** for my first marathon"
 - "For trail races I usually go grey and blue **to match my shoes**... (**the unmatching shoes are going to drive me crazy**)"
 - "**ME TOO!!! I buy outfits to match my shoes.** My first shoes had neon 'don't hit me' yellow and I was SOOOO excited to wear neon."
@@ -406,16 +420,19 @@ r/climbing이 r/10s보다 서브레딧 규모가 훨씬 큰데도 1건인 건 **
 ## C. 반대 증거 (26건) — 이쪽도 만만치 않다
 
 **"기능만 본다"** — [r/running 색상 스레드](https://reddit.com/r/running/comments/vybl5x/colorful_or_blackwhite_shoes/)에서 **최다 추천(11점)이 반대편**:
+
 - "**Which ever is in stock or on sale in my size. I don't care what color.**" (최상위)
 - "**Function over fashion in the end.**"
 
 **테니스는 깔맞춤이 사회적으로 처벌됨** — 가장 강한 반증:
+
 - "**If you care that much about how you look, are you even there to play?**"
 - "to avoid looking like a **full kit wanker**"
 - "**I intentionally make sure to NOT match an entire outfit**"
 - 매칭 세트 입었다가 "**I got clowned on for it, lol. So maybe don't do that**"
 
 **한국어 반대 — 같은 글 댓글에서 바로 나옴:**
+
 - 디시 러닝갤 1085409 댓글 — "**너무 맞추면** 지나갈 때 쌍따봉 받으면서 화이팅 당해. 가다가 퍼짐" / "**ㅋㅋㅋ 대충해**"
 - 디시 러닝갤 1088874 댓글 — "**이런게 진짜 아재스타일인듯** 뭔가 깔맞춤하려고하는"
 - [디시 남자패션갤](https://gall.dcinside.com/mgallery/board/view/?id=mf&no=269287) — "뉴비필독) **톤온톤, 깔맞춤 함부로 시도하지마라**"

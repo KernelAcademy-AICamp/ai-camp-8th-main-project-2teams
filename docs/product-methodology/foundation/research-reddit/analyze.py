@@ -15,11 +15,14 @@ GFX = (r"graphic|logo|artwork|art work|lettering|letters|text|font|writing|wordi
 PATTERN = (r"leopard|floral|paisley|cheetah|zebra|animal|camo|camouflage|plaid|tie[- ]?dye|polka|"
            r"hibiscus|greek|ditsy|snake|giraffe|houndstooth|gingham|tartan|abstract|marble|"
            r"stripe\w*|checker\w*|argyle|batik|damask|toile|geometric|cow")
-NOTTOP = r"\bdress\b|\bhandbag\b|\bpurse\b|\bsneaker\w*\b|\bshoe\w*\b|\bskirt\b|\btrouser\w*\b|\bbikini\b"
 POSITION = (r"front|back|chest|sleeve\w*|pocket|rear|shoulder|hem|all[- ]over|breast")
 
 re_gfx = re.compile(rf"\b({GFX})\b", re.I)
 re_top = re.compile(rf"\b({TOP})\b", re.I)
+# "tee dress"는 원피스. "dress shirt"는 셔츠 — dress가 뒤에 올 때만 제외한다.
+re_dress = re.compile(rf"\b({TOP})\s+dress\b", re.I)
+assert re_dress.search("Mini Tee Dress") and re_dress.search("Peacock Print T-Shirt Dress")
+assert not re_dress.search("floral dress shirt ideas") and not re_dress.search("DC Shoes t-shirt")
 # a graphic mention that is NOT immediately preceded by a fabric-pattern word
 re_gfx_clean = re.compile(rf"(?<!\w)(?:(?!\b(?:{PATTERN})\b\s+)\w+\s+){{0,1}}\b({GFX})\b", re.I)
 
@@ -113,8 +116,8 @@ for p in corpus:
         continue
     if pattern_only(txt):
         continue                                   # all-over fabric pattern, not a placed graphic
-    if re.search(NOTTOP, title, re.I) and not re_top.search(title):
-        continue                                   # title is about a dress/bag/shoe
+    if re_dress.search(title):
+        continue                                   # "tee/t-shirt/sweatshirt dress" = 원피스지 상의가 아님
     if not re_top.search(title):
         continue                                   # keep only posts whose TITLE is about a top
     if p['subreddit'] not in ASKSUBS and not FINDWORD.search(txt):

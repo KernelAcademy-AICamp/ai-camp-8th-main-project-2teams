@@ -21,16 +21,17 @@
 - 🧩 **데이터**: 무신사 상품 수집 + 상품 이미지에서 비전 LLM으로 속성 추출(색·프린팅·그래픽·핏·소재추정), 바탕색은 무신사 44색 팔레트 기준
 
 ## 어떻게 (실행 구조)
-**3 × 2주 Build-Measure-Learn 린 루프.** 이 프로젝트의 핵심은 완성도가 아니라 **Amplitude 데이터로 매 루프 의사결정하는 과정**을 증명하는 것.
+**3 × 2주 Build-Measure-Learn 린 루프.** 이 프로젝트의 핵심은 완성도가 아니라 **GA4 데이터로 매 루프 의사결정하는 과정**을 증명하는 것.
 
 | 루프 | 초점 |
 |---|---|
-| Loop 1 (W1-2) | 가치 검증 + 최소 자동추출 → 배포 → Amplitude·인터뷰 → 의사결정 |
+| Loop 1 (W1-2) | 가치 검증 + 최소 자동추출 → 배포 → GA4·인터뷰 → 의사결정 |
 | Loop 2 (W3-4) | Loop1 데이터가 가리키는 곳에 투자 |
 | Loop 3 (W5-6) | 정밀화·전환·확장 + 최종 산출물 |
 
 ## 팀
-| 이름 | 역할 |
+
+| 역할 | 담당 |
 |---|---|
 | 개발 | LLM 검색 파이프라인 · API 연동 · 앱/배포 |
 | 카탈로그 | 카탈로그 구축 · 속성 스키마/라벨 기준 정의 |
@@ -38,12 +39,12 @@
 | 감각속성·인터뷰 | 소재·기능성 속성 오너 · 리뷰 샘플 분석 · 사용자 인터뷰 |
 
 ## 기술 스택 (예정)
-Next.js · shadcn/ui · Supabase · OpenAI/비전 LLM · 네이버 쇼핑 오픈API · Amplitude · Vercel
+Next.js · shadcn/ui · Supabase · OpenAI/비전 LLM · 무신사(데이터 소스, D14) · GA4 · Vercel
 
 ## 문서
 기획 산출물은 [`docs/product-methodology/`](docs/product-methodology/)에 있습니다.
 - [기획 인덱스 & 핵심 결정](docs/product-methodology/README.md)
-- [PRD](docs/product-methodology/living/prd.md) · [MVP·스프린트](docs/product-methodology/living/mvp-plan.md) · [지표(Amplitude)](docs/product-methodology/living/metrics.md)
+- [PRD](docs/product-methodology/living/prd.md) · [MVP·스프린트](docs/product-methodology/living/mvp-plan.md) · [지표(GA4)](docs/product-methodology/living/metrics.md)
 - [고객 프로필/JTBD](docs/product-methodology/living/customer-profile.md) · [문제 검증](docs/product-methodology/foundation/problem-validation.md) · [데이터 현실성](docs/product-methodology/foundation/data-feasibility.md)
 
 ## 브랜치
