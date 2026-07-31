@@ -15,13 +15,18 @@ export interface AliasDb {
         column: string,
         value: unknown,
       ): {
-        range(
-          from: number,
-          to: number,
-        ): PromiseLike<{
-          data: AliasRow[] | null;
-          error: unknown;
-        }>;
+        order(
+          column: string,
+          options: { ascending: boolean },
+        ): {
+          range(
+            from: number,
+            to: number,
+          ): PromiseLike<{
+            data: AliasRow[] | null;
+            error: unknown;
+          }>;
+        };
       };
     };
   };
@@ -40,10 +45,13 @@ export async function getSafeBrandAliases(db: AliasDb): Promise<BrandAlias[]> {
 
   const rows: AliasRow[] = [];
   for (let off = 0; ; off += PAGE_SIZE) {
+    // offset 페이지네이션에 order()는 필수 — 정렬 없이 range()하면 페이지 간 중복·누락 가능
+    // (PostgREST-js 문서: https://postgrest-js.readthedocs.io/en/latest/references/javascript_guide.html)
     const { data, error } = await db
       .from("search_brand_aliases")
       .select("alias_normalized,catalog_brand")
       .eq("hard_filter_safe", true)
+      .order("alias_normalized", { ascending: true })
       .range(off, off + PAGE_SIZE - 1);
     if (error || !data) {
       throw new Error("search_brand_aliases 조회 실패");

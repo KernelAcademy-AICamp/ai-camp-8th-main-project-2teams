@@ -10,9 +10,15 @@ def main() -> None:
     client = get_client()
     brands: set[str] = set()
     off = 0
+    # offset 페이지네이션에 order()는 필수 — 정렬 없으면 브랜드 누락 가능 → stale 오판 → 유효 alias 삭제 위험
     while True:
         rows = (
-            client.table("search_goods").select("brand").range(off, off + 999).execute().data
+            client.table("search_goods")
+            .select("brand")
+            .order("goods_no")
+            .range(off, off + 999)
+            .execute()
+            .data
         )
         if not rows:
             break
@@ -21,10 +27,12 @@ def main() -> None:
 
     existing_brands: set[str] = set()
     off = 0
+    # offset 페이지네이션에 order()는 필수 — 정렬 없으면 alias 누락 가능 → stale 오판 위험
     while True:
         rows = (
             client.table("search_brand_aliases")
             .select("catalog_brand")
+            .order("alias_normalized")
             .range(off, off + 999)
             .execute()
             .data

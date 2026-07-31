@@ -25,12 +25,14 @@ function fakeDb(rows: unknown, error: unknown = null): FakeDb {
     from: () => ({
       select: () => ({
         eq: () => ({
-          range: (_from: number) => {
-            const idx = count;
-            count += 1;
-            const data = pages ? (pages[idx] ?? []) : rows;
-            return Promise.resolve({ data: data as never, error });
-          },
+          order: () => ({
+            range: (_from: number) => {
+              const idx = count;
+              count += 1;
+              const data = pages ? (pages[idx] ?? []) : rows;
+              return Promise.resolve({ data: data as never, error });
+            },
+          }),
         }),
       }),
     }),
