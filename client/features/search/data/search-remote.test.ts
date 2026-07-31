@@ -16,6 +16,7 @@ describe("searchRemote — mode 계약", () => {
       intent: EMPTY_INTENT,
       mode: "failed",
       titleTier: null,
+      titleSalvage: false,
     });
   });
 
@@ -51,6 +52,7 @@ describe("searchRemote — mode 계약", () => {
       intent: EMPTY_INTENT,
       mode: "failed",
       titleTier: null,
+      titleSalvage: false,
     });
   });
 
@@ -73,5 +75,21 @@ describe("searchRemote — mode 계약", () => {
       );
     const r = await searchRemote("드라이핏", fetchMock as typeof fetch);
     expect(r.titleTier).toBe("and");
+  });
+
+  it("titleSalvage를 패스스루한다(없으면 false)", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        res({ results: [], intent: EMPTY_INTENT, mode: "full", titleSalvage: true }),
+      );
+    const r = await searchRemote("택티컬 티셔츠", fetchMock as typeof fetch);
+    expect(r.titleSalvage).toBe(true);
+
+    const fetchMockNoField = vi
+      .fn()
+      .mockResolvedValue(res({ results: [], intent: EMPTY_INTENT, mode: "full" }));
+    const r2 = await searchRemote("드라이핏", fetchMockNoField as typeof fetch);
+    expect(r2.titleSalvage).toBe(false);
   });
 });

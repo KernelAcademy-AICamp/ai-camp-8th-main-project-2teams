@@ -60,31 +60,34 @@ export function useSearchViewModel(query: string, src: string | null): SearchVie
     if (!query.trim()) return; // 동기 setState 금지 — 빈 상태는 파생값으로 처리.
     const id = newSearchId();
     const startedAt = performance.now();
-    void searchRemote(query).then(({ results, intent, mode, titleTier }) => {
-      if (!active) return;
-      setParsed({ query, intent, results, mode }); // 비동기 .then — set-state-in-effect 아님.
-      setSearchId(id);
-      track("search_performed", {
-        search_id: id,
-        query,
-        result_count: results.length,
-        result_type: deriveResultType(results),
-        mode,
-        understood: hasParsedConstraint(intent),
-        entry_type: entryTypeFromSrc(src),
-        is_refinement: src === "refine",
-        duration_ms: Math.round(performance.now() - startedAt),
-        ...flattenParsedAttributes(intent),
-        title_tier: titleTier,
-      });
-      if (intent.brand && results.length === 0 && mode !== "failed") {
-        track("brand_zero_results", {
+    void searchRemote(query).then(
+      ({ results, intent, mode, titleTier, titleSalvage }) => {
+        if (!active) return;
+        setParsed({ query, intent, results, mode }); // 비동기 .then — set-state-in-effect 아님.
+        setSearchId(id);
+        track("search_performed", {
           search_id: id,
           query,
-          parsed_brand: intent.brand,
+          result_count: results.length,
+          result_type: deriveResultType(results),
+          mode,
+          understood: hasParsedConstraint(intent),
+          entry_type: entryTypeFromSrc(src),
+          is_refinement: src === "refine",
+          duration_ms: Math.round(performance.now() - startedAt),
+          ...flattenParsedAttributes(intent),
+          title_tier: titleTier,
+          title_salvage: titleSalvage,
         });
-      }
-    });
+        if (intent.brand && results.length === 0 && mode !== "failed") {
+          track("brand_zero_results", {
+            search_id: id,
+            query,
+            parsed_brand: intent.brand,
+          });
+        }
+      },
+    );
     return () => {
       active = false;
     };

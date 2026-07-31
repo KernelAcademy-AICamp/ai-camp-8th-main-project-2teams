@@ -93,6 +93,7 @@
 - **`mode` 전환 범위(전 계층)**: route(`route.ts`) → `search-remote.ts:41` → **`use-search-view-model.ts:62`** → UI(`SearchResults.tsx:60`) → **GA4 계측 파라미터(`degraded`→`mode`)**. `lexical_only`는 결과를 버리지 않는다.
 - **브랜드 = 하드필터(AND).** **0건이면 그대로 0건 + 계측**(Phase 1). “대체 결과” 노출(브랜드 제거 재조회·resultMode·UI 문구·클릭 계측)은 Phase 2+로 분리.
 - **제목 = 단계적 폴백**(Phase 2): 정확 구문 → 전 토큰 AND → 토큰 OR. **다른 하드필터 적용 후 고유 상품(goods_no dedup) 24개**를 채우면 멈춘다. 상위 tier 결과를 우선 배치.
+- **제목 0건 구제(v3.2, 사용자 승인 2026-07-31)**: titleTokens가 있는데 전 tier가 0건이면, **LLM 유래 스타일 하드필터(style 4배열)와 exclude를 뺀 intent로 tier 폴백을 1회 재실행**한다(성공 시 적용된 intent를 응답·칩에 반영, `titleSalvage` 계측). 근거: 사용자가 직접 친 제목 토큰은 명시 신호(ground truth), 스타일 속성은 LLM 추론(환각 가능 — 실사례: "택티컬 티셔츠"에서 패턴 6종 환각으로 실존 8건 전멸). 추론이 명시 신호를 전멸시키면 명시 신호를 우선한다. gender·sizeStd·price·brand는 유지.
 
 ### 4.5 제목 토큰 추출 (Phase 2 최대 난제)
 - 파서는 normalized value만 주고 원문 span을 안 준다 → “브랜드만 빼면 나머지가 제목”은 위험(`검정/오버핏/3만원/이하`가 다 제목 조건이 됨).

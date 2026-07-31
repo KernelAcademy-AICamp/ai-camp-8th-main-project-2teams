@@ -175,3 +175,50 @@ describe("POST /api/search — 제목 tier 폴백", () => {
     expect((body as { mode: string }).mode).toBe("lexical_only");
   });
 });
+
+describe("POST /api/search — 제목 0건 구제(v3.2)", () => {
+  it("전 tier 0건 + 환각 스타일 하드필터 → 스타일 제거 재스윕이 결과 반환", async () => {
+    parseMock.mockResolvedValue({
+      intent: { ...EMPTY_INTENT, style: { ...EMPTY_INTENT.style, patterns: ["카모"] } },
+      degraded: false,
+    });
+    aliasMock.mockResolvedValue([]);
+    const rows = Array.from({ length: 30 }, (_, i) => ({
+      goods_no: i + 1,
+      title: `택티컬 티셔츠 ${String(i)}`,
+      brand: "b",
+      review_score: 4,
+      review_count: 1,
+    }));
+    dbResult
+      .mockReturnValueOnce({ data: [], error: null }) // 원본: phrase 0건
+      .mockReturnValueOnce({ data: [], error: null }) // 원본: and 0건
+      .mockReturnValueOnce({ data: [], error: null }) // 원본: or 0건
+      .mockReturnValue({ data: rows, error: null }); // salvage: phrase에서 24개 이상 채움
+
+    const { body } = await post("드라이핏 쿨링소재");
+    const b = body as {
+      mode: string;
+      titleSalvage: boolean;
+      intent: { style: { patterns: string[] } };
+      results: unknown[];
+    };
+    expect(b.mode).toBe("full");
+    expect(b.titleSalvage).toBe(true);
+    expect(b.intent.style.patterns).toEqual([]);
+    expect(b.results.length).toBeGreaterThan(0);
+    expect(dbResult).toHaveBeenCalledTimes(4); // 원본 3(전부 0건) + salvage 1(24개 이상 채움)
+  });
+
+  it("스타일 하드필터 없는 intent + 전 tier 0건 → 재시도 없음", async () => {
+    parseMock.mockResolvedValue({ intent: EMPTY_INTENT, degraded: false });
+    aliasMock.mockResolvedValue([]);
+    dbResult.mockReturnValue({ data: [], error: null });
+
+    const { body } = await post("드라이핏 쿨링소재");
+    const b = body as { titleSalvage: boolean; results: unknown[] };
+    expect(b.titleSalvage).toBe(false);
+    expect(b.results).toEqual([]);
+    expect(dbResult).toHaveBeenCalledTimes(3);
+  });
+});

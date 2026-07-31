@@ -19,6 +19,10 @@ import { matchBrandDetailed } from "@/features/search/domain/match-brand";
 import { EMPTY_INTENT, type QueryIntent } from "@/features/search/domain/query-intent";
 import { rankGoods } from "@/features/search/domain/rank-goods";
 import {
+  hasStyleHardFilters,
+  stripStyleHardFilters,
+} from "@/features/search/domain/salvage-intent";
+import {
   deriveSearchMode,
   type SearchMode,
 } from "@/features/search/domain/search-mode";
@@ -43,6 +47,7 @@ interface SearchPayload {
   intent: QueryIntent;
   mode: SearchMode;
   titleTier: TitleTier | null;
+  titleSalvage: boolean;
 }
 
 function failed(intent: QueryIntent): Response {
@@ -51,6 +56,7 @@ function failed(intent: QueryIntent): Response {
     intent,
     mode: "failed",
     titleTier: null,
+    titleSalvage: false,
   } satisfies SearchPayload);
 }
 
@@ -92,41 +98,77 @@ export async function POST(request: Request): Promise<Response> {
   const TITLE_TARGET = 24; // 다른 하드필터 적용 후 고유 상품 24개면 폴백 중단
   const TIERS: TitleTier[] = ["phrase", "and", "or"];
 
-  const fetchTier = async (tier?: TitleTier) => {
+  const fetchTier = async (forIntent: QueryIntent, tier?: TitleTier) => {
     const base = supabase
       .from("search_goods")
       .select(SEARCH_SUMMARY_COLUMNS) as unknown as GoodsQuery;
-    return await (buildGoodsQuery(base, intent, tier) as unknown as PromiseLike<{
+    return await (buildGoodsQuery(base, forIntent, tier) as unknown as PromiseLike<{
       data: SearchGoodsRow[] | null;
       error: unknown;
     }>);
   };
 
-  let results: Goods[];
-  let titleTier: TitleTier | null = null;
-
-  if (intent.titleTokens?.length) {
-    // 제목 tier 폴백 — 상위 tier 우선 배치, goods_no dedup, 24개 채우면 중단.
+  // 제목 tier 폴백 — 상위 tier 우선 배치, goods_no dedup, 24개 채우면 중단.
+  // 재사용: 원본 intent와 제목 0건 구제(salvage) intent 양쪽 스윕에 쓴다(설계 §4.4).
+  const sweepTitleTiers = async (
+    forIntent: QueryIntent,
+  ): Promise<{
+    results: Goods[];
+    titleTier: TitleTier | null;
+    uniqueCount: number;
+  } | null> => {
     const seen = new Set<string>();
     const groups: Goods[][] = [];
+    let titleTier: TitleTier | null = null;
     for (const tier of TIERS) {
-      const { data, error } = await fetchTier(tier);
-      if (error || !data) return failed(intent);
+      const { data, error } = await fetchTier(forIntent, tier);
+      if (error || !data) return null;
       titleTier = tier;
       const fresh = data.map(mapGoodsRow).filter((g) => {
         if (seen.has(g.goodsNo)) return false;
         seen.add(g.goodsNo);
         return true;
       });
-      if (fresh.length) groups.push(rankGoods(fresh, intent, 300));
+      if (fresh.length) groups.push(rankGoods(fresh, forIntent, 300));
       if (seen.size >= TITLE_TARGET) break;
     }
-    results = groups.flat().slice(0, 300);
+    return { results: groups.flat().slice(0, 300), titleTier, uniqueCount: seen.size };
+  };
+
+  let results: Goods[];
+  let titleTier: TitleTier | null = null;
+  let titleSalvage = false;
+
+  if (intent.titleTokens?.length) {
+    const sweep = await sweepTitleTiers(intent);
+    if (!sweep) return failed(intent);
+    results = sweep.results;
+    titleTier = sweep.titleTier;
+
+    // 제목 0건 구제(v3.2, 사용자 승인) — 전 tier 0건 && LLM 유래 스타일 하드필터/exclude
+    // 존재 시, 그걸 뺀 intent로 1회만 재스윕. 성공하면 결과·intent를 교체(칩 반영).
+    if (sweep.uniqueCount === 0 && hasStyleHardFilters(intent)) {
+      titleSalvage = true;
+      const salvageIntent = stripStyleHardFilters(intent);
+      const salvageSweep = await sweepTitleTiers(salvageIntent);
+      if (!salvageSweep) return failed(intent);
+      if (salvageSweep.uniqueCount > 0) {
+        results = salvageSweep.results;
+        titleTier = salvageSweep.titleTier;
+        intent = salvageIntent;
+      }
+    }
   } else {
-    const { data, error } = await fetchTier();
+    const { data, error } = await fetchTier(intent);
     if (error || !data) return failed(intent);
     results = rankGoods(data.map(mapGoodsRow), intent, 300);
   }
 
-  return Response.json({ results, intent, mode, titleTier } satisfies SearchPayload);
+  return Response.json({
+    results,
+    intent,
+    mode,
+    titleTier,
+    titleSalvage,
+  } satisfies SearchPayload);
 }
