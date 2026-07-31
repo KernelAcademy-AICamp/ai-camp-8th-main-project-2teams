@@ -1,7 +1,7 @@
-import json, re, os, datetime
+import json, re, os, datetime, gzip
 
 D = os.path.dirname(os.path.abspath(__file__))
-corpus = json.load(open(os.path.join(D, 'corpus.json')))
+corpus = json.load(gzip.open(os.path.join(D, 'corpus.json.gz'), 'rt', encoding='utf-8'))
 
 COLORS = (r"black|white|red|blue|navy|green|yellow|orange|purple|pink|brown|grey|gray|beige|cream|"
           r"tan|khaki|olive|maroon|burgundy|teal|turquoise|lavender|lilac|mint|peach|coral|gold|"

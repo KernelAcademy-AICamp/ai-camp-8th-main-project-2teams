@@ -1,7 +1,7 @@
-import json, urllib.parse, time, os, sys, subprocess
+import json, urllib.parse, time, os, sys, subprocess, gzip
 
 D = os.path.dirname(os.path.abspath(__file__))
-OUT = os.path.join(D, 'corpus.json')
+OUT = os.path.join(D, 'corpus.json.gz')
 
 
 def get(url, tries=3):
@@ -45,6 +45,6 @@ for sub in SUBS:
                 seen.add(k)
                 corpus.append({kk: post.get(kk) for kk in KEEP})
         sys.stderr.write(f'{sub}/{q}: total {len(corpus)}\n')
-        json.dump(corpus, open(OUT, 'w'))
+        json.dump(corpus, gzip.open(OUT, 'wt', encoding='utf-8'))
 
 print('TOTAL', len(corpus))
