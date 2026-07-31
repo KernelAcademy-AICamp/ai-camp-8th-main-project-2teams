@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { EMPTY_INTENT, type QueryIntent } from "@/features/search/domain/query-intent";
 import {
+  hasNonTitleHardFilters,
   hasStyleHardFilters,
   stripStyleHardFilters,
 } from "@/features/search/domain/salvage-intent";
@@ -98,6 +99,64 @@ describe("hasStyleHardFilters", () => {
   it("exclude.keywords만 있어도 true", () => {
     expect(
       hasStyleHardFilters({
+        ...EMPTY_INTENT,
+        exclude: { ...EMPTY_INTENT.exclude, keywords: ["로고"] },
+      }),
+    ).toBe(true);
+  });
+});
+
+describe("hasNonTitleHardFilters", () => {
+  it("빈 intent → false", () => {
+    expect(hasNonTitleHardFilters(EMPTY_INTENT)).toBe(false);
+  });
+
+  it("sizeStd만 있으면 → true", () => {
+    expect(hasNonTitleHardFilters({ ...EMPTY_INTENT, sizeStd: [105] })).toBe(true);
+  });
+
+  it("style.keywords만 있으면 → false(soft-only)", () => {
+    expect(
+      hasNonTitleHardFilters({
+        ...EMPTY_INTENT,
+        style: { ...EMPTY_INTENT.style, keywords: ["빈티지"] },
+      }),
+    ).toBe(false);
+  });
+
+  it("wearChars만 있으면 → false(soft-only)", () => {
+    expect(
+      hasNonTitleHardFilters({
+        ...EMPTY_INTENT,
+        wearChars: { ...EMPTY_INTENT.wearChars, 두께: ["두꺼움"] },
+      }),
+    ).toBe(false);
+  });
+
+  it("brand만 있으면 → true", () => {
+    expect(hasNonTitleHardFilters({ ...EMPTY_INTENT, brand: "나이키" })).toBe(true);
+  });
+
+  it("gender만 있으면 → true", () => {
+    expect(hasNonTitleHardFilters({ ...EMPTY_INTENT, gender: "남성" })).toBe(true);
+  });
+
+  it("priceMax만 있으면 → true", () => {
+    expect(hasNonTitleHardFilters({ ...EMPTY_INTENT, priceMax: 30000 })).toBe(true);
+  });
+
+  it("style.colors만 있으면 → true", () => {
+    expect(
+      hasNonTitleHardFilters({
+        ...EMPTY_INTENT,
+        style: { ...EMPTY_INTENT.style, colors: ["블랙"] },
+      }),
+    ).toBe(true);
+  });
+
+  it("exclude.keywords만 있으면 → true", () => {
+    expect(
+      hasNonTitleHardFilters({
         ...EMPTY_INTENT,
         exclude: { ...EMPTY_INTENT.exclude, keywords: ["로고"] },
       }),

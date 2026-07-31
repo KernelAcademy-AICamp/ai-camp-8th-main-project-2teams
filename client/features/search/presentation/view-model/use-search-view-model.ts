@@ -61,7 +61,7 @@ export function useSearchViewModel(query: string, src: string | null): SearchVie
     const id = newSearchId();
     const startedAt = performance.now();
     void searchRemote(query).then(
-      ({ results, intent, mode, titleTier, titleSalvage }) => {
+      ({ results, intent, mode, titleTier, titleSalvage, titleDropped }) => {
         if (!active) return;
         setParsed({ query, intent, results, mode }); // 비동기 .then — set-state-in-effect 아님.
         setSearchId(id);
@@ -78,6 +78,7 @@ export function useSearchViewModel(query: string, src: string | null): SearchVie
           ...flattenParsedAttributes(intent),
           title_tier: titleTier,
           title_salvage: titleSalvage,
+          title_dropped: titleDropped,
         });
         if (intent.brand && results.length === 0 && mode !== "failed") {
           track("brand_zero_results", {

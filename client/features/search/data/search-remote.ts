@@ -15,6 +15,7 @@ export interface SearchOutcome {
   mode: SearchMode;
   titleTier: string | null;
   titleSalvage: boolean;
+  titleDropped: boolean;
 }
 
 interface SearchApiResponse {
@@ -23,6 +24,7 @@ interface SearchApiResponse {
   mode?: string;
   titleTier?: string | null;
   titleSalvage?: boolean;
+  titleDropped?: boolean;
 }
 
 const FAILED: SearchOutcome = {
@@ -31,6 +33,7 @@ const FAILED: SearchOutcome = {
   mode: "failed",
   titleTier: null,
   titleSalvage: false,
+  titleDropped: false,
 };
 
 export async function searchRemote(
@@ -61,6 +64,7 @@ export async function searchRemote(
         mode,
         titleTier: data.titleTier ?? null,
         titleSalvage: false,
+        titleDropped: false,
       };
     }
     return {
@@ -69,6 +73,7 @@ export async function searchRemote(
       mode,
       titleTier: data.titleTier ?? null,
       titleSalvage: data.titleSalvage ?? false,
+      titleDropped: data.titleDropped ?? false,
     };
   } catch {
     return FAILED;

@@ -48,3 +48,33 @@ export function stripStyleHardFilters(intent: QueryIntent): QueryIntent {
     },
   };
 }
+
+// titleTokens를 뺀 나머지로도 조회할 가치가 있는지 — brand·gender·sizeStd·priceMin/Max·
+// style 4배열(colors/patterns/materials/fits)·exclude(4배열+keywords) 중 하나라도 있으면 true.
+// ⚠️ hasStyleHardFilters와 별개 함수: keywords(소프트)·wearChars(소프트)는 여기서 신호로 치지 않는다.
+export function hasNonTitleHardFilters(intent: QueryIntent): boolean {
+  const { colors, patterns, materials, fits } = intent.style;
+  const {
+    colors: ec,
+    patterns: ep,
+    materials: em,
+    fits: ef,
+    keywords: ek,
+  } = intent.exclude;
+  return (
+    Boolean(intent.brand) ||
+    Boolean(intent.gender) ||
+    intent.sizeStd.length > 0 ||
+    intent.priceMin != null ||
+    intent.priceMax != null ||
+    colors.length > 0 ||
+    patterns.length > 0 ||
+    materials.length > 0 ||
+    fits.length > 0 ||
+    ec.length > 0 ||
+    ep.length > 0 ||
+    em.length > 0 ||
+    ef.length > 0 ||
+    ek.length > 0
+  );
+}

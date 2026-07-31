@@ -222,3 +222,82 @@ describe("POST /api/search — 제목 0건 구제(v3.2)", () => {
     expect(dbResult).toHaveBeenCalledTimes(3);
   });
 });
+
+describe("POST /api/search — 결정적 가격 파서(P0-①)", () => {
+  it("LLM이 '2만원 이하'를 오파싱해도 명시 가격이 결정적으로 override", async () => {
+    // LLM 환각 재현: priceMax를 2000으로 잘못 파싱.
+    parseMock.mockResolvedValue({
+      intent: { ...EMPTY_INTENT, priceMax: 2000 },
+      degraded: false,
+    });
+    aliasMock.mockResolvedValue([]);
+    dbResult.mockReturnValue({ data: [], error: null });
+    const { body } = await post("2만원 이하 반팔");
+    const b = body as { intent: { priceMin?: number; priceMax?: number } };
+    expect(b.intent.priceMax).toBe(20000);
+    expect(b.intent.priceMin).toBeUndefined();
+  });
+
+  it("명시 가격 표현이 없으면 LLM 값을 유지", async () => {
+    parseMock.mockResolvedValue({
+      intent: { ...EMPTY_INTENT, priceMax: 2000 },
+      degraded: false,
+    });
+    aliasMock.mockResolvedValue([]);
+    dbResult.mockReturnValue({ data: [], error: null });
+    const { body } = await post("가성비 반팔");
+    const b = body as { intent: { priceMax?: number } };
+    expect(b.intent.priceMax).toBe(2000);
+  });
+});
+
+describe("POST /api/search — titleTokens 폐기 fallback(P0-②)", () => {
+  it("sizeStd 있는 intent + 대화 필러 titleTokens + 전 tier·구제 0건 → fallback 쿼리 실행", async () => {
+    // "105"는 숫자라 titleTokens에서 필터되지만, "저기"·"그거"·"있나요"는 대화 필러로 살아남아
+    // 제목 하드 게이트가 되어 실사이즈 검색(105)을 전멸시킬 수 있는 케이스를 재현한다.
+    parseMock.mockResolvedValue({
+      intent: { ...EMPTY_INTENT, sizeStd: [105] },
+      degraded: false,
+    });
+    aliasMock.mockResolvedValue([]);
+    const rows = Array.from({ length: 5 }, (_, i) => ({
+      goods_no: i + 1,
+      title: `기본 반팔 ${String(i)}`,
+      brand: "b",
+      review_score: 4,
+      review_count: 1,
+      size_std: [105],
+    }));
+    dbResult
+      .mockReturnValueOnce({ data: [], error: null }) // 원본: phrase 0건
+      .mockReturnValueOnce({ data: [], error: null }) // 원본: and 0건
+      .mockReturnValueOnce({ data: [], error: null }) // 원본: or 0건
+      .mockReturnValueOnce({ data: rows, error: null }); // fallback: titleTokens 제거 단일 쿼리
+
+    const { body } = await post("저기 그거 105 있나요");
+    const b = body as {
+      mode: string;
+      titleTier: string | null;
+      titleDropped: boolean;
+      intent: { titleTokens?: string[] };
+      results: unknown[];
+    };
+    expect(dbResult).toHaveBeenCalledTimes(4);
+    expect(b.results.length).toBeGreaterThan(0);
+    expect(b.titleDropped).toBe(true);
+    expect(b.titleTier).toBeNull();
+    expect(b.intent.titleTokens ?? []).toEqual([]);
+  });
+
+  it("titleTokens만 유일 신호(다른 하드 조건 없음) + 전 tier 0건 → fallback 미실행", async () => {
+    parseMock.mockResolvedValue({ intent: EMPTY_INTENT, degraded: false });
+    aliasMock.mockResolvedValue([]);
+    dbResult.mockReturnValue({ data: [], error: null });
+
+    const { body } = await post("저기 그거 있나요");
+    const b = body as { titleDropped: boolean; results: unknown[] };
+    expect(dbResult).toHaveBeenCalledTimes(3);
+    expect(b.titleDropped).toBe(false);
+    expect(b.results).toEqual([]);
+  });
+});

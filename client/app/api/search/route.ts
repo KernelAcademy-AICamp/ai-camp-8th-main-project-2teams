@@ -14,11 +14,13 @@ import {
 } from "@/features/search/data/build-goods-query";
 import { mapGoodsRow, type SearchGoodsRow } from "@/features/search/data/map-goods-row";
 import { parseQueryIntent } from "@/features/search/data/parse-query-intent";
+import { extractExplicitPrice } from "@/features/search/domain/extract-explicit-price";
 import { extractTitleTokens } from "@/features/search/domain/extract-title-tokens";
 import { matchBrandDetailed } from "@/features/search/domain/match-brand";
 import { EMPTY_INTENT, type QueryIntent } from "@/features/search/domain/query-intent";
 import { rankGoods } from "@/features/search/domain/rank-goods";
 import {
+  hasNonTitleHardFilters,
   hasStyleHardFilters,
   stripStyleHardFilters,
 } from "@/features/search/domain/salvage-intent";
@@ -48,6 +50,7 @@ interface SearchPayload {
   mode: SearchMode;
   titleTier: TitleTier | null;
   titleSalvage: boolean;
+  titleDropped: boolean;
 }
 
 function failed(intent: QueryIntent): Response {
@@ -57,6 +60,7 @@ function failed(intent: QueryIntent): Response {
     mode: "failed",
     titleTier: null,
     titleSalvage: false,
+    titleDropped: false,
   } satisfies SearchPayload);
 }
 
@@ -72,9 +76,21 @@ export async function POST(request: Request): Promise<Response> {
   const { intent: parsedIntent, degraded: parserDegraded } =
     await parseQueryIntent(query);
 
+  // 1b) 결정적 가격 파서(설계 P0-①) — 통화 단위가 명시된 가격 표현이 있으면 LLM의
+  //     priceMin/Max 환각(예: "2만원 이하"→2000원으로 오파싱)을 결정적 결과로 전량 대체한다.
+  //     미발견 시 LLM 값 유지.
+  const explicitPrice = extractExplicitPrice(query);
+  let intent = parsedIntent;
+  if (explicitPrice) {
+    intent = {
+      ...intent,
+      priceMin: explicitPrice.priceMin,
+      priceMax: explicitPrice.priceMax,
+    };
+  }
+
   // 2) lexical 브랜드 레이어 — safe alias만 로드하므로 매칭 성공 = safe(불변식).
   //    사전 조회 실패 → failed(설계 §4.4).
-  let intent = parsedIntent;
   try {
     // supabase-js 클라이언트는 AliasDb를 구조적으로 만족(제네릭 차이만 캐스트로 흡수).
     // eslint 타입체커는 단일 캐스트를 불필요하다고 보지만, tsc --noEmit은 단일 캐스트에서
@@ -86,7 +102,7 @@ export async function POST(request: Request): Promise<Response> {
     const titleTokens = extractTitleTokens(query, brandMatch?.consumedTokens ?? []);
     if (titleTokens.length) intent = { ...intent, titleTokens };
   } catch {
-    return failed(parsedIntent);
+    return failed(intent);
   }
 
   // 3) mode 판정 — 신호 없으면 DB 조회 없이 failed(일반 상위 상품 노출 금지).
@@ -138,24 +154,44 @@ export async function POST(request: Request): Promise<Response> {
   let results: Goods[];
   let titleTier: TitleTier | null = null;
   let titleSalvage = false;
+  let titleDropped = false;
 
   if (intent.titleTokens?.length) {
     const sweep = await sweepTitleTiers(intent);
     if (!sweep) return failed(intent);
     results = sweep.results;
     titleTier = sweep.titleTier;
+    let uniqueCount = sweep.uniqueCount;
 
     // 제목 0건 구제(v3.2, 사용자 승인) — 전 tier 0건 && LLM 유래 스타일 하드필터/exclude
     // 존재 시, 그걸 뺀 intent로 1회만 재스윕. 성공하면 결과·intent를 교체(칩 반영).
-    if (sweep.uniqueCount === 0 && hasStyleHardFilters(intent)) {
+    if (uniqueCount === 0 && hasStyleHardFilters(intent)) {
       titleSalvage = true;
       const salvageIntent = stripStyleHardFilters(intent);
       const salvageSweep = await sweepTitleTiers(salvageIntent);
       if (!salvageSweep) return failed(intent);
+      uniqueCount = salvageSweep.uniqueCount;
       if (salvageSweep.uniqueCount > 0) {
         results = salvageSweep.results;
         titleTier = salvageSweep.titleTier;
         intent = salvageIntent;
+      }
+    }
+
+    // titleTokens 폐기 fallback(P0-②) — strict 스윕·style-strip 구제가 둘 다 0건이면
+    // 제목 하드 게이트가 대화 필러를 오탐(예: "내가 105 입는데…")했을 가능성이 있다.
+    // 다른 비제목 하드 조건이 실제로 남아있을 때만(hasNonTitleHardFilters), 제목 토큰을
+    // 통째로 뺀 원본 intent로 Phase 1 단일 쿼리(tier 없음) 1회 재시도한다.
+    if (uniqueCount === 0 && hasNonTitleHardFilters(intent)) {
+      const intentNoTitle: QueryIntent = { ...intent, titleTokens: [] };
+      const { data, error } = await fetchTier(intentNoTitle);
+      if (error || !data) return failed(intent);
+      const dropped = rankGoods(data.map(mapGoodsRow), intentNoTitle, 300);
+      if (dropped.length > 0) {
+        results = dropped;
+        titleTier = null;
+        intent = intentNoTitle;
+        titleDropped = true;
       }
     }
   } else {
@@ -170,5 +206,6 @@ export async function POST(request: Request): Promise<Response> {
     mode,
     titleTier,
     titleSalvage,
+    titleDropped,
   } satisfies SearchPayload);
 }
