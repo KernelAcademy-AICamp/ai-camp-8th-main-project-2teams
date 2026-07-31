@@ -65,4 +65,22 @@ describe("extractExplicitPrice", () => {
   it("'3만원까지' → priceMax=30000", () => {
     expect(extractExplicitPrice("3만원까지")).toEqual({ priceMax: 30000 });
   });
+
+  it("'3만원 이상적인 핏 반팔' → 오탐 방지(이상+적은 단어경계 아님) = priceMax", () => {
+    expect(extractExplicitPrice("3만원 이상적인 핏 반팔")).toEqual({
+      priceMax: 30000,
+    });
+  });
+
+  it("'2만원 이하로 부탁' → 조사 '로'는 단어경계 인정 = priceMax", () => {
+    expect(extractExplicitPrice("2만원 이하로 부탁")).toEqual({
+      priceMax: 20000,
+    });
+  });
+
+  it("'1만원 이상은 비싸' → 조사 '은'은 단어경계 인정 = priceMin", () => {
+    expect(extractExplicitPrice("1만원 이상은 비싸")).toEqual({
+      priceMin: 10000,
+    });
+  });
 });

@@ -98,6 +98,18 @@ describe("POST /api/search — mode 계약", () => {
     expect((body as { mode: string }).mode).toBe("failed");
   });
 
+  it("사전 조회 실패 + 명시 가격 → failed이지만 priceMax override 반영", async () => {
+    parseMock.mockResolvedValue({
+      intent: { ...EMPTY_INTENT, priceMax: 2000 },
+      degraded: false,
+    });
+    aliasMock.mockRejectedValue(new Error("boom"));
+    const { body } = await post("2만원 이하 반팔");
+    const b = body as { mode: string; intent: { priceMax: number } };
+    expect(b.mode).toBe("failed");
+    expect(b.intent.priceMax).toBe(20000);
+  });
+
   it("검색 DB 오류 → failed", async () => {
     parseMock.mockResolvedValue({ intent: EMPTY_INTENT, degraded: true });
     dbResult.mockReturnValue({ data: null, error: { message: "db down" } });

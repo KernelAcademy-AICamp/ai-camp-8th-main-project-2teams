@@ -25,12 +25,26 @@ function toNumber(raw: string): number {
   return Number(raw.replace(/,/g, ""));
 }
 
+function isWordBoundary(word: string, matchLength: number): boolean {
+  // 방향어 다음 문자가 없거나 조사류인 경우만 방향어로 인정
+  if (matchLength >= word.length) return true;
+  const nextChar = word[matchLength];
+  // 조사류: 은/는/이/가/을/를/에/도/만/로
+  return ["은", "는", "이", "가", "을", "를", "에", "도", "만", "로"].includes(
+    nextChar,
+  );
+}
+
 function detectDirection(rest: string): "min" | "max" | null {
   const m = /^\s*([가-힣]+)/.exec(rest);
   if (!m) return null;
   const word = m[1];
-  if (MAX_WORDS.some((w) => word.startsWith(w))) return "max";
-  if (MIN_WORDS.some((w) => word.startsWith(w))) return "min";
+  for (const w of MAX_WORDS) {
+    if (word.startsWith(w) && isWordBoundary(word, w.length)) return "max";
+  }
+  for (const w of MIN_WORDS) {
+    if (word.startsWith(w) && isWordBoundary(word, w.length)) return "min";
+  }
   return null;
 }
 
