@@ -27,7 +27,7 @@ export default function SearchResults() {
 
         {query.trim() &&
           !vm.loading &&
-          !vm.degraded &&
+          vm.mode !== "failed" &&
           (vm.chips.length > 0 || vm.results.length === 0) && (
             <div className="rise mt-5">
               <IntentChips chips={vm.chips} />
@@ -57,7 +57,7 @@ export default function SearchResults() {
               </div>
             );
           }
-          if (vm.degraded) {
+          if (vm.mode === "failed") {
             return (
               <div className="mt-6 grid place-items-center rounded-2xl border border-dashed border-line py-16 text-center">
                 <p className="font-display text-lg font-bold text-ink">
@@ -88,6 +88,11 @@ export default function SearchResults() {
           }
           return (
             <>
+              {vm.mode === "lexical_only" && (
+                <p className="mb-2 mt-4 rounded-xl border border-line bg-wall px-4 py-2.5 text-[13px] text-ink-soft">
+                  조건 분석이 불안정해 브랜드 일치 결과만 보여드려요.
+                </p>
+              )}
               <div className="mb-3 mt-6 flex items-baseline justify-between">
                 <h2 className="font-display text-lg font-bold text-ink">검색 결과</h2>
                 <span className="font-mono text-[12px] text-ink-soft">

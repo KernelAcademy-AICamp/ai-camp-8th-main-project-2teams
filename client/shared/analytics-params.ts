@@ -27,6 +27,7 @@ export function flattenParsedAttributes(intent: QueryIntent): Record<string, str
     out.parsed_exclude_materials = exclude.materials.join(",");
   if (exclude.fits.length) out.parsed_exclude_fits = exclude.fits.join(",");
   if (exclude.keywords.length) out.parsed_exclude_keywords = exclude.keywords.join(",");
+  if (intent.brand) out.parsed_brand = intent.brand;
   if (intent.gender) out.parsed_gender = intent.gender;
   if (intent.sizeStd.length) out.parsed_size_std = intent.sizeStd.join(",");
   if (intent.priceMin != null) out.parsed_price_min = String(intent.priceMin);

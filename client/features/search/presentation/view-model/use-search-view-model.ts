@@ -1,6 +1,6 @@
 "use client";
 
-// ViewModel (MVVM) — 검색 결과 화면. query(=URL)로 로딩·의도칩·결과·degraded 계산.
+// ViewModel (MVVM) — 검색 결과 화면. query(=URL)로 로딩·의도칩·결과·mode 계산.
 // 서버 /api/search(무신사) 호출. 칩은 읽기 전용(2a). 상태 변경은 .then()/이벤트 콜백에서만.
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -11,6 +11,7 @@ import {
   type IntentChip,
   queryIntentToChips,
 } from "@/features/search/domain/query-intent-chips";
+import type { SearchMode } from "@/features/search/domain/search-mode";
 import { newSearchId, track } from "@/shared/analytics";
 import {
   deriveResultType,
@@ -24,7 +25,7 @@ export interface SearchViewModel {
   loading: boolean;
   chips: IntentChip[];
   results: Goods[];
-  degraded: boolean;
+  mode: SearchMode;
   searchId: string;
   resultType: ResultType;
   retry: () => void;
@@ -34,13 +35,13 @@ interface Parsed {
   query: string;
   intent: QueryIntent;
   results: Goods[];
-  degraded: boolean;
+  mode: SearchMode;
 }
 const EMPTY_PARSED: Parsed = {
   query: "",
   intent: EMPTY_INTENT,
   results: [],
-  degraded: false,
+  mode: "full",
 };
 
 export function useSearchViewModel(query: string, src: string | null): SearchViewModel {
@@ -59,22 +60,29 @@ export function useSearchViewModel(query: string, src: string | null): SearchVie
     if (!query.trim()) return; // 동기 setState 금지 — 빈 상태는 파생값으로 처리.
     const id = newSearchId();
     const startedAt = performance.now();
-    void searchRemote(query).then(({ results, intent, degraded }) => {
+    void searchRemote(query).then(({ results, intent, mode }) => {
       if (!active) return;
-      setParsed({ query, intent, results, degraded }); // 비동기 .then — set-state-in-effect 아님.
+      setParsed({ query, intent, results, mode }); // 비동기 .then — set-state-in-effect 아님.
       setSearchId(id);
       track("search_performed", {
         search_id: id,
         query,
         result_count: results.length,
         result_type: deriveResultType(results),
-        degraded,
+        mode,
         understood: hasParsedConstraint(intent),
         entry_type: entryTypeFromSrc(src),
         is_refinement: src === "refine",
         duration_ms: Math.round(performance.now() - startedAt),
         ...flattenParsedAttributes(intent),
       });
+      if (intent.brand && results.length === 0 && mode !== "failed") {
+        track("brand_zero_results", {
+          search_id: id,
+          query,
+          parsed_brand: intent.brand,
+        });
+      }
     });
     return () => {
       active = false;
@@ -94,7 +102,7 @@ export function useSearchViewModel(query: string, src: string | null): SearchVie
     [settled, parsed.results],
   );
   const resultType = useMemo(() => deriveResultType(results), [results]);
-  const degraded = settled && parsed.degraded;
+  const mode: SearchMode = settled ? parsed.mode : "full";
 
-  return { loading, chips, results, degraded, searchId, resultType, retry };
+  return { loading, chips, results, mode, searchId, resultType, retry };
 }
