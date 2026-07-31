@@ -8,13 +8,20 @@ export interface BrandAlias {
   catalogBrand: string;
 }
 
+export interface BrandMatch {
+  brand: string;
+  consumedTokens: string[]; // 매칭에 소비된 원문 토큰(제목 토큰 추출에서 제외용)
+}
+
 // 현 카탈로그 최대 3토큰이나, 향후 4~5토큰 브랜드(예: 로우클래식 등 복합명) 대비 확장.
 const MAX_NGRAM = 5;
 
-export function matchBrand(query: string, aliases: BrandAlias[]): string | undefined {
+export function matchBrandDetailed(
+  query: string,
+  aliases: BrandAlias[],
+): BrandMatch | undefined {
   if (!aliases.length) return undefined;
 
-  // 키 → 브랜드. 한 키가 복수 브랜드로 갈리면 모호 → 그 키는 매칭에서 제외(방어).
   const byKey = new Map<string, string | null>();
   for (const a of aliases) {
     const prev = byKey.get(a.aliasNormalized);
@@ -22,15 +29,20 @@ export function matchBrand(query: string, aliases: BrandAlias[]): string | undef
     else if (prev !== a.catalogBrand) byKey.set(a.aliasNormalized, null);
   }
 
-  const tokens = query.normalize("NFKC").toLowerCase().split(/\s+/).filter(Boolean);
+  // 원문 토큰을 보존해 소비 토큰을 되돌려준다(정규화는 키 계산에서만).
+  const rawTokens = query.normalize("NFKC").split(/\s+/).filter(Boolean);
+  const lowTokens = rawTokens.map((t) => t.toLowerCase());
 
-  // 긴 n-gram 우선 → 동률이면 좌측 우선.
-  for (let n = Math.min(MAX_NGRAM, tokens.length); n >= 1; n--) {
-    for (let i = 0; i + n <= tokens.length; i++) {
-      const key = normalizeBrandKey(tokens.slice(i, i + n).join(""));
+  for (let n = Math.min(MAX_NGRAM, lowTokens.length); n >= 1; n--) {
+    for (let i = 0; i + n <= lowTokens.length; i++) {
+      const key = normalizeBrandKey(lowTokens.slice(i, i + n).join(""));
       const brand = byKey.get(key);
-      if (brand) return brand;
+      if (brand) return { brand, consumedTokens: rawTokens.slice(i, i + n) };
     }
   }
   return undefined;
+}
+
+export function matchBrand(query: string, aliases: BrandAlias[]): string | undefined {
+  return matchBrandDetailed(query, aliases)?.brand;
 }
