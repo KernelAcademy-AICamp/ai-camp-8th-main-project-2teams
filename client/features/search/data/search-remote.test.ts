@@ -1,114 +1,58 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import type { Tee } from "@/features/catalog/domain/tee";
+import type { Goods } from "@/features/catalog/domain/goods";
 import { searchRemote } from "@/features/search/data/search-remote";
+import { EMPTY_INTENT } from "@/features/search/domain/query-intent";
 
-afterEach(() => vi.restoreAllMocks());
-
-function tee(over: Partial<Tee> & { id: string }): Tee {
-  return {
-    name: "t",
-    brand: "b",
-    price: 1,
-    mall: "m",
-    link: "x",
-    gender: "unisex",
-    functional: [],
-    sizes: [],
-    ...over,
-  };
+function res(json: unknown): Response {
+  return { ok: true, json: () => Promise.resolve(json) } as never;
 }
 
-describe("searchRemote", () => {
-  it("서버 성공 결과를 exact 랭킹으로 반환한다", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        ok: true,
-        json: () =>
-          Promise.resolve({
-            results: [
-              {
-                id: "곰",
-                name: "홀로그램 곰 티",
-                brand: "b",
-                price: 1,
-                mall: "m",
-                link: "x",
-                gender: "unisex",
-                functional: [],
-                sizes: [],
-              },
-            ],
-            intent: { functional: [] },
-            semanticQuery: "홀로그램",
-            degraded: false,
-          }),
-      }),
-    );
-    const r = await searchRemote("홀로그램 느낌 티", [], []);
-    expect(r.results.exact.map((t) => t.id)).toEqual(["곰"]);
-    expect(r.results.partial).toEqual([]);
+describe("searchRemote — mode 계약", () => {
+  it("빈 쿼리는 failed 빈 결과(요청 없이)", async () => {
+    const r = await searchRemote("  ");
+    expect(r).toEqual({ results: [], intent: EMPTY_INTENT, mode: "failed" });
   });
 
-  it("서버 성공 경로에서도 결정적 브랜드 매칭을 intent에 얹는다", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        ok: true,
-        json: () =>
-          Promise.resolve({
-            results: [
-              {
-                id: "곰",
-                name: "온사이트 곰 티",
-                brand: "b",
-                price: 1,
-                mall: "m",
-                link: "x",
-                gender: "unisex",
-                functional: [],
-                sizes: [],
-              },
-            ],
-            intent: { functional: [] },
-            semanticQuery: "온사이트",
-            degraded: false,
-          }),
-      }),
-    );
-    const brands = [{ canonical: "온사이트", aliases: ["온사이트"] }];
-    const r = await searchRemote("온사이트 곰 티", brands, []);
-    expect(r.intent.brand).toBe("온사이트");
+  it("full 응답을 그대로 전달", async () => {
+    const goods = [{ goodsNo: 1 }] as unknown as Goods[];
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(res({ results: goods, intent: EMPTY_INTENT, mode: "full" }));
+    const r = await searchRemote("검정 티", fetchMock as typeof fetch);
+    expect(r.mode).toBe("full");
+    expect(r.results).toHaveLength(1);
   });
 
-  it("degraded면 로컬 폴백(searchTees)으로 계산한다", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        ok: true,
-        json: () =>
-          Promise.resolve({
-            results: [],
-            intent: { functional: [] },
-            semanticQuery: "",
-            degraded: true,
-          }),
-      }),
-    );
-    const fallback = [
-      tee({ id: "빨강", baseColor: "빨강" }),
-      tee({ id: "흰", baseColor: "흰" }),
-    ];
-    const r = await searchRemote("빨간 티", [], fallback);
-    // 규칙 폴백 파서가 "빨강"을 잡아 빨강 티가 매칭됨
-    expect(r.results.exact.map((t) => t.id)).toContain("빨강");
+  it("lexical_only는 결과를 버리지 않는다", async () => {
+    const goods = [{ goodsNo: 1 }] as unknown as Goods[];
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        res({ results: goods, intent: EMPTY_INTENT, mode: "lexical_only" }),
+      );
+    const r = await searchRemote("나이키", fetchMock as typeof fetch);
+    expect(r.mode).toBe("lexical_only");
+    expect(r.results).toHaveLength(1);
   });
 
-  it("네트워크 오류면 로컬 폴백", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("net")));
-    const fallback = [tee({ id: "흰", baseColor: "흰" })];
-    const r = await searchRemote("흰 티", [], fallback);
-    expect(r.results.exact.map((t) => t.id)).toContain("흰");
+  it("failed 응답은 빈 결과", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(res({ results: [], intent: EMPTY_INTENT, mode: "failed" }));
+    const r = await searchRemote("아무말", fetchMock as typeof fetch);
+    expect(r).toEqual({ results: [], intent: EMPTY_INTENT, mode: "failed" });
+  });
+
+  it("네트워크 오류 → failed", async () => {
+    const fetchMock = vi.fn().mockRejectedValue(new Error("net"));
+    const r = await searchRemote("x", fetchMock as typeof fetch);
+    expect(r.mode).toBe("failed");
+  });
+
+  it("mode가 없는 비정상 응답 → failed", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(res({ results: [] }));
+    const r = await searchRemote("x", fetchMock as typeof fetch);
+    expect(r.mode).toBe("failed");
   });
 });

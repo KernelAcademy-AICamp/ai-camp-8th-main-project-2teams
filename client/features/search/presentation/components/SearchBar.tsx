@@ -7,7 +7,7 @@ export default function SearchBar({
   initialValue = "",
   onSearch,
   autoFocus = false,
-  placeholder = "예: 등판에 노란 레터링 있는 시원한 오버핏 흰티",
+  placeholder = "예: 블랙 오버핏 반팔티 L, 3만원 이하",
 }: {
   initialValue?: string;
   onSearch: (q: string) => void;

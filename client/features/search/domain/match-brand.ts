@@ -1,22 +1,36 @@
-// 유스케이스: 쿼리에서 브랜드(별칭 포함)를 결정적으로 매칭 → canonical. 순수 함수.
-// LLM이 아니라 사전 매칭인 이유: 별칭(KOLON·ONSIGHT·레클비)·표기흔들림은 결정적 조회가 정확하다.
-export interface BrandEntry {
-  canonical: string;
-  aliases: string[];
+// 결정적 브랜드 매칭 — 쿼리 토큰 n-gram(1~3)을 safe alias 사전에 정확 매칭.
+// 경계 없는 includes 금지(부분 문자열 오탐 방지). 긴 n-gram 우선, 동률이면 좌측 우선.
+// 입력 aliases는 리포지토리가 hard_filter_safe=true만 로드 → 매칭 성공 = safe(불변식).
+import { normalizeBrandKey } from "@/features/search/domain/normalize-brand";
+
+export interface BrandAlias {
+  aliasNormalized: string;
+  catalogBrand: string;
 }
 
-export function matchBrand(query: string, brands: BrandEntry[]): string | undefined {
-  const low = query.toLowerCase();
-  // (alias, canonical) 쌍을 별칭 길이 내림차순으로 — 긴 별칭 우선.
-  const pairs = brands
-    .flatMap((b) =>
-      (b.aliases.length ? b.aliases : [b.canonical]).map(
-        (a) => [a.toLowerCase(), b.canonical] as const,
-      ),
-    )
-    .sort((a, b) => b[0].length - a[0].length);
-  for (const [alias, canonical] of pairs) {
-    if (alias && low.includes(alias)) return canonical;
+// 현 카탈로그 최대 3토큰이나, 향후 4~5토큰 브랜드(예: 로우클래식 등 복합명) 대비 확장.
+const MAX_NGRAM = 5;
+
+export function matchBrand(query: string, aliases: BrandAlias[]): string | undefined {
+  if (!aliases.length) return undefined;
+
+  // 키 → 브랜드. 한 키가 복수 브랜드로 갈리면 모호 → 그 키는 매칭에서 제외(방어).
+  const byKey = new Map<string, string | null>();
+  for (const a of aliases) {
+    const prev = byKey.get(a.aliasNormalized);
+    if (prev === undefined) byKey.set(a.aliasNormalized, a.catalogBrand);
+    else if (prev !== a.catalogBrand) byKey.set(a.aliasNormalized, null);
+  }
+
+  const tokens = query.normalize("NFKC").toLowerCase().split(/\s+/).filter(Boolean);
+
+  // 긴 n-gram 우선 → 동률이면 좌측 우선.
+  for (let n = Math.min(MAX_NGRAM, tokens.length); n >= 1; n--) {
+    for (let i = 0; i + n <= tokens.length; i++) {
+      const key = normalizeBrandKey(tokens.slice(i, i + n).join(""));
+      const brand = byKey.get(key);
+      if (brand) return brand;
+    }
   }
   return undefined;
 }

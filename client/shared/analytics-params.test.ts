@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import type { Intent } from "@/features/search/domain/intent";
+import type { Goods } from "@/features/catalog/domain/goods";
+import { EMPTY_INTENT, type QueryIntent } from "@/features/search/domain/query-intent";
 import {
   deriveResultType,
   entryTypeFromSrc,
@@ -8,58 +9,94 @@ import {
   hasParsedConstraint,
 } from "@/shared/analytics-params";
 
-const empty: Intent = { functional: [] };
+function intent(p: Partial<QueryIntent>): QueryIntent {
+  return {
+    ...EMPTY_INTENT,
+    ...p,
+    style: { ...EMPTY_INTENT.style, ...(p.style ?? {}) },
+  };
+}
 
 describe("deriveResultType", () => {
-  it("exact가 있으면 exact", () => {
-    expect(deriveResultType({ exact: [{}], partial: [] } as never)).toBe("exact");
-  });
-  it("exact 없고 partial 있으면 partial", () => {
-    expect(deriveResultType({ exact: [], partial: [{}] } as never)).toBe("partial");
-  });
-  it("둘 다 없으면 none", () => {
-    expect(deriveResultType({ exact: [], partial: [] })).toBe("none");
+  it("결과 유무로 results/none", () => {
+    expect(deriveResultType([])).toBe("none");
+    expect(deriveResultType([{ goodsNo: "1" } as Goods])).toBe("results");
   });
 });
-
 describe("flattenParsedAttributes", () => {
-  it("값 있는 속성만 parsed_* 로 펼친다", () => {
-    const intent: Intent = {
-      functional: ["쿨링"],
-      baseColor: "블랙",
-      printPosition: "앞",
-    } as never;
-    expect(flattenParsedAttributes(intent)).toEqual({
-      parsed_base_color: "블랙",
-      parsed_print_position: "앞",
-      parsed_functional: "쿨링",
+  it("style·wear·gender·price를 평면 파라미터로", () => {
+    const out = flattenParsedAttributes(
+      intent({
+        gender: "여성",
+        priceMax: 30000,
+        style: {
+          colors: ["블랙"],
+          patterns: [],
+          materials: ["면"],
+          fits: ["오버"],
+          keywords: [],
+        },
+        wearChars: { ...EMPTY_INTENT.wearChars, 촉감: ["부드러움"] },
+      }),
+    );
+    expect(out).toMatchObject({
+      parsed_gender: "여성",
+      parsed_colors: "블랙",
+      parsed_materials: "면",
+      parsed_fits: "오버",
+      parsed_wear: "촉감:부드러움",
+      parsed_price_max: "30000",
+    });
+  });
+  it("exclude-only도 파라미터로 기록(understood)", () => {
+    const out = flattenParsedAttributes(
+      intent({
+        exclude: {
+          colors: [],
+          patterns: [],
+          materials: ["면"],
+          fits: [],
+          keywords: [],
+        },
+      }),
+    );
+    expect(out).toEqual({ parsed_exclude_materials: "면" });
+  });
+  it("sort-only(비relevance)도 기록", () => {
+    expect(flattenParsedAttributes(intent({ sort: "price_asc" }))).toEqual({
+      parsed_sort: "price_asc",
     });
   });
   it("빈 intent는 빈 객체", () => {
-    expect(flattenParsedAttributes(empty)).toEqual({});
+    expect(flattenParsedAttributes(EMPTY_INTENT)).toEqual({});
+  });
+  it("intent.brand는 parsed_brand로 나간다", () => {
+    const flat = flattenParsedAttributes({ ...EMPTY_INTENT, brand: "나이키" });
+    expect(flat.parsed_brand).toBe("나이키");
   });
 });
-
 describe("hasParsedConstraint", () => {
-  it("아무 조건 없으면 false", () => {
-    expect(hasParsedConstraint(empty)).toBe(false);
-  });
-  it("한 속성이라도 있으면 true", () => {
-    expect(hasParsedConstraint({ functional: [], fit: "오버" } as never)).toBe(true);
+  it("exclude-only도 true", () => {
+    expect(
+      hasParsedConstraint(
+        intent({
+          exclude: {
+            colors: ["레드"],
+            patterns: [],
+            materials: [],
+            fits: [],
+            keywords: [],
+          },
+        }),
+      ),
+    ).toBe(true);
+    expect(hasParsedConstraint(EMPTY_INTENT)).toBe(false);
   });
 });
-
 describe("entryTypeFromSrc", () => {
-  it("typed 마커", () => {
+  it("src 매핑", () => {
     expect(entryTypeFromSrc("typed")).toBe("typed");
-  });
-  it("chip 마커", () => {
     expect(entryTypeFromSrc("chip")).toBe("example_chip");
-  });
-  it("마커 없으면 direct", () => {
     expect(entryTypeFromSrc(null)).toBe("direct");
-  });
-  it("refine 등 기타는 typed로 간주하지 않고 direct", () => {
-    expect(entryTypeFromSrc("refine")).toBe("direct");
   });
 });

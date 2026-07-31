@@ -1,65 +1,55 @@
 "use client";
 
-// 데이터 접근: 자연어 쿼리 → /api/search(서버 하이브리드 검색). degraded·오류 시
-// 기존 규칙 파싱 + searchTees로 로컬 폴백해 검색이 멈추지 않게 한다.
-import type { Tee } from "@/features/catalog/domain/tee";
-import { parseQueryRemote } from "@/features/search/data/parse-query-remote";
-import type { Intent } from "@/features/search/domain/intent";
-import { type BrandEntry, matchBrand } from "@/features/search/domain/match-brand";
-import { type SearchResult, searchTees } from "@/features/search/domain/search-tees";
+// 데이터 접근: 자연어 쿼리 → /api/search. mode 계약(설계 §4.4) 소비.
+// lexical_only는 결과 보존. 오류/타임아웃/비정상 응답 → failed 빈 결과.
+import type { Goods } from "@/features/catalog/domain/goods";
+import { EMPTY_INTENT, type QueryIntent } from "@/features/search/domain/query-intent";
+import type { SearchMode } from "@/features/search/domain/search-mode";
 
 const SEARCH_TIMEOUT_MS = 9000;
-const EMPTY_INTENT: Intent = { functional: [] };
+const MODES: readonly SearchMode[] = ["full", "lexical_only", "failed"];
+
+export interface SearchOutcome {
+  results: Goods[];
+  intent: QueryIntent;
+  mode: SearchMode;
+}
 
 interface SearchApiResponse {
-  results?: Tee[];
-  intent?: Intent;
-  degraded?: boolean;
+  results?: Goods[];
+  intent?: QueryIntent;
+  mode?: string;
 }
 
-async function localFallback(
-  query: string,
-  brands: BrandEntry[],
-  fallbackTees: Tee[],
-): Promise<{ results: SearchResult; intent: Intent; degraded: boolean }> {
-  const intent = await parseQueryRemote(query, brands);
-  return { results: searchTees(fallbackTees, intent), intent, degraded: true };
-}
+const FAILED: SearchOutcome = { results: [], intent: EMPTY_INTENT, mode: "failed" };
 
 export async function searchRemote(
   query: string,
-  brands: BrandEntry[],
-  fallbackTees: Tee[],
-): Promise<{ results: SearchResult; intent: Intent; degraded: boolean }> {
-  if (!query.trim())
-    return {
-      results: { exact: fallbackTees, partial: [] },
-      intent: EMPTY_INTENT,
-      degraded: false,
-    };
+  fetchFn: typeof fetch = fetch,
+): Promise<SearchOutcome> {
+  if (!query.trim()) return FAILED;
 
   const controller = new AbortController();
   const timer = setTimeout(() => {
     controller.abort();
   }, SEARCH_TIMEOUT_MS);
   try {
-    const res = await fetch("/api/search", {
+    const httpRes = await fetchFn("/api/search", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ query }),
       signal: controller.signal,
     });
-    if (!res.ok) throw new Error(`search route ${String(res.status)}`);
-    const data = (await res.json()) as SearchApiResponse;
-    if (data.degraded || !Array.isArray(data.results)) {
-      return await localFallback(query, brands, fallbackTees);
+    if (!httpRes.ok) throw new Error(`search route ${String(httpRes.status)}`);
+    const data = (await httpRes.json()) as SearchApiResponse;
+    const mode = MODES.find((m) => m === data.mode);
+    if (!mode || !Array.isArray(data.results)) return FAILED;
+    if (mode === "failed") {
+      return { results: [], intent: data.intent ?? EMPTY_INTENT, mode };
     }
-    const serverIntent = data.intent ?? EMPTY_INTENT;
-    const brand = matchBrand(query, brands);
-    const intent = brand ? { ...serverIntent, brand } : serverIntent;
-    return { results: { exact: data.results, partial: [] }, intent, degraded: false };
+    return { results: data.results, intent: data.intent ?? EMPTY_INTENT, mode };
   } catch {
-    return await localFallback(query, brands, fallbackTees);
+    return FAILED;
   } finally {
     clearTimeout(timer);
   }

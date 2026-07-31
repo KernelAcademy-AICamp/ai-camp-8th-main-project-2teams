@@ -22,9 +22,9 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "search-by-llm · 클라이밍 프린팅 티 발견 검색",
+  title: "search-by-llm · 무신사 반팔티 발견 검색",
   description:
-    "말로 찾는 클라이밍 프린팅 티. 색·프린팅·핏·기능성을 한 문장으로 검색하세요.",
+    "말로 찾는 무신사 반팔티. 색·핏·소재·사이즈·가격을 한 문장으로 검색하세요.",
 };
 
 export default function RootLayout({
