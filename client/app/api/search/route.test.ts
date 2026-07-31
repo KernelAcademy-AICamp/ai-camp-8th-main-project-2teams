@@ -79,6 +79,16 @@ describe("POST /api/search — mode 계약", () => {
     expect(b.intent.brand).toBe("나이키");
   });
 
+  it("파서 실패+가격만 신호 → lexical_only + priceMax override", async () => {
+    parseMock.mockResolvedValue({ intent: EMPTY_INTENT, degraded: true });
+    aliasMock.mockResolvedValue([]);
+    dbResult.mockReturnValue({ data: [], error: null });
+    const { body } = await post("2만원 이하");
+    const b = body as { mode: string; intent: { priceMax?: number } };
+    expect(b.mode).toBe("lexical_only");
+    expect(b.intent.priceMax).toBe(20000);
+  });
+
   it("파서 성공+빈 파싱+무매칭 → failed, DB 미조회(일반 상위 미노출)", async () => {
     parseMock.mockResolvedValue({ intent: EMPTY_INTENT, degraded: false });
     // "그냥 좀"은 extractTitleTokens 스톱워드(ETC_STOP)로 전부 제거되어 titleTokens도
@@ -311,5 +321,31 @@ describe("POST /api/search — titleTokens 폐기 fallback(P0-②)", () => {
     expect(dbResult).toHaveBeenCalledTimes(3);
     expect(b.titleDropped).toBe(false);
     expect(b.results).toEqual([]);
+  });
+
+  it("titleTokens+스타일 필터+다른 하드조건+모두 0건 → 최대 완화 사슬(strict 3+salvage 3+fallback 1=7회)", async () => {
+    parseMock.mockResolvedValue({
+      intent: {
+        ...EMPTY_INTENT,
+        titleTokens: ["드라이핏"],
+        style: { ...EMPTY_INTENT.style, colors: ["블랙"] },
+        sizeStd: [105],
+      },
+      degraded: false,
+    });
+    aliasMock.mockResolvedValue([]);
+    dbResult.mockReturnValue({ data: [], error: null });
+
+    const { body } = await post("드라이핏 검정 105");
+    const b = body as {
+      results: unknown[];
+      titleTier: string | null;
+      titleSalvage: boolean;
+      titleDropped: boolean;
+    };
+    expect(dbResult).toHaveBeenCalledTimes(7); // strict 3 + salvage 3 + fallback 1
+    expect(b.results).toEqual([]);
+    expect(b.titleSalvage).toBe(true);
+    expect(b.titleDropped).toBe(false); // fallback 결과 0건이므로 true 미적용
   });
 });
