@@ -10,10 +10,12 @@ import {
 import {
   buildGoodsQuery,
   type GoodsQuery,
+  type TitleTier,
 } from "@/features/search/data/build-goods-query";
 import { mapGoodsRow, type SearchGoodsRow } from "@/features/search/data/map-goods-row";
 import { parseQueryIntent } from "@/features/search/data/parse-query-intent";
-import { matchBrand } from "@/features/search/domain/match-brand";
+import { extractTitleTokens } from "@/features/search/domain/extract-title-tokens";
+import { matchBrandDetailed } from "@/features/search/domain/match-brand";
 import { EMPTY_INTENT, type QueryIntent } from "@/features/search/domain/query-intent";
 import { rankGoods } from "@/features/search/domain/rank-goods";
 import {
@@ -40,10 +42,16 @@ interface SearchPayload {
   results: Goods[];
   intent: QueryIntent;
   mode: SearchMode;
+  titleTier: TitleTier | null;
 }
 
 function failed(intent: QueryIntent): Response {
-  return Response.json({ results: [], intent, mode: "failed" } satisfies SearchPayload);
+  return Response.json({
+    results: [],
+    intent,
+    mode: "failed",
+    titleTier: null,
+  } satisfies SearchPayload);
 }
 
 export async function POST(request: Request): Promise<Response> {
@@ -67,8 +75,10 @@ export async function POST(request: Request): Promise<Response> {
     // TS2589(과도한 타입 인스턴스화)로 실패한다. `as unknown as`로 우회.
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
     const aliases = await getSafeBrandAliases(supabase as unknown as AliasDb);
-    const brand = matchBrand(query, aliases);
-    if (brand) intent = { ...intent, brand };
+    const brandMatch = matchBrandDetailed(query, aliases);
+    if (brandMatch) intent = { ...intent, brand: brandMatch.brand };
+    const titleTokens = extractTitleTokens(query, brandMatch?.consumedTokens ?? []);
+    if (titleTokens.length) intent = { ...intent, titleTokens };
   } catch {
     return failed(parsedIntent);
   }
@@ -78,17 +88,45 @@ export async function POST(request: Request): Promise<Response> {
   if (mode === "failed") return failed(intent);
 
   // 4) 하드 필터 쿼리(브랜드 eq 포함) → 후보 페치 → 소프트 랭킹.
-  const base = supabase
-    .from("search_goods")
-    .select(SEARCH_SUMMARY_COLUMNS) as unknown as GoodsQuery;
-  const queryBuilder = buildGoodsQuery(base, intent);
-  const { data, error } = await (queryBuilder as unknown as PromiseLike<{
-    data: SearchGoodsRow[] | null;
-    error: unknown;
-  }>);
-  if (error || !data) return failed(intent);
+  //    제목 잔여 토큰이 있으면 phrase→and→or tier 순으로 폴백(설계 §9-2).
+  const TITLE_TARGET = 24; // 다른 하드필터 적용 후 고유 상품 24개면 폴백 중단
+  const TIERS: TitleTier[] = ["phrase", "and", "or"];
 
-  const candidates = data.map(mapGoodsRow);
-  const results = rankGoods(candidates, intent, 300);
-  return Response.json({ results, intent, mode } satisfies SearchPayload);
+  const fetchTier = async (tier?: TitleTier) => {
+    const base = supabase
+      .from("search_goods")
+      .select(SEARCH_SUMMARY_COLUMNS) as unknown as GoodsQuery;
+    return await (buildGoodsQuery(base, intent, tier) as unknown as PromiseLike<{
+      data: SearchGoodsRow[] | null;
+      error: unknown;
+    }>);
+  };
+
+  let results: Goods[];
+  let titleTier: TitleTier | null = null;
+
+  if (intent.titleTokens?.length) {
+    // 제목 tier 폴백 — 상위 tier 우선 배치, goods_no dedup, 24개 채우면 중단.
+    const seen = new Set<string>();
+    const groups: Goods[][] = [];
+    for (const tier of TIERS) {
+      const { data, error } = await fetchTier(tier);
+      if (error || !data) return failed(intent);
+      titleTier = tier;
+      const fresh = data.map(mapGoodsRow).filter((g) => {
+        if (seen.has(g.goodsNo)) return false;
+        seen.add(g.goodsNo);
+        return true;
+      });
+      if (fresh.length) groups.push(rankGoods(fresh, intent, 300));
+      if (seen.size >= TITLE_TARGET) break;
+    }
+    results = groups.flat().slice(0, 300);
+  } else {
+    const { data, error } = await fetchTier();
+    if (error || !data) return failed(intent);
+    results = rankGoods(data.map(mapGoodsRow), intent, 300);
+  }
+
+  return Response.json({ results, intent, mode, titleTier } satisfies SearchPayload);
 }
