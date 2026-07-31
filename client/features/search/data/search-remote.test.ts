@@ -11,7 +11,12 @@ function res(json: unknown): Response {
 describe("searchRemote — mode 계약", () => {
   it("빈 쿼리는 failed 빈 결과(요청 없이)", async () => {
     const r = await searchRemote("  ");
-    expect(r).toEqual({ results: [], intent: EMPTY_INTENT, mode: "failed" });
+    expect(r).toEqual({
+      results: [],
+      intent: EMPTY_INTENT,
+      mode: "failed",
+      titleTier: null,
+    });
   });
 
   it("full 응답을 그대로 전달", async () => {
@@ -41,7 +46,12 @@ describe("searchRemote — mode 계약", () => {
       .fn()
       .mockResolvedValue(res({ results: [], intent: EMPTY_INTENT, mode: "failed" }));
     const r = await searchRemote("아무말", fetchMock as typeof fetch);
-    expect(r).toEqual({ results: [], intent: EMPTY_INTENT, mode: "failed" });
+    expect(r).toEqual({
+      results: [],
+      intent: EMPTY_INTENT,
+      mode: "failed",
+      titleTier: null,
+    });
   });
 
   it("네트워크 오류 → failed", async () => {
@@ -54,5 +64,14 @@ describe("searchRemote — mode 계약", () => {
     const fetchMock = vi.fn().mockResolvedValue(res({ results: [] }));
     const r = await searchRemote("x", fetchMock as typeof fetch);
     expect(r.mode).toBe("failed");
+  });
+  it("titleTier를 패스스루한다(없으면 null)", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        res({ results: [], intent: EMPTY_INTENT, mode: "full", titleTier: "and" }),
+      );
+    const r = await searchRemote("드라이핏", fetchMock as typeof fetch);
+    expect(r.titleTier).toBe("and");
   });
 });

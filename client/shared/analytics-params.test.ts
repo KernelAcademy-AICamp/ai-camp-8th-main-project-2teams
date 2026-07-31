@@ -74,6 +74,13 @@ describe("flattenParsedAttributes", () => {
     const flat = flattenParsedAttributes({ ...EMPTY_INTENT, brand: "나이키" });
     expect(flat.parsed_brand).toBe("나이키");
   });
+  it("titleTokens는 parsed_title_tokens로 나간다", () => {
+    const flat = flattenParsedAttributes({
+      ...EMPTY_INTENT,
+      titleTokens: ["드라이핏"],
+    });
+    expect(flat.parsed_title_tokens).toBe("드라이핏");
+  });
 });
 describe("hasParsedConstraint", () => {
   it("exclude-only도 true", () => {

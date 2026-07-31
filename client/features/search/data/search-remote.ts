@@ -13,15 +13,22 @@ export interface SearchOutcome {
   results: Goods[];
   intent: QueryIntent;
   mode: SearchMode;
+  titleTier: string | null;
 }
 
 interface SearchApiResponse {
   results?: Goods[];
   intent?: QueryIntent;
   mode?: string;
+  titleTier?: string | null;
 }
 
-const FAILED: SearchOutcome = { results: [], intent: EMPTY_INTENT, mode: "failed" };
+const FAILED: SearchOutcome = {
+  results: [],
+  intent: EMPTY_INTENT,
+  mode: "failed",
+  titleTier: null,
+};
 
 export async function searchRemote(
   query: string,
@@ -45,9 +52,19 @@ export async function searchRemote(
     const mode = MODES.find((m) => m === data.mode);
     if (!mode || !Array.isArray(data.results)) return FAILED;
     if (mode === "failed") {
-      return { results: [], intent: data.intent ?? EMPTY_INTENT, mode };
+      return {
+        results: [],
+        intent: data.intent ?? EMPTY_INTENT,
+        mode,
+        titleTier: data.titleTier ?? null,
+      };
     }
-    return { results: data.results, intent: data.intent ?? EMPTY_INTENT, mode };
+    return {
+      results: data.results,
+      intent: data.intent ?? EMPTY_INTENT,
+      mode,
+      titleTier: data.titleTier ?? null,
+    };
   } catch {
     return FAILED;
   } finally {
