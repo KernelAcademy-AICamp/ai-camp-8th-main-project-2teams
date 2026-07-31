@@ -1,7 +1,7 @@
 # 설계·계획 v3 — 제목·브랜드 검색을 위한 lexical(“grep식”) 레인
 
 - 작성일: 2026-07-31
-- 상태: **확정(v3.1) — codex 최종 판정 GO**(리뷰 4회: v1 사실검증 → v2 계약검증 → v3 NO-GO → v3.1 GO) · **Phase 1 구현 완료(2026-07-31)** — 플랜 [`2026-07-31-lexical-brand-search-phase1.md`](../superpowers/plans/2026-07-31-lexical-brand-search-phase1.md), E2E 검증: 브랜드 하드필터·failed 봉쇄·조합·회귀 4경로 통과
+- 상태: **확정(v3.2)** — codex GO(v3.1) · **Phase 1 구현 완료(2026-07-31)** — 플랜 [`2026-07-31-lexical-brand-search-phase1.md`](../superpowers/plans/2026-07-31-lexical-brand-search-phase1.md), 브랜드 정확도 리콜 217/217·변형 651/651·오탐 0 · **Phase 2(제목 lexical) 구현 완료(2026-07-31)** — 플랜 [`2026-07-31-title-lexical-search-phase2.md`](../superpowers/plans/2026-07-31-title-lexical-search-phase2.md), tier 폴백(구문→AND→OR·임계24) + **0건 구제(v3.2 §4.4)**, 제목 정밀도 상위10 100%(추출 19토큰)·0건 0회
 - **북극성: “검색이 잘 되도록.”** 사용자가 브랜드명·상품명을 치면 그 상품이 나온다. 애매한 결과를 그럴듯하게 채우는 것보다, 정확한 결과를 정확한 조건에서만 보여주는 것을 우선한다.
 - 개정 이력:
   - v1 → v2: 사실 오류 정정(`m_brands` 폐기 → 신규 사전, `ilike`→`eq`, category 모호성 폐기, degraded 규칙, `pg_trgm`≠오타, 논문 톤다운).
