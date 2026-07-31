@@ -12,6 +12,7 @@ export const WEIGHTS = {
   materials: 2,
   fits: 2,
   keyword: 3,
+  title: 3,
   wear: 2,
 } as const;
 
@@ -34,6 +35,11 @@ export function styleScore(goods: Goods, intent: QueryIntent): number {
   const keywords: StyleFilter["keywords"] = intent.style.keywords;
   for (const kw of keywords) {
     if (goods.title.includes(kw)) s += WEIGHTS.keyword;
+  }
+  // 제목 lexical 토큰 가점 — keywords(LLM 추출)와 독립(설계 §5 Phase 2-2).
+  const titleLow = goods.title.toLowerCase();
+  for (const tok of intent.titleTokens ?? []) {
+    if (titleLow.includes(tok.toLowerCase())) s += WEIGHTS.title;
   }
   // wear_chars는 단일 소프트 신호: 요청한 축값 중 하나라도 상품이 보유하면 1회만 가점.
   // 축마다 누적하면 "시원한"(두께·비침·계절 다축) 한 개념이 과대계상되고, 메타 완성도가
