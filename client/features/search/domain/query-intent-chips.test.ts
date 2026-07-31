@@ -15,6 +15,13 @@ function intent(p: Partial<QueryIntent>): QueryIntent {
 }
 const labels = (chips: IntentChip[]): string[] => chips.map((c) => c.label);
 
+describe("queryIntentToChips — 브랜드", () => {
+  it("brand가 있으면 맨 앞에 브랜드 칩", () => {
+    const chips = queryIntentToChips({ ...EMPTY_INTENT, brand: "나이키" });
+    expect(chips[0]).toEqual({ kind: "brand", label: "나이키" });
+  });
+});
+
 describe("queryIntentToChips", () => {
   it("스타일 값마다 개별 칩(색·핏)", () => {
     const chips = queryIntentToChips(

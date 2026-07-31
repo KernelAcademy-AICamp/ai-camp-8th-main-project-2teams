@@ -1,26 +1,33 @@
-// Route Handler — 무신사 구조화 검색. 서버에서 LLM 파싱 → search_goods 하드필터 → 앱단 소프트 랭킹.
-// ⚠️ 서버 전용. NVIDIA/Supabase 키는 여기서만.
+// Route Handler — 무신사 구조화 검색. LLM 파싱 ∥ lexical 브랜드 매칭 → 하드필터 → 소프트 랭킹.
+// ⚠️ 서버 전용. mode 계약(설계 §4.4): 신호 없으면 파서 성공 여부 무관 failed(일반 상위 노출 금지).
 import { createClient } from "@supabase/supabase-js";
 
 import type { Goods } from "@/features/catalog/domain/goods";
+import {
+  type AliasDb,
+  getSafeBrandAliases,
+} from "@/features/search/data/brand-alias-repository";
 import {
   buildGoodsQuery,
   type GoodsQuery,
 } from "@/features/search/data/build-goods-query";
 import { mapGoodsRow, type SearchGoodsRow } from "@/features/search/data/map-goods-row";
 import { parseQueryIntent } from "@/features/search/data/parse-query-intent";
+import { matchBrand } from "@/features/search/domain/match-brand";
 import { EMPTY_INTENT, type QueryIntent } from "@/features/search/domain/query-intent";
 import { rankGoods } from "@/features/search/domain/rank-goods";
+import {
+  deriveSearchMode,
+  type SearchMode,
+} from "@/features/search/domain/search-mode";
 
 export const maxDuration = 30;
 
-// 검색 카드/랭킹에 필요한 컬럼만. 상세 전용(gallery·size_measures)은 제외 → 응답 경량화.
 const SEARCH_SUMMARY_COLUMNS =
   "goods_no,style_key,title,brand,category,gender,season,color,colors,patterns," +
   "materials,fits,sizes,size_free,size_std,price,review_count,review_score,url,thumbnail,wear_chars";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-// publishable(=anon) 키. search_goods는 anon SELECT 허용.
 const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "";
 
 function readQuery(body: unknown): string {
@@ -32,29 +39,45 @@ function readQuery(body: unknown): string {
 interface SearchPayload {
   results: Goods[];
   intent: QueryIntent;
-  degraded: boolean;
+  mode: SearchMode;
+}
+
+function failed(intent: QueryIntent): Response {
+  return Response.json({ results: [], intent, mode: "failed" } satisfies SearchPayload);
 }
 
 export async function POST(request: Request): Promise<Response> {
   const body: unknown = await request.json().catch(() => null);
   const query = readQuery(body);
-  if (!query) {
-    const empty: SearchPayload = { results: [], intent: EMPTY_INTENT, degraded: false };
-    return Response.json(empty);
-  }
+  if (!query) return failed(EMPTY_INTENT);
+  if (!SUPABASE_URL || !SUPABASE_KEY) return failed(EMPTY_INTENT);
 
-  // 1) LLM 파싱 → 구조화 QueryIntent.
-  const { intent, degraded } = await parseQueryIntent(query);
-  if (!SUPABASE_URL || !SUPABASE_KEY) {
-    return Response.json({
-      results: [],
-      intent,
-      degraded: true,
-    } satisfies SearchPayload);
-  }
-
-  // 2) 하드 필터 쿼리 → 후보 전량 페치.
   const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  // 1) LLM 파싱(semantic 레인) — 계약 불변.
+  const { intent: parsedIntent, degraded: parserDegraded } =
+    await parseQueryIntent(query);
+
+  // 2) lexical 브랜드 레이어 — safe alias만 로드하므로 매칭 성공 = safe(불변식).
+  //    사전 조회 실패 → failed(설계 §4.4).
+  let intent = parsedIntent;
+  try {
+    // supabase-js 클라이언트는 AliasDb를 구조적으로 만족(제네릭 차이만 캐스트로 흡수).
+    // eslint 타입체커는 단일 캐스트를 불필요하다고 보지만, tsc --noEmit은 단일 캐스트에서
+    // TS2589(과도한 타입 인스턴스화)로 실패한다. `as unknown as`로 우회.
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+    const aliases = await getSafeBrandAliases(supabase as unknown as AliasDb);
+    const brand = matchBrand(query, aliases);
+    if (brand) intent = { ...intent, brand };
+  } catch {
+    return failed(parsedIntent);
+  }
+
+  // 3) mode 판정 — 신호 없으면 DB 조회 없이 failed(일반 상위 상품 노출 금지).
+  const mode = deriveSearchMode(parserDegraded, intent);
+  if (mode === "failed") return failed(intent);
+
+  // 4) 하드 필터 쿼리(브랜드 eq 포함) → 후보 페치 → 소프트 랭킹.
   const base = supabase
     .from("search_goods")
     .select(SEARCH_SUMMARY_COLUMNS) as unknown as GoodsQuery;
@@ -63,17 +86,9 @@ export async function POST(request: Request): Promise<Response> {
     data: SearchGoodsRow[] | null;
     error: unknown;
   }>);
-  if (error || !data) {
-    return Response.json({
-      results: [],
-      intent,
-      degraded: true,
-    } satisfies SearchPayload);
-  }
+  if (error || !data) return failed(intent);
 
-  // 3) 매핑 + 앱단 소프트 랭킹 → 상위 N. 스타일은 하드 필터라 후보=조건 매칭(빈결과는 빈결과).
-  //    상한 300(옛 60 → 넓힘). 전체(예: 흰티 734) 노출은 페이지네이션 후속.
   const candidates = data.map(mapGoodsRow);
   const results = rankGoods(candidates, intent, 300);
-  return Response.json({ results, intent, degraded } satisfies SearchPayload);
+  return Response.json({ results, intent, mode } satisfies SearchPayload);
 }

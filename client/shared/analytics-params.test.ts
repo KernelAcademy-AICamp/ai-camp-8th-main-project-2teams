@@ -70,6 +70,10 @@ describe("flattenParsedAttributes", () => {
   it("빈 intent는 빈 객체", () => {
     expect(flattenParsedAttributes(EMPTY_INTENT)).toEqual({});
   });
+  it("intent.brand는 parsed_brand로 나간다", () => {
+    const flat = flattenParsedAttributes({ ...EMPTY_INTENT, brand: "나이키" });
+    expect(flat.parsed_brand).toBe("나이키");
+  });
 });
 describe("hasParsedConstraint", () => {
   it("exclude-only도 true", () => {

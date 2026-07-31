@@ -155,3 +155,24 @@ describe("buildGoodsQuery wear-chars 불변식·후보 상한", () => {
     expect(limitCall?.[1]).toBeGreaterThanOrEqual(2500);
   });
 });
+
+describe("buildGoodsQuery — 브랜드 하드필터", () => {
+  it("intent.brand가 있으면 eq('brand', 값)", () => {
+    const r = recorder();
+    buildGoodsQuery(r, intent({ brand: "무신사 스탠다드" }));
+    expect(r.calls).toContainEqual(["eq", "brand", "무신사 스탠다드"]);
+  });
+
+  it("brand가 없으면 brand eq 없음", () => {
+    const r = recorder();
+    buildGoodsQuery(r, EMPTY_INTENT);
+    expect(r.calls.some(([m, c]) => m === "eq" && c === "brand")).toBe(false);
+  });
+
+  it("특수문자 브랜드명도 값 그대로 eq에 전달(escaping 불필요 검증)", () => {
+    const r = recorder();
+    const weird = `브랜드,쉼표 "따옴표" (괄호) 100%`;
+    buildGoodsQuery(r, intent({ brand: weird }));
+    expect(r.calls).toContainEqual(["eq", "brand", weird]);
+  });
+});
