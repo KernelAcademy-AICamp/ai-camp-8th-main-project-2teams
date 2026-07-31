@@ -69,7 +69,7 @@ export function buildGoodsQuery<T extends GoodsQuery>(
     if (vals.length) q = q.not(key, "ov", pgArray(vals));
   }
   for (const kw of intent.exclude.keywords) {
-    q = q.not("title", "ilike", `%${kw}%`);
+    q = q.not("title", "ilike", `%${escapeLike(kw)}%`);
   }
 
   // 안전 백스톱 — 리뷰순 정렬 후 상한으로 자른다.

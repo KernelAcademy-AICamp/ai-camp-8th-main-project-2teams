@@ -134,6 +134,23 @@ describe("buildGoodsQuery", () => {
     expect(r.calls).toContainEqual(["not", "materials", "ov", '{"면"}']);
     expect(r.calls).toContainEqual(["not", "title", "ilike", "%로고%"]);
   });
+
+  it("exclude.keywords도 LIKE 와일드카드를 이스케이프한다", () => {
+    const r = recorder();
+    buildGoodsQuery(
+      r,
+      intent({
+        exclude: {
+          colors: [],
+          patterns: [],
+          materials: [],
+          fits: [],
+          keywords: ["100%"],
+        },
+      }),
+    );
+    expect(r.calls).toContainEqual(["not", "title", "ilike", "%100\\%%"]);
+  });
 });
 
 describe("buildGoodsQuery wear-chars 불변식·후보 상한", () => {

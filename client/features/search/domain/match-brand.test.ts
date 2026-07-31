@@ -81,4 +81,10 @@ describe("matchBrandDetailed", () => {
   it("미매칭이면 undefined", () => {
     expect(matchBrandDetailed("검정 반팔", ALIASES)).toBeUndefined();
   });
+
+  it("조사가 붙은 브랜드 토큰도 매칭(consumedTokens는 원문 그대로)", () => {
+    const m = matchBrandDetailed("나이키는 반팔", ALIASES);
+    expect(m?.brand).toBe("나이키");
+    expect(m?.consumedTokens).toEqual(["나이키는"]);
+  });
 });

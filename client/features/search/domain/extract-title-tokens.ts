@@ -121,20 +121,57 @@ const STOPWORDS = [
 const NUMERIC = /^\d+([만천]?원?대?)?$/;
 const MAX_TITLE_TOKENS = 4;
 
+// 설계 §4.5 — 조사 제거. 정밀도 우선의 보수적 구현: 끝에 붙은 조사 1개만,
+// 제거 후 잔여 길이가 2자 이상일 때만 벗긴다(1자 잔여는 애매하므로 원문 유지).
+const TWO_CHAR_JOSA = ["으로", "에서", "부터", "까지", "처럼", "마다", "조차", "보다"];
+const ONE_CHAR_JOSA = [
+  "은",
+  "는",
+  "이",
+  "가",
+  "을",
+  "를",
+  "의",
+  "도",
+  "만",
+  "와",
+  "과",
+  "랑",
+  "엔",
+  "에",
+];
+
+export function stripJosa(tok: string): string {
+  for (const j of TWO_CHAR_JOSA) {
+    if (tok.endsWith(j) && tok.length - j.length >= 2) return tok.slice(0, -j.length);
+  }
+  for (const j of ONE_CHAR_JOSA) {
+    if (tok.endsWith(j) && tok.length - j.length >= 2) return tok.slice(0, -j.length);
+  }
+  return tok;
+}
+
 export function extractTitleTokens(
   query: string,
   consumedBrandTokens: string[],
 ): string[] {
   const consumed = new Set(consumedBrandTokens.map((t) => t.toLowerCase()));
   const out: string[] = [];
+  const seen = new Set<string>(); // 대소문자 무시 dedup 키
   for (const raw of query.normalize("NFKC").split(/\s+/)) {
     const tok = raw.trim();
+    if (!tok) continue;
     const low = tok.toLowerCase();
-    if (!tok || consumed.has(low)) continue;
-    if (tok.length < 2) continue; // 1자 토큰은 애매 → 버림(정밀도 우선)
-    if (NUMERIC.test(low)) continue;
-    if (STOPWORDS.some((set) => set.has(low))) continue;
-    if (!out.includes(tok)) out.push(tok);
+    if (consumed.has(low)) continue;
+    const stripped = stripJosa(tok);
+    const key = stripped.toLowerCase();
+    if (stripped.length < 2) continue; // 1자 토큰은 애매 → 버림(정밀도 우선)
+    if (NUMERIC.test(key)) continue;
+    if (STOPWORDS.some((set) => set.has(key))) continue;
+    if (!seen.has(key)) {
+      seen.add(key);
+      out.push(stripped);
+    }
     if (out.length >= MAX_TITLE_TOKENS) break;
   }
   return out;

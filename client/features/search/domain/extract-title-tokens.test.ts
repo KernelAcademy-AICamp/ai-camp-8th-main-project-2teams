@@ -34,4 +34,20 @@ describe("extractTitleTokens", () => {
       "로고",
     ]);
   });
+
+  it("dedup은 대소문자 무시(첫 등장 원문 유지)", () => {
+    expect(extractTitleTokens("COOL cool 쿨링", [])).toEqual(["COOL", "쿨링"]);
+  });
+
+  it("조사 제거 — 색 스톱워드는 조사 제거 후 탈락, 일반 토큰은 조사만 벗는다", () => {
+    expect(extractTitleTokens("검정색의 드라이핏은", [])).toEqual(["드라이핏"]);
+  });
+
+  it("조사 제거 — '의'", () => {
+    expect(extractTitleTokens("라운드의", [])).toEqual(["라운드"]);
+  });
+
+  it("조사 제거 후 2자 미만이면 제거하지 않는다", () => {
+    expect(extractTitleTokens("모으로", [])).toEqual(["모으로"]);
+  });
 });

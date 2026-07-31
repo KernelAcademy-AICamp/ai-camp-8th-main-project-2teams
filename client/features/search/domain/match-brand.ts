@@ -1,6 +1,7 @@
 // 결정적 브랜드 매칭 — 쿼리 토큰 n-gram(1~3)을 safe alias 사전에 정확 매칭.
 // 경계 없는 includes 금지(부분 문자열 오탐 방지). 긴 n-gram 우선, 동률이면 좌측 우선.
 // 입력 aliases는 리포지토리가 hard_filter_safe=true만 로드 → 매칭 성공 = safe(불변식).
+import { stripJosa } from "@/features/search/domain/extract-title-tokens";
 import { normalizeBrandKey } from "@/features/search/domain/normalize-brand";
 
 export interface BrandAlias {
@@ -35,9 +36,22 @@ export function matchBrandDetailed(
 
   for (let n = Math.min(MAX_NGRAM, lowTokens.length); n >= 1; n--) {
     for (let i = 0; i + n <= lowTokens.length; i++) {
-      const key = normalizeBrandKey(lowTokens.slice(i, i + n).join(""));
+      const slice = lowTokens.slice(i, i + n);
+      const key = normalizeBrandKey(slice.join(""));
       const brand = byKey.get(key);
       if (brand) return { brand, consumedTokens: rawTokens.slice(i, i + n) };
+
+      // 조사 허용(설계 §4.5) — 마지막 토큰에서 조사를 벗긴 변형 키도 시도.
+      // consumedTokens는 항상 원문(조사 포함) 그대로 반환.
+      const lastStripped = stripJosa(slice[n - 1]);
+      if (lastStripped !== slice[n - 1]) {
+        const altKey = normalizeBrandKey(
+          [...slice.slice(0, -1), lastStripped].join(""),
+        );
+        const altBrand = byKey.get(altKey);
+        if (altBrand)
+          return { brand: altBrand, consumedTokens: rawTokens.slice(i, i + n) };
+      }
     }
   }
   return undefined;
