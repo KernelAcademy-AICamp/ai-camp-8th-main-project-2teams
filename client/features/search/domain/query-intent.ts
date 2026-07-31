@@ -30,6 +30,8 @@ export interface QueryIntent {
   wearChars: WearCharsFilter; // 착용감 소프트 신호(촉감·두께·비침·신축성·계절)
   // lexical 레인 — 사전 safe alias로 resolve된 카탈로그 정확 브랜드명(LLM 출력 아님).
   brand?: string;
+  // lexical 레인 — 브랜드·구조화 표현을 뺀 잔여 제목 토큰(LLM 출력 아님, 결정적 추출).
+  titleTokens?: string[];
   sort: SortIntent;
 }
 

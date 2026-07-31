@@ -52,4 +52,9 @@ describe("deriveSearchMode", () => {
   it("sort-only는 failed (탐색어 예외 없음)", () => {
     expect(deriveSearchMode(false, sortOnly)).toBe("failed");
   });
+  it("titleTokens는 신호다 (파서 실패 시 lexical_only)", () => {
+    const withTitle = { ...EMPTY_INTENT, titleTokens: ["드라이핏"] };
+    expect(hasSearchSignal(withTitle)).toBe(true);
+    expect(deriveSearchMode(true, withTitle)).toBe("lexical_only");
+  });
 });
