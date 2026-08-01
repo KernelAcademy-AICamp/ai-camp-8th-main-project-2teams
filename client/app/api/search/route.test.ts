@@ -18,9 +18,11 @@ vi.mock("@supabase/supabase-js", () => ({
   }),
 }));
 
+// DB 체인 호출 기록 — 결정화 레인(flag-on) 테스트에서 하드 조건 유무를 단언하는 데 쓴다.
+const dbCalls: [string, ...unknown[]][] = [];
+
 function chainable(): unknown {
   const self: Record<string, unknown> = {};
-  const fn = () => self;
   for (const m of [
     "eq",
     "or",
@@ -32,7 +34,10 @@ function chainable(): unknown {
     "limit",
     "ilike",
   ]) {
-    self[m] = fn;
+    self[m] = (...args: unknown[]) => {
+      dbCalls.push([m, ...args]);
+      return self;
+    };
   }
   self.then = (resolve: (v: unknown) => unknown) => resolve(dbResult());
   return self;
@@ -52,11 +57,13 @@ async function post(query: string): Promise<{ status: number; body: never }> {
 
 beforeEach(() => {
   vi.resetModules();
+  vi.unstubAllEnvs(); // SEARCH_DECISIVE_LANE 등 직전 테스트의 stub 누출 방지
   vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "http://x");
   vi.stubEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "k");
   parseMock.mockReset();
   aliasMock.mockReset();
   dbResult.mockReset();
+  dbCalls.length = 0;
   aliasMock.mockResolvedValue([{ aliasNormalized: "나이키", catalogBrand: "나이키" }]);
   dbResult.mockReturnValue({ data: [], error: null });
 });
@@ -347,5 +354,68 @@ describe("POST /api/search — titleTokens 폐기 fallback(P0-②)", () => {
     expect(b.results).toEqual([]);
     expect(b.titleSalvage).toBe(true);
     expect(b.titleDropped).toBe(false); // fallback 결과 0건이므로 true 미적용
+  });
+});
+
+describe("POST /api/search — 결정화 레인(flag-on, P3-F)", () => {
+  it("LLM-only 값(색·성별)만 있으면 grounded 신호가 아니라 failed — DB 미조회", async () => {
+    vi.stubEnv("SEARCH_DECISIVE_LANE", "on");
+    parseMock.mockResolvedValue({
+      intent: {
+        ...EMPTY_INTENT,
+        gender: "남성",
+        style: { ...EMPTY_INTENT.style, colors: ["블랙"] },
+      },
+      degraded: false,
+    });
+    // 쿼리 토큰 전부 스톱워드 → 제목 토큰(휴리스틱 출처)도 안 생기는 순수 LLM-only 케이스.
+    const { body } = await post("그냥 좀 예쁜 티셔츠");
+    expect((body as { mode: string }).mode).toBe("failed");
+    expect(dbResult).not.toHaveBeenCalled();
+  });
+
+  it("명시 가격은 grounded 신호 — LLM 색은 하드에서 빠지고 소프트 칩으로 유지", async () => {
+    vi.stubEnv("SEARCH_DECISIVE_LANE", "on");
+    parseMock.mockResolvedValue({
+      intent: {
+        ...EMPTY_INTENT,
+        gender: "남성",
+        priceMax: 2000, // LLM 오파싱 — 결정적 파서가 20000으로 대체
+        style: { ...EMPTY_INTENT.style, colors: ["블랙"] },
+        exclude: { ...EMPTY_INTENT.exclude, colors: ["옐로우"] },
+      },
+      degraded: false,
+    });
+    const { body } = await post("2만원 이하 검정 반팔");
+    const b = body as {
+      mode: string;
+      intent: {
+        style: { colors: string[] };
+        gender?: string;
+        exclude: { colors: string[] };
+      };
+    };
+    expect(b.mode).toBe("full");
+    // 하드 정책: overlaps(색)·eq(gender)·not(배제) 미호출, 가격 lte는 결정적이라 호출.
+    expect(dbCalls.some(([m]) => m === "overlaps")).toBe(false);
+    expect(dbCalls.some(([m, c]) => m === "eq" && c === "gender")).toBe(false);
+    expect(dbCalls.some(([m]) => m === "not")).toBe(false);
+    expect(
+      dbCalls.some(([m, c, v]) => m === "lte" && c === "price" && v === 20000),
+    ).toBe(true);
+    // resolved 응답 계약: 소프트 반영된 색은 칩 유지, 미적용 성별·배제는 제거.
+    expect(b.intent.style.colors).toEqual(["블랙"]);
+    expect(b.intent.gender).toBeUndefined();
+    expect(b.intent.exclude.colors).toEqual([]);
+  });
+
+  it("flag 미설정(off)이면 현행 그대로 — LLM 색이 하드필터로 걸린다", async () => {
+    parseMock.mockResolvedValue({
+      intent: { ...EMPTY_INTENT, style: { ...EMPTY_INTENT.style, colors: ["블랙"] } },
+      degraded: false,
+    });
+    const { body } = await post("검정 반팔");
+    expect((body as { mode: string }).mode).toBe("full");
+    expect(dbCalls.some(([m, c]) => m === "overlaps" && c === "colors")).toBe(true);
   });
 });
