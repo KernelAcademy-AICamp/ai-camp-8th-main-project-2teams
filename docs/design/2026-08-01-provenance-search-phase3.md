@@ -150,7 +150,7 @@ interface ConstraintMeta {
   - **T0a 완료**: 축별 메타 충전율 측정(원격 `search_goods` 뷰 기준, [측정 스크립트](../../backend/scripts/measure_facet_coverage.py)) + [기준 1 판정·임계값 제안](../p3-t0/2026-08-01-hard-safe-t0a.md) + [카탈로그 스냅샷](../p3-t0/search-goods-snapshot-20260801.json) + [색 표현 골든셋 50](../../client/features/search/data/goldens/color-expression-golden.json) + [의도별 쿼리 골든셋 33](../../client/features/search/data/goldens/query-intent-golden.json). **결과: 색 99.0%·패턴 99.8%·성별 99.7%·사이즈 96.4% 통과 / 소재 85.9%·핏 42.7% 미달(하드 승격 금지 — 소프트 운영).**
   - **T0b (3b 착수 전)**: 핏·패턴·소재 표현→vocab 골든셋(축별 30~50).
   - ⚠️ 기존 GA4 `parsed_colors`는 **LLM이 정규화한 canonical 값만** 기록하므로(`analytics-params.ts:15`) 사용자 원문 표현 분포("먹색" 등 사전 공백)의 자료가 **아니다**. 실측 결과 GA4 `search_performed`의 `query` 파라미터로 원문 쿼리는 수집됨(전 기간 고유 20건) — 원문 표현 **샘플링 로그 신설은 Phase 3c로 연기**(T0a 결정, 개인정보 고려·쿼리 원문만·식별자 없이).
-- **P3-F (기반 구조 — 3a보다 선행)**: `ResolvedIntent`·`ConstraintMeta`·`QueryPlan` 내부 계층 + grounded 신호 재정의 + feature flag. 기능 변화 없음(기존 동작을 새 구조로 재표현) — 3a가 요구하는 hard/soft 분리의 토대.
+- **P3-F (기반 구조 — 3a보다 선행) ✅ 완료(2026-08-01)**: `ResolvedIntent`·`ConstraintMeta`·`QueryPlan` 내부 계층 + grounded 신호 재정의 + feature flag(`SEARCH_DECISIVE_LANE`, 기본 off). 기능 변화 없음(flag-off 동일성·결정성 게이트 테스트로 증명) — [실행 계획 v2.2](../superpowers/plans/2026-08-01-p3-f-provenance-foundation.md). flag-on 시맨틱스(테스트·shadow 전용): grounded 신호 + LLM 출처 하드 불가(축별 소프트 소비 정책) + resolved 응답 계약.
 - **Phase 3a — 색 축 파일럿 (shadow)**: 색 facet 사전(기본색+수식어)·소비 span 통합·LLM 색 무시·가점 shadow(cap 0). **shadow 모드로만 배포**(flag off, 계측 비교: 결정화 plan vs 현행 결과).
 - **Phase 3b — 나머지 닫힌 축 + 원자적 cutover**: 핏·패턴·소재·성별·사이즈·정렬·강제 표현 결정화, promote/exclude 재정의, v3.2 구제 폐기, 수식어 완화(사슬 4단계). **flag on = 전 축 동시 cutover.**
 - **Phase 3c — browse + 계측 정리**: 입구 분기·searchKind 전 계층 전파·browse UI·unresolved_facet 루프.
