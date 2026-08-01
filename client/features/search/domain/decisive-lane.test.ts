@@ -1,0 +1,120 @@
+import { describe, expect, it } from "vitest";
+
+import {
+  decisiveQueryIntent,
+  decisiveResponseIntent,
+  hasGroundedSignal,
+  isDecisiveLaneOn,
+} from "@/features/search/domain/decisive-lane";
+import { EMPTY_INTENT, type QueryIntent } from "@/features/search/domain/query-intent";
+import { resolveIntent } from "@/features/search/domain/resolved-intent";
+
+const LLM_ONLY: QueryIntent = {
+  ...EMPTY_INTENT,
+  gender: "남성",
+  sizeStd: [105],
+  priceMax: 20000,
+  style: { ...EMPTY_INTENT.style, colors: ["블랙"], keywords: ["간지"] },
+  exclude: { ...EMPTY_INTENT.exclude, colors: ["옐로우"], keywords: ["나염"] },
+  wearChars: { ...EMPTY_INTENT.wearChars, 두께: ["두꺼움"] },
+};
+
+const WITH_DETERMINISTIC: QueryIntent = {
+  ...LLM_ONLY,
+  brand: "데비웨어",
+  titleTokens: ["드라이핏"],
+};
+
+describe("isDecisiveLaneOn — 환경변수 스위치(기본 off)", () => {
+  it("'on'일 때만 켜진다", () => {
+    expect(isDecisiveLaneOn({ SEARCH_DECISIVE_LANE: "on" })).toBe(true);
+    expect(isDecisiveLaneOn({ SEARCH_DECISIVE_LANE: "off" })).toBe(false);
+    expect(isDecisiveLaneOn({ SEARCH_DECISIVE_LANE: "1" })).toBe(false);
+    expect(isDecisiveLaneOn({})).toBe(false);
+  });
+});
+
+describe("hasGroundedSignal — grounded 신호(결정적 출처 ≥1)", () => {
+  it("LLM-only 값만 있으면 신호가 아니다", () => {
+    expect(
+      hasGroundedSignal(resolveIntent({ intent: LLM_ONLY, explicitPrice: false })),
+    ).toBe(false);
+  });
+
+  it("브랜드(사전)·제목 토큰(휴리스틱)·명시 가격(정규식)은 각각 신호다", () => {
+    expect(
+      hasGroundedSignal(
+        resolveIntent({
+          intent: { ...EMPTY_INTENT, brand: "데비웨어" },
+          explicitPrice: false,
+        }),
+      ),
+    ).toBe(true);
+    expect(
+      hasGroundedSignal(
+        resolveIntent({
+          intent: { ...EMPTY_INTENT, titleTokens: ["드라이핏"] },
+          explicitPrice: false,
+        }),
+      ),
+    ).toBe(true);
+    expect(
+      hasGroundedSignal(
+        resolveIntent({
+          intent: { ...EMPTY_INTENT, priceMax: 20000 },
+          explicitPrice: true,
+        }),
+      ),
+    ).toBe(true);
+  });
+});
+
+describe("decisiveQueryIntent — flag-on 조회용 intent(하드 정책)", () => {
+  const q = decisiveQueryIntent(
+    resolveIntent({ intent: WITH_DETERMINISTIC, explicitPrice: false }),
+  );
+
+  it("LLM 하드값이 조회에서 빠진다: facet·성별·사이즈·배제·비명시 가격", () => {
+    expect(q.style.colors).toEqual([]);
+    expect(q.gender).toBeUndefined();
+    expect(q.sizeStd).toEqual([]);
+    expect(q.exclude).toEqual(EMPTY_INTENT.exclude);
+    expect(q.priceMax).toBeUndefined();
+  });
+
+  it("결정적 출처와 소프트 재료·정렬은 유지된다", () => {
+    expect(q.brand).toBe("데비웨어");
+    expect(q.titleTokens).toEqual(["드라이핏"]);
+    expect(q.style.keywords).toEqual(["간지"]); // 소프트 랭킹 재료
+    expect(q.wearChars.두께).toEqual(["두꺼움"]);
+    expect(q.sort).toBe(WITH_DETERMINISTIC.sort);
+  });
+
+  it("명시 가격(정규식 출처)은 조회에 유지된다", () => {
+    const withPrice = decisiveQueryIntent(
+      resolveIntent({ intent: WITH_DETERMINISTIC, explicitPrice: true }),
+    );
+    expect(withPrice.priceMax).toBe(20000);
+  });
+});
+
+describe("decisiveResponseIntent — flag-on 응답 intent(resolved 계약)", () => {
+  const r = decisiveResponseIntent(
+    resolveIntent({ intent: WITH_DETERMINISTIC, explicitPrice: false }),
+  );
+
+  it("미적용 LLM 값(성별·사이즈·배제·비명시 가격)은 응답에서 제거된다 — 칩 미표시", () => {
+    expect(r.gender).toBeUndefined();
+    expect(r.sizeStd).toEqual([]);
+    expect(r.exclude).toEqual(EMPTY_INTENT.exclude);
+    expect(r.priceMax).toBeUndefined();
+  });
+
+  it("소프트로 반영된 LLM 스타일·착용감·키워드와 결정적 값은 응답에 유지된다", () => {
+    expect(r.style.colors).toEqual(["블랙"]); // 소프트 강등돼도 랭킹 반영 → 칩 유지
+    expect(r.style.keywords).toEqual(["간지"]);
+    expect(r.wearChars.두께).toEqual(["두꺼움"]);
+    expect(r.brand).toBe("데비웨어");
+    expect(r.titleTokens).toEqual(["드라이핏"]);
+  });
+});
