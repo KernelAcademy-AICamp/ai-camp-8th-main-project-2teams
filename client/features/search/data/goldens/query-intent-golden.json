@@ -168,7 +168,7 @@
       "events": 2,
       "categories": ["sort", "exclude", "wear", "complex"],
       "expected": {
-        "sort": "popularity",
+        "sort": "review_count",
         "exclude": {
           "colors": ["옐로우"]
         },
@@ -571,7 +571,7 @@
       "entryType": null,
       "categories": ["sort"],
       "expected": {
-        "sort": "popularity"
+        "sort": "review_count"
       },
       "answerType": "sort",
       "confidence": "high"

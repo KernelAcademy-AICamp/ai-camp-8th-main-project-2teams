@@ -84,7 +84,8 @@ function satisfiesAxis(row: SnapshotRow, e: GoldenQuery, axis: string): boolean 
       return (row[axis] ?? []).some((v) => want.includes(v));
     }
     case "gender":
-      return !ex.gender || row.gender === ex.gender || row.gender === "공용";
+      // build-goods-query는 정확 eq — 공용 허용 없음(현행 계약 재현).
+      return !ex.gender || row.gender === ex.gender;
     case "sizeStd":
       return (
         !ex.sizeStd?.length ||
@@ -104,6 +105,17 @@ function satisfiesAxis(row: SnapshotRow, e: GoldenQuery, axis: string): boolean 
 }
 const ALL_AXES = [...FACET_AXES, "gender", "sizeStd", "price", "brand"];
 
+// gap은 열거형만 허용 — 임의 문자열로 검증을 우회할 수 없게 한다.
+// metadata:<axis>는 그 축만 면제(불충족 역단언), 제목 레인 갭은 하드 축을 전혀 면제하지 않는다.
+const VALID_GAPS = new Set([
+  "metadata:colors",
+  "metadata:patterns",
+  "metadata:materials",
+  "metadata:fits",
+  "synonym:title",
+  "extractor:stopword",
+]);
+
 describe("query-intent-golden 무결성", () => {
   it("스냅샷 파일 해시가 meta에 기록된 sha256과 일치한다(불변 export 보증)", () => {
     const digest = createHash("sha256").update(snapshotRaw).digest("hex");
@@ -119,11 +131,20 @@ describe("query-intent-golden 무결성", () => {
     expect(missing).toEqual([]);
   });
 
-  it("갭 표식 없는 정답은 기대 하드 조건을 전부 충족한다", () => {
+  it("gap 값은 열거형만 허용한다", () => {
+    const bad = golden.entries.flatMap((e) =>
+      (e.answerGoods ?? [])
+        .filter((g) => g.gap && !VALID_GAPS.has(g.gap))
+        .map((g) => `${e.id}:${String(g.goodsNo)}:${g.gap ?? ""}`),
+    );
+    expect(bad).toEqual([]);
+  });
+
+  it("갭 없는 정답과 제목 레인 갭 정답은 기대 하드 조건을 전부 충족한다", () => {
     const bad: string[] = [];
     for (const e of golden.entries) {
       for (const g of e.answerGoods ?? []) {
-        if (g.gap) continue;
+        if (g.gap?.startsWith("metadata:")) continue; // 메타 갭은 아래 역단언 테스트가 담당
         const row = byGoods.get(g.goodsNo);
         if (!row) continue;
         for (const axis of ALL_AXES) {
@@ -173,9 +194,10 @@ describe("query-intent-golden 무결성", () => {
       }
       if (e.expected.gender && !["남성", "여성", "공용"].includes(e.expected.gender))
         bad.push(`${e.id}:gender`);
+      // QueryIntent 실제 계약(query-intent.ts): relevance | price_asc | review_count
       if (
         e.expected.sort &&
-        !["popularity", "price_asc", "price_desc"].includes(e.expected.sort)
+        !["relevance", "price_asc", "review_count"].includes(e.expected.sort)
       )
         bad.push(`${e.id}:sort`);
       for (const axis of e.expected.locked ?? []) {
