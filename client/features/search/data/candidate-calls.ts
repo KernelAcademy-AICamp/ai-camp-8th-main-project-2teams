@@ -44,3 +44,14 @@ export function candidateCalls(c: CandidateHardPlan, tier?: TitleTier): PlanCall
   calls.push(["limit", c.limit]);
   return calls;
 }
+
+// 후보 하드 계획의 결정성 키(게이트의 해시 재료) — 후보 필드만이 아니라 **전 tier의
+// 실제 직렬화 호출열**을 포함한다: phrase/and/or가 만드는 후보 집합 차이가 키에 반영된다.
+export function candidatePlanKey(c: CandidateHardPlan): string {
+  return JSON.stringify({
+    none: candidateCalls(c),
+    phrase: candidateCalls(c, "phrase"),
+    and: candidateCalls(c, "and"),
+    or: candidateCalls(c, "or"),
+  });
+}

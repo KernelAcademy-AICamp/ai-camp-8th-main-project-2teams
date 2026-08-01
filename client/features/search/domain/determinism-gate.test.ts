@@ -4,8 +4,9 @@
 // 후보 하드 계획의 결정성 키를 비교한다.
 import { describe, expect, it } from "vitest";
 
+import { candidatePlanKey } from "@/features/search/data/candidate-calls";
 import { EMPTY_INTENT, type QueryIntent } from "@/features/search/domain/query-intent";
-import { buildQueryPlan, candidatePlanKey } from "@/features/search/domain/query-plan";
+import { buildQueryPlan } from "@/features/search/domain/query-plan";
 import { resolveIntent } from "@/features/search/domain/resolved-intent";
 
 // 쿼리: "2만원 이하 가성비… 바람 슝슝… 그림 간지…" (설계 §1 실측)

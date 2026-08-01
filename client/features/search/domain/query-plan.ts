@@ -110,7 +110,5 @@ export function buildQueryPlan(
   };
 }
 
-// 후보 하드 계획의 결정성 키 — 안정적 직렬화(결정성 게이트의 해시 재료).
-export function candidatePlanKey(c: CandidateHardPlan): string {
-  return JSON.stringify(c);
-}
+// 결정성 키(candidatePlanKey)는 직렬화 계층인 data/candidate-calls.ts에 있다 —
+// 전 tier 호출열을 포함해야 하므로 PostgREST 직렬화와 같은 곳에 둔다(계층 정합).

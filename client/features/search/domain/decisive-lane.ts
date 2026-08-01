@@ -11,15 +11,19 @@ export function isDecisiveLaneOn(env: Record<string, string | undefined>): boole
   return env.SEARCH_DECISIVE_LANE === "on";
 }
 
-// grounded 신호(설계 §3.5) — 결정적 출처 값이 하나 이상 있어야 검색 신호.
+// grounded 신호(설계 §3.5) — 결정적 출처의 "조건" 값이 하나 이상 있어야 검색 신호.
+// 정렬은 조건이 아니므로 출처와 무관하게 신호가 아니다(sort-only는 failed — 현행 계약 유지,
+// 3b에서 rule_parser 정렬이 생겨도 이 판정은 흔들리지 않는다).
 export function hasGroundedSignal(resolved: ResolvedIntent): boolean {
-  return resolved.meta.some((m) => m.source !== "llm");
+  return resolved.meta.some((m) => m.source !== "llm" && m.path !== "sort");
 }
 
-// path의 값들 중 결정적(비 LLM) 출처만 남긴다 — 값 단위 provenance 필터.
+// path의 값들 중 하드 후보 자격이 있는 것만 남긴다 — 값 단위 provenance 필터.
+// 자격 = 비 LLM 출처 AND enforcement가 hard. 결정적으로 추출됐어도 hard-safe 미달 축
+// (소재·핏 등)은 soft enforcement로 내려오므로 하드필터가 되면 안 된다(§3.2 게이트).
 function grounded(resolved: ResolvedIntent, path: string): (string | number)[] {
   return resolved.meta
-    .filter((m) => m.path === path && m.source !== "llm")
+    .filter((m) => m.path === path && m.source !== "llm" && m.enforcement === "hard")
     .map((m) => m.value);
 }
 

@@ -5,10 +5,13 @@ import {
   type GoodsQuery,
   type TitleTier,
 } from "@/features/search/data/build-goods-query";
-import { candidateCalls } from "@/features/search/data/candidate-calls";
+import {
+  candidateCalls,
+  candidatePlanKey,
+} from "@/features/search/data/candidate-calls";
 import { decisiveQueryIntent } from "@/features/search/domain/decisive-lane";
 import { EMPTY_INTENT, type QueryIntent } from "@/features/search/domain/query-intent";
-import { buildQueryPlan, candidatePlanKey } from "@/features/search/domain/query-plan";
+import { buildQueryPlan } from "@/features/search/domain/query-plan";
 import { resolveIntent } from "@/features/search/domain/resolved-intent";
 
 type Call = [string, ...unknown[]];

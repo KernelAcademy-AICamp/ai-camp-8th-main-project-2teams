@@ -169,3 +169,48 @@ describe("promote — flag-on에서는 LLM promote를 무시한다(유령 상태
     expect(r.style.colors).toEqual(["블랙"]);
   });
 });
+
+describe("enforcement 존중 — 결정적이어도 soft면 하드 후보가 아니다(소재·핏 하드 금지)", () => {
+  // 3a 이후를 모사: 소재가 facet 사전으로 추출됐지만 hard-safe 미달이라 soft enforcement.
+  function withSoftLexiconMaterial() {
+    const base = resolveIntent({
+      intent: {
+        ...EMPTY_INTENT,
+        style: { ...EMPTY_INTENT.style, materials: ["폴리에스테르"] },
+      },
+      explicitPrice: false,
+    });
+    return {
+      ...base,
+      meta: base.meta.map((m) =>
+        m.path === "style.materials"
+          ? { ...m, source: "facet_lexicon" as const, enforcement: "soft" as const }
+          : m,
+      ),
+    };
+  }
+
+  it("soft enforcement 결정값은 flag-on 조회 하드에서 제외된다", () => {
+    expect(decisiveQueryIntent(withSoftLexiconMaterial()).style.materials).toEqual([]);
+  });
+
+  it("단 결정적 추출이므로 grounded 신호로는 인정된다", () => {
+    expect(hasGroundedSignal(withSoftLexiconMaterial())).toBe(true);
+  });
+});
+
+describe("sort-only 회귀 — 정렬은 출처와 무관하게 신호가 아니다", () => {
+  it("rule_parser 출처 정렬만 있으면 grounded 신호가 아니다(3b 대비)", () => {
+    const base = resolveIntent({
+      intent: { ...EMPTY_INTENT, sort: "review_count" },
+      explicitPrice: false,
+    });
+    const parserSort = {
+      ...base,
+      meta: base.meta.map((m) =>
+        m.path === "sort" ? { ...m, source: "rule_parser" as const } : m,
+      ),
+    };
+    expect(hasGroundedSignal(parserSort)).toBe(false);
+  });
+});
