@@ -14,11 +14,18 @@ import {
 } from "@/features/search/data/build-goods-query";
 import { mapGoodsRow, type SearchGoodsRow } from "@/features/search/data/map-goods-row";
 import { parseQueryIntent } from "@/features/search/data/parse-query-intent";
+import {
+  decisiveQueryIntent,
+  decisiveResponseIntent,
+  hasGroundedSignal,
+  isDecisiveLaneOn,
+} from "@/features/search/domain/decisive-lane";
 import { extractExplicitPrice } from "@/features/search/domain/extract-explicit-price";
 import { extractTitleTokens } from "@/features/search/domain/extract-title-tokens";
 import { matchBrandDetailed } from "@/features/search/domain/match-brand";
 import { EMPTY_INTENT, type QueryIntent } from "@/features/search/domain/query-intent";
 import { rankGoods } from "@/features/search/domain/rank-goods";
+import { resolveIntent } from "@/features/search/domain/resolved-intent";
 import {
   hasNonTitleHardFilters,
   hasStyleHardFilters,
@@ -89,8 +96,10 @@ export async function POST(request: Request): Promise<Response> {
     };
   }
 
+  const decisive = isDecisiveLaneOn(process.env);
+
   // 2) lexical 브랜드 레이어 — safe alias만 로드하므로 매칭 성공 = safe(불변식).
-  //    사전 조회 실패 → failed(설계 §4.4).
+  //    사전 조회 실패 → failed(설계 §4.4). flag-on이면 오류 경로도 resolved 응답 계약 준수.
   try {
     // supabase-js 클라이언트는 AliasDb를 구조적으로 만족(제네릭 차이만 캐스트로 흡수).
     // eslint 타입체커는 단일 캐스트를 불필요하다고 보지만, tsc --noEmit은 단일 캐스트에서
@@ -102,12 +111,36 @@ export async function POST(request: Request): Promise<Response> {
     const titleTokens = extractTitleTokens(query, brandMatch?.consumedTokens ?? []);
     if (titleTokens.length) intent = { ...intent, titleTokens };
   } catch {
-    return failed(intent);
+    return failed(
+      decisive
+        ? decisiveResponseIntent(
+            resolveIntent({ intent, explicitPrice: explicitPrice !== null }),
+          )
+        : intent,
+    );
   }
 
+  // 2b) provenance 해석(P3-F) — 값 단위 출처 메타. flag-off에선 관측 준비일 뿐 동작 불변.
+  const resolved = resolveIntent({ intent, explicitPrice: explicitPrice !== null });
+  // flag-on 전용: 응답은 resolved 계약(미적용 LLM 값 제거), 조회는 하드 정책 적용.
+  let responseIntent = decisive ? decisiveResponseIntent(resolved) : intent;
+  if (decisive) intent = decisiveQueryIntent(resolved);
+  const respIntent = (): QueryIntent => (decisive ? responseIntent : intent);
+  // flag-off 랭킹은 조회 intent 그대로(현행과 참조 동일) / flag-on은 소프트 강등분을
+  // 반영하기 위해 responseIntent(색 등 유지)로 랭킹한다.
+  const rankIntentOf = (forIntent: QueryIntent): QueryIntent =>
+    decisive ? responseIntent : forIntent;
+
   // 3) mode 판정 — 신호 없으면 DB 조회 없이 failed(일반 상위 상품 노출 금지).
-  const mode = deriveSearchMode(parserDegraded, intent);
-  if (mode === "failed") return failed(intent);
+  //    flag-on: grounded 신호(결정적 출처 ≥1)만 신호로 인정(설계 §3.5, v2.1 명문화 ②).
+  const mode: SearchMode = decisive
+    ? hasGroundedSignal(resolved)
+      ? parserDegraded
+        ? "lexical_only"
+        : "full"
+      : "failed"
+    : deriveSearchMode(parserDegraded, intent);
+  if (mode === "failed") return failed(respIntent());
 
   // 4) 하드 필터 쿼리(브랜드 eq 포함) → 후보 페치 → 소프트 랭킹.
   //    제목 잔여 토큰이 있으면 phrase→and→or tier 순으로 폴백(설계 §9-2).
@@ -145,7 +178,7 @@ export async function POST(request: Request): Promise<Response> {
         seen.add(g.goodsNo);
         return true;
       });
-      if (fresh.length) groups.push(rankGoods(fresh, forIntent, 300));
+      if (fresh.length) groups.push(rankGoods(fresh, rankIntentOf(forIntent), 300));
       if (seen.size >= TITLE_TARGET) break;
     }
     return { results: groups.flat().slice(0, 300), titleTier, uniqueCount: seen.size };
@@ -158,7 +191,7 @@ export async function POST(request: Request): Promise<Response> {
 
   if (intent.titleTokens?.length) {
     const sweep = await sweepTitleTiers(intent);
-    if (!sweep) return failed(intent);
+    if (!sweep) return failed(respIntent());
     results = sweep.results;
     titleTier = sweep.titleTier;
     let uniqueCount = sweep.uniqueCount;
@@ -169,7 +202,7 @@ export async function POST(request: Request): Promise<Response> {
       titleSalvage = true;
       const salvageIntent = stripStyleHardFilters(intent);
       const salvageSweep = await sweepTitleTiers(salvageIntent);
-      if (!salvageSweep) return failed(intent);
+      if (!salvageSweep) return failed(respIntent());
       uniqueCount = salvageSweep.uniqueCount;
       if (salvageSweep.uniqueCount > 0) {
         results = salvageSweep.results;
@@ -185,24 +218,29 @@ export async function POST(request: Request): Promise<Response> {
     if (uniqueCount === 0 && hasNonTitleHardFilters(intent)) {
       const intentNoTitle: QueryIntent = { ...intent, titleTokens: [] };
       const { data, error } = await fetchTier(intentNoTitle);
-      if (error || !data) return failed(intent);
-      const dropped = rankGoods(data.map(mapGoodsRow), intentNoTitle, 300);
+      if (error || !data) return failed(respIntent());
+      // 폐기된 titleTokens는 랭킹에도 무영향이어야 한다 — flag-on 랭킹 intent에서도 제거.
+      const dropRankIntent = decisive
+        ? { ...responseIntent, titleTokens: [] }
+        : intentNoTitle;
+      const dropped = rankGoods(data.map(mapGoodsRow), dropRankIntent, 300);
       if (dropped.length > 0) {
         results = dropped;
         titleTier = null;
         intent = intentNoTitle;
+        if (decisive) responseIntent = { ...responseIntent, titleTokens: [] };
         titleDropped = true;
       }
     }
   } else {
     const { data, error } = await fetchTier(intent);
-    if (error || !data) return failed(intent);
-    results = rankGoods(data.map(mapGoodsRow), intent, 300);
+    if (error || !data) return failed(respIntent());
+    results = rankGoods(data.map(mapGoodsRow), rankIntentOf(intent), 300);
   }
 
   return Response.json({
     results,
-    intent,
+    intent: respIntent(),
     mode,
     titleTier,
     titleSalvage,
