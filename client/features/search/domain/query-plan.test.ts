@@ -5,12 +5,10 @@ import {
   type GoodsQuery,
   type TitleTier,
 } from "@/features/search/data/build-goods-query";
+import { candidateCalls } from "@/features/search/data/candidate-calls";
+import { decisiveQueryIntent } from "@/features/search/domain/decisive-lane";
 import { EMPTY_INTENT, type QueryIntent } from "@/features/search/domain/query-intent";
-import {
-  buildQueryPlan,
-  candidateCalls,
-  candidatePlanKey,
-} from "@/features/search/domain/query-plan";
+import { buildQueryPlan, candidatePlanKey } from "@/features/search/domain/query-plan";
 import { resolveIntent } from "@/features/search/domain/resolved-intent";
 
 type Call = [string, ...unknown[]];
@@ -146,6 +144,32 @@ describe("buildQueryPlan — flag-on(결정화 하드 정책)", () => {
 
   it("사용자 정렬(LLM 유래)은 flag-on에서도 전체 계획에 유지된다", () => {
     expect(plan.userSort).toBe("review_count");
+  });
+
+  it("가교 단언: flag-on 계획의 호출열 = 라우트가 실제 조회하는 decisiveQueryIntent의 빌더 호출열", () => {
+    // 게이트가 해시하는 계획과 라우트의 실제 조회가 같은 파생을 경유함을 고정한다.
+    for (const tier of TIERS) {
+      const rec = recorder();
+      buildGoodsQuery(rec, decisiveQueryIntent(resolved), tier);
+      expect(candidateCalls(plan.candidate, tier), `tier=${tier ?? "none"}`).toEqual(
+        rec.calls,
+      );
+    }
+  });
+
+  it("facet_lexicon 출처 색은 flag-on 후보 계획에 하드로 남는다(값 단위 provenance)", () => {
+    const base = resolveIntent({ intent: RICH, explicitPrice: true });
+    const withLexicon = {
+      ...base,
+      meta: base.meta.map((m) =>
+        m.path === "style.colors" && m.value === "블랙"
+          ? { ...m, source: "facet_lexicon" as const }
+          : m,
+      ),
+    };
+    const p = buildQueryPlan(withLexicon, { decisive: true });
+    expect(p.candidate.hardStyle.colors).toEqual(["블랙"]);
+    expect(p.soft.degradedStyle?.colors).toEqual(["화이트"]); // llm 색만 강등
   });
 });
 

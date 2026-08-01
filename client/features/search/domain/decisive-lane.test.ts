@@ -118,3 +118,54 @@ describe("decisiveResponseIntent — flag-on 응답 intent(resolved 계약)", ()
     expect(r.titleTokens).toEqual(["드라이핏"]);
   });
 });
+
+describe("provenance 단일 근거 — 값 단위 출처로 판정(축 통째 제거 금지)", () => {
+  // 3a 이후를 모사: 색 하나가 facet 사전 출처로 추출된 ResolvedIntent.
+  function withLexiconColor() {
+    const base = resolveIntent({
+      intent: {
+        ...EMPTY_INTENT,
+        gender: "남성",
+        style: { ...EMPTY_INTENT.style, colors: ["블랙", "레드"] },
+      },
+      explicitPrice: false,
+    });
+    return {
+      ...base,
+      meta: base.meta.map((m) =>
+        m.path === "style.colors" && m.value === "블랙"
+          ? { ...m, source: "facet_lexicon" as const }
+          : m,
+      ),
+    };
+  }
+
+  it("facet_lexicon 색은 flag-on 조회에서 하드로 유지되고, llm 색만 강등된다", () => {
+    const q = decisiveQueryIntent(withLexiconColor());
+    expect(q.style.colors).toEqual(["블랙"]);
+    expect(q.gender).toBeUndefined(); // llm 성별은 여전히 제거
+  });
+
+  it("facet_lexicon 색은 grounded 신호다", () => {
+    expect(hasGroundedSignal(withLexiconColor())).toBe(true);
+  });
+});
+
+describe("promote — flag-on에서는 LLM promote를 무시한다(유령 상태 방지)", () => {
+  const promoted = resolveIntent({
+    intent: {
+      ...EMPTY_INTENT,
+      brand: "데비웨어",
+      style: { ...EMPTY_INTENT.style, colors: ["블랙"] },
+      promote: ["colors"],
+    },
+    explicitPrice: false,
+  });
+
+  it("조회·응답 intent 모두 promote가 빈다 — 색은 소프트 강등(가점 스킵 방지)+칩 유지", () => {
+    expect(decisiveQueryIntent(promoted).promote).toEqual([]);
+    const r = decisiveResponseIntent(promoted);
+    expect(r.promote).toEqual([]);
+    expect(r.style.colors).toEqual(["블랙"]);
+  });
+});

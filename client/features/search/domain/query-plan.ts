@@ -1,10 +1,11 @@
 // 조회 계획(설계 §3.5 QueryPlan) — 후보 하드 계획(후보 집합을 결정하는 모든 것, 해시 대상)과
 // 전체 실행 계획(소프트 주석·사용자 정렬, 기준선 기록용)의 이원 구조.
-// flag-off에선 현행 buildGoodsQuery와 완전 동일해야 하며(candidateCalls로 단언),
-// flag-on(decisive)에선 LLM 출처 값이 하드 조건에서 배제된다(축별 소프트 소비 정책).
-import { pgArray } from "@/features/search/data/build-goods-query";
-import { escapeLike, orIlikeTitle } from "@/features/search/data/escape-postgrest";
+// 후보 파생은 라우트가 실제 조회에 쓰는 것과 같은 함수(decisiveQueryIntent)를 경유한다 —
+// 게이트가 해시하는 계획과 실제 조회의 표류를 구조적으로 차단(값 단위 provenance가 단일 근거).
+// PostgREST 직렬화(candidateCalls)는 데이터 계층(data/candidate-calls.ts)에 있다.
+import { decisiveQueryIntent } from "@/features/search/domain/decisive-lane";
 import {
+  type QueryIntent,
   type SortIntent,
   WEAR_AXES,
   type WearCharsFilter,
@@ -47,18 +48,12 @@ export interface ExecutionPlan {
   userSort: SortIntent; // LLM 유래 사용자 정렬 — 후보 집합 무관(해시 비대상)
 }
 
-function emptyAxes(): StyleAxes {
-  return { colors: [], patterns: [], materials: [], fits: [] };
-}
-
-function metaValues(
+// 조회에 실제 적용될 intent — 라우트와 계획이 공유하는 단일 파생점.
+export function effectiveQueryIntent(
   resolved: ResolvedIntent,
-  path: string,
-  pred?: (source: string) => boolean,
-): (string | number)[] {
-  return resolved.meta
-    .filter((m) => m.path === path && (!pred || pred(m.source)))
-    .map((m) => m.value);
+  decisive: boolean,
+): QueryIntent {
+  return decisive ? decisiveQueryIntent(resolved) : resolved.intent;
 }
 
 export function buildQueryPlan(
@@ -66,45 +61,38 @@ export function buildQueryPlan(
   { decisive }: { decisive: boolean },
 ): ExecutionPlan {
   const { intent } = resolved;
-  const nonLlm = (s: string) => s !== "llm";
+  const qi = effectiveQueryIntent(resolved, decisive);
 
   const candidate: CandidateHardPlan = {
-    brand: intent.brand ?? null,
-    titleTokens: intent.titleTokens ?? [],
-    gender: decisive ? null : (intent.gender ?? null),
-    sizeStd: decisive ? [] : intent.sizeStd,
-    priceMin: decisive
-      ? ((metaValues(resolved, "priceMin", nonLlm)[0] as number | undefined) ?? null)
-      : (intent.priceMin ?? null),
-    priceMax: decisive
-      ? ((metaValues(resolved, "priceMax", nonLlm)[0] as number | undefined) ?? null)
-      : (intent.priceMax ?? null),
-    hardStyle: decisive
-      ? emptyAxes()
-      : {
-          colors: intent.style.colors,
-          patterns: intent.style.patterns,
-          materials: intent.style.materials,
-          fits: intent.style.fits,
-        },
-    excludeStyle: decisive
-      ? emptyAxes()
-      : {
-          colors: intent.exclude.colors,
-          patterns: intent.exclude.patterns,
-          materials: intent.exclude.materials,
-          fits: intent.exclude.fits,
-        },
-    excludeTitle: decisive ? [] : intent.exclude.keywords,
+    brand: qi.brand ?? null,
+    titleTokens: qi.titleTokens ?? [],
+    gender: qi.gender ?? null,
+    sizeStd: qi.sizeStd,
+    priceMin: qi.priceMin ?? null,
+    priceMax: qi.priceMax ?? null,
+    hardStyle: {
+      colors: qi.style.colors,
+      patterns: qi.style.patterns,
+      materials: qi.style.materials,
+      fits: qi.style.fits,
+    },
+    excludeStyle: {
+      colors: qi.exclude.colors,
+      patterns: qi.exclude.patterns,
+      materials: qi.exclude.materials,
+      fits: qi.exclude.fits,
+    },
+    excludeTitle: qi.exclude.keywords,
     fetchOrder: FETCH_ORDER,
     limit: FETCH_LIMIT,
   };
 
+  // 강등분 = 원본 스타일 중 조회 intent에 하드로 남지 않은 값(= LLM 출처).
   const degraded: StyleAxes = {
-    colors: intent.style.colors,
-    patterns: intent.style.patterns,
-    materials: intent.style.materials,
-    fits: intent.style.fits,
+    colors: intent.style.colors.filter((v) => !qi.style.colors.includes(v)),
+    patterns: intent.style.patterns.filter((v) => !qi.style.patterns.includes(v)),
+    materials: intent.style.materials.filter((v) => !qi.style.materials.includes(v)),
+    fits: intent.style.fits.filter((v) => !qi.style.fits.includes(v)),
   };
   const hasDegraded = STYLE_AXES.some((a) => degraded[a].length > 0);
 
@@ -120,50 +108,6 @@ export function buildQueryPlan(
     },
     userSort: intent.sort,
   };
-}
-
-type Call = [string, ...unknown[]];
-
-// 후보 계획 → 현행 쿼리 빌더가 만드는 호출열(순서 포함) — flag-off 동일성 단언의 재료.
-// ⚠️ build-goods-query.ts의 적용 순서를 그대로 재현한다. 빌더가 바뀌면 이 함수와
-// 동일성 테스트가 함께 깨져 표류를 잡는다(의도된 이중 기입).
-export function candidateCalls(
-  c: CandidateHardPlan,
-  tier?: "phrase" | "and" | "or",
-): Call[] {
-  const calls: Call[] = [];
-  if (c.brand) calls.push(["eq", "brand", c.brand]);
-  if (tier && c.titleTokens.length) {
-    if (tier === "phrase") {
-      calls.push(["ilike", "title", `%${escapeLike(c.titleTokens.join(" "))}%`]);
-    } else if (tier === "and") {
-      for (const tok of c.titleTokens) {
-        calls.push(["ilike", "title", `%${escapeLike(tok)}%`]);
-      }
-    } else {
-      calls.push(["or", orIlikeTitle(c.titleTokens)]);
-    }
-  }
-  if (c.gender) calls.push(["eq", "gender", c.gender]);
-  if (c.sizeStd.length) {
-    calls.push(["or", `size_std.ov.{${c.sizeStd.join(",")}},size_free.eq.true`]);
-  }
-  if (c.priceMin != null) calls.push(["gte", "price", c.priceMin]);
-  if (c.priceMax != null) calls.push(["lte", "price", c.priceMax]);
-  for (const axis of STYLE_AXES) {
-    if (c.hardStyle[axis].length) calls.push(["overlaps", axis, c.hardStyle[axis]]);
-  }
-  for (const axis of STYLE_AXES) {
-    if (c.excludeStyle[axis].length) {
-      calls.push(["not", axis, "ov", pgArray(c.excludeStyle[axis])]);
-    }
-  }
-  for (const kw of c.excludeTitle) {
-    calls.push(["not", "title", "ilike", `%${escapeLike(kw)}%`]);
-  }
-  for (const [col, asc] of c.fetchOrder) calls.push(["order", col, asc]);
-  calls.push(["limit", c.limit]);
-  return calls;
 }
 
 // 후보 하드 계획의 결정성 키 — 안정적 직렬화(결정성 게이트의 해시 재료).

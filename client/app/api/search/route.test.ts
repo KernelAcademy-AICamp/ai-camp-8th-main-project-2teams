@@ -409,6 +409,66 @@ describe("POST /api/search — 결정화 레인(flag-on, P3-F)", () => {
     expect(b.intent.exclude.colors).toEqual([]);
   });
 
+  it("title-drop 성공 시 숨긴 titleTokens가 랭킹에도 영향을 주지 않는다", async () => {
+    vi.stubEnv("SEARCH_DECISIVE_LANE", "on");
+    parseMock.mockResolvedValue({ intent: EMPTY_INTENT, degraded: false });
+    aliasMock.mockResolvedValue([]);
+    const drops = [
+      {
+        goods_no: 1,
+        title: "베이직 반팔",
+        brand: "b",
+        review_score: 4,
+        review_count: 1,
+      },
+      {
+        goods_no: 2,
+        title: "드라이핏 반팔",
+        brand: "b",
+        review_score: 4,
+        review_count: 1,
+      },
+    ];
+    dbResult
+      .mockReturnValueOnce({ data: [], error: null }) // phrase
+      .mockReturnValueOnce({ data: [], error: null }) // and
+      .mockReturnValueOnce({ data: [], error: null }) // or
+      .mockReturnValueOnce({ data: drops, error: null }); // titleTokens 폐기 재시도
+    const { body } = await post("2만원 이하 드라이핏");
+    const b = body as {
+      titleDropped: boolean;
+      results: { goodsNo: string }[];
+      intent: { titleTokens?: string[] };
+    };
+    expect(b.titleDropped).toBe(true);
+    expect(b.intent.titleTokens).toEqual([]);
+    // 토큰이 랭킹에 남으면 "드라이핏"(goods_no 2)이 가점으로 1위가 된다 —
+    // 폐기된 토큰은 순위에도 무영향이어야 하므로 동점 시 goods_no 오름차순(1위=1).
+    expect(b.results[0].goodsNo).toBe("1");
+  });
+
+  it("사전 조회 실패(flag-on)도 resolved 응답 계약을 지킨다 — 미적용 LLM 값 미노출", async () => {
+    vi.stubEnv("SEARCH_DECISIVE_LANE", "on");
+    parseMock.mockResolvedValue({
+      intent: {
+        ...EMPTY_INTENT,
+        gender: "남성",
+        style: { ...EMPTY_INTENT.style, colors: ["블랙"] },
+      },
+      degraded: false,
+    });
+    aliasMock.mockRejectedValue(new Error("boom"));
+    const { body } = await post("2만원 이하 검정 반팔");
+    const b = body as {
+      mode: string;
+      intent: { gender?: string; style: { colors: string[] }; priceMax?: number };
+    };
+    expect(b.mode).toBe("failed");
+    expect(b.intent.gender).toBeUndefined(); // 미적용 LLM 값 제거
+    expect(b.intent.style.colors).toEqual(["블랙"]); // 소프트 반영 값은 칩 유지
+    expect(b.intent.priceMax).toBe(20000); // 명시 가격(정규식 출처)은 유지
+  });
+
   it("flag 미설정(off)이면 현행 그대로 — LLM 색이 하드필터로 걸린다", async () => {
     parseMock.mockResolvedValue({
       intent: { ...EMPTY_INTENT, style: { ...EMPTY_INTENT.style, colors: ["블랙"] } },
