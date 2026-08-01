@@ -237,7 +237,7 @@ export async function parseQueryIntent(
       },
       body: JSON.stringify({
         model: MODEL,
-        temperature: 0.1,
+        temperature: 0,
         max_tokens: 400,
         messages: [
           { role: "system", content: SYSTEM_PROMPT },

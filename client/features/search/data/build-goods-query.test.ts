@@ -69,10 +69,11 @@ describe("pgArray", () => {
 });
 
 describe("buildGoodsQuery", () => {
-  it("빈 intent도 order·limit 백스톱을 건다", () => {
+  it("빈 intent도 order·limit 백스톱을 건다(review_score desc, 그다음 goods_no asc)", () => {
     const r = recorder();
     buildGoodsQuery(r, EMPTY_INTENT);
     expect(r.calls).toContainEqual(["order", "review_score", { ascending: false }]);
+    expect(r.calls).toContainEqual(["order", "goods_no", { ascending: true }]);
     expect(r.calls).toContainEqual(["limit", 3000]);
   });
 

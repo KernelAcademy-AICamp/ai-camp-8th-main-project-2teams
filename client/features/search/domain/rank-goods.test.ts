@@ -84,4 +84,29 @@ describe("rankGoods", () => {
     );
     expect(rankGoods(rows, EMPTY_INTENT, 60)).toHaveLength(60);
   });
+
+  it("동점(score·reviewScore·reviewCount)은 goodsNo 오름차순으로 정렬한다", () => {
+    const rows = [
+      goods({
+        goodsNo: "z-last",
+        colors: ["블랙"],
+        reviewScore: 4.5,
+        reviewCount: 100,
+      }),
+      goods({
+        goodsNo: "a-first",
+        colors: ["블랙"],
+        reviewScore: 4.5,
+        reviewCount: 100,
+      }),
+      goods({
+        goodsNo: "m-middle",
+        colors: ["블랙"],
+        reviewScore: 4.5,
+        reviewCount: 100,
+      }),
+    ];
+    const out = rankGoods(rows, blackIntent);
+    expect(out.map((g) => g.goodsNo)).toEqual(["a-first", "m-middle", "z-last"]);
+  });
 });

@@ -77,6 +77,9 @@ export function buildGoodsQuery<T extends GoodsQuery>(
   // 이 .limit(3000)은 도달하지 못한다: 리뷰순 상위 ~1000건만 후보가 되고
   // 나머지(~1,472/2,472)는 랭킹 전에 탈락한다 → soft 속성(색·wear 등) recall 손실.
   // 전체 코퍼스 후보화(경량 후보→top-N 재조회 or range 페이지네이션)는 Phase 1.5b.
-  q = q.order("review_score", { ascending: false }).limit(3000);
+  q = q
+    .order("review_score", { ascending: false })
+    .order("goods_no", { ascending: true })
+    .limit(3000);
   return q as T;
 }
