@@ -90,7 +90,7 @@ export default function SearchResults() {
             <>
               {vm.mode === "lexical_only" && (
                 <p className="mb-2 mt-4 rounded-xl border border-line bg-wall px-4 py-2.5 text-[13px] text-ink-soft">
-                  조건 분석이 불안정해 브랜드 일치 결과만 보여드려요.
+                  조건 분석이 불안정해 검색어와 직접 일치하는 결과만 보여드려요.
                 </p>
               )}
               <div className="mb-3 mt-6 flex items-baseline justify-between">

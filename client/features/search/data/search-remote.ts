@@ -13,15 +13,28 @@ export interface SearchOutcome {
   results: Goods[];
   intent: QueryIntent;
   mode: SearchMode;
+  titleTier: string | null;
+  titleSalvage: boolean;
+  titleDropped: boolean;
 }
 
 interface SearchApiResponse {
   results?: Goods[];
   intent?: QueryIntent;
   mode?: string;
+  titleTier?: string | null;
+  titleSalvage?: boolean;
+  titleDropped?: boolean;
 }
 
-const FAILED: SearchOutcome = { results: [], intent: EMPTY_INTENT, mode: "failed" };
+const FAILED: SearchOutcome = {
+  results: [],
+  intent: EMPTY_INTENT,
+  mode: "failed",
+  titleTier: null,
+  titleSalvage: false,
+  titleDropped: false,
+};
 
 export async function searchRemote(
   query: string,
@@ -45,9 +58,23 @@ export async function searchRemote(
     const mode = MODES.find((m) => m === data.mode);
     if (!mode || !Array.isArray(data.results)) return FAILED;
     if (mode === "failed") {
-      return { results: [], intent: data.intent ?? EMPTY_INTENT, mode };
+      return {
+        results: [],
+        intent: data.intent ?? EMPTY_INTENT,
+        mode,
+        titleTier: data.titleTier ?? null,
+        titleSalvage: false,
+        titleDropped: false,
+      };
     }
-    return { results: data.results, intent: data.intent ?? EMPTY_INTENT, mode };
+    return {
+      results: data.results,
+      intent: data.intent ?? EMPTY_INTENT,
+      mode,
+      titleTier: data.titleTier ?? null,
+      titleSalvage: data.titleSalvage ?? false,
+      titleDropped: data.titleDropped ?? false,
+    };
   } catch {
     return FAILED;
   } finally {

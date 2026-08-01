@@ -38,6 +38,10 @@ function recorder(): GoodsQuery & { calls: Call[] } {
       calls.push(["not", c, op, v]);
       return self;
     },
+    ilike(c: string, p: string) {
+      calls.push(["ilike", c, p]);
+      return self;
+    },
     order(c: string, o: { ascending: boolean }) {
       calls.push(["order", c, o]);
       return self;
@@ -65,10 +69,11 @@ describe("pgArray", () => {
 });
 
 describe("buildGoodsQuery", () => {
-  it("빈 intent도 order·limit 백스톱을 건다", () => {
+  it("빈 intent도 order·limit 백스톱을 건다(review_score desc, 그다음 goods_no asc)", () => {
     const r = recorder();
     buildGoodsQuery(r, EMPTY_INTENT);
     expect(r.calls).toContainEqual(["order", "review_score", { ascending: false }]);
+    expect(r.calls).toContainEqual(["order", "goods_no", { ascending: true }]);
     expect(r.calls).toContainEqual(["limit", 3000]);
   });
 
@@ -130,6 +135,23 @@ describe("buildGoodsQuery", () => {
     expect(r.calls).toContainEqual(["not", "materials", "ov", '{"면"}']);
     expect(r.calls).toContainEqual(["not", "title", "ilike", "%로고%"]);
   });
+
+  it("exclude.keywords도 LIKE 와일드카드를 이스케이프한다", () => {
+    const r = recorder();
+    buildGoodsQuery(
+      r,
+      intent({
+        exclude: {
+          colors: [],
+          patterns: [],
+          materials: [],
+          fits: [],
+          keywords: ["100%"],
+        },
+      }),
+    );
+    expect(r.calls).toContainEqual(["not", "title", "ilike", "%100\\%%"]);
+  });
 });
 
 describe("buildGoodsQuery wear-chars 불변식·후보 상한", () => {
@@ -174,5 +196,49 @@ describe("buildGoodsQuery — 브랜드 하드필터", () => {
     const weird = `브랜드,쉼표 "따옴표" (괄호) 100%`;
     buildGoodsQuery(r, intent({ brand: weird }));
     expect(r.calls).toContainEqual(["eq", "brand", weird]);
+  });
+});
+
+describe("buildGoodsQuery — 제목 tier", () => {
+  const titleIntent = { ...EMPTY_INTENT, titleTokens: ["드라이핏", "쿨링"] };
+
+  it("phrase: 전체 구문 ilike 1회", () => {
+    const r = recorder();
+    buildGoodsQuery(r, titleIntent, "phrase");
+    expect(r.calls).toContainEqual(["ilike", "title", "%드라이핏 쿨링%"]);
+  });
+
+  it("and: 토큰별 ilike 체이닝", () => {
+    const r = recorder();
+    buildGoodsQuery(r, titleIntent, "and");
+    expect(r.calls).toContainEqual(["ilike", "title", "%드라이핏%"]);
+    expect(r.calls).toContainEqual(["ilike", "title", "%쿨링%"]);
+  });
+
+  it("or: orIlikeTitle 필터 문자열", () => {
+    const r = recorder();
+    buildGoodsQuery(r, titleIntent, "or");
+    expect(r.calls).toContainEqual([
+      "or",
+      'title.ilike."%드라이핏%",title.ilike."%쿨링%"',
+    ]);
+  });
+
+  it("titleTier 없으면 title 조건 없음(하위호환)", () => {
+    const r = recorder();
+    buildGoodsQuery(r, titleIntent);
+    expect(r.calls.some(([m, c]) => m === "ilike" && c === "title")).toBe(false);
+  });
+
+  it("titleTokens 비어 있으면 tier 지정해도 조건 없음", () => {
+    const r = recorder();
+    buildGoodsQuery(r, EMPTY_INTENT, "and");
+    expect(r.calls.some(([m]) => m === "ilike")).toBe(false);
+  });
+
+  it("LIKE 와일드카드 이스케이프", () => {
+    const r = recorder();
+    buildGoodsQuery(r, { ...EMPTY_INTENT, titleTokens: ["100%"] }, "and");
+    expect(r.calls).toContainEqual(["ilike", "title", "%100\\%%"]);
   });
 });

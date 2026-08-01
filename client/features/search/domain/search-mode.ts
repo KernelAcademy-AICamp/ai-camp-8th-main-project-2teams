@@ -22,6 +22,7 @@ function styleHasAny(s: StyleFilter): boolean {
 export function hasSearchSignal(intent: QueryIntent): boolean {
   return (
     Boolean(intent.brand) ||
+    (intent.titleTokens?.length ?? 0) > 0 ||
     intent.gender !== undefined ||
     intent.sizeStd.length > 0 ||
     intent.priceMin != null ||
