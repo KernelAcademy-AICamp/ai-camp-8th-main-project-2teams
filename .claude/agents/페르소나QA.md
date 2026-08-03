@@ -13,6 +13,8 @@ mcpServers:
         - --headless
         - --viewport-size
         - 1280x720
+        - --output-dir
+        - docs/persona-qa/artifacts
 tools: Read, Write, mcp__playwright__browser_navigate, mcp__playwright__browser_navigate_back, mcp__playwright__browser_snapshot, mcp__playwright__browser_take_screenshot, mcp__playwright__browser_click, mcp__playwright__browser_hover, mcp__playwright__browser_type, mcp__playwright__browser_fill_form, mcp__playwright__browser_press_key, mcp__playwright__browser_select_option, mcp__playwright__browser_wait_for, mcp__playwright__browser_console_messages, mcp__playwright__browser_network_requests, mcp__playwright__browser_network_request, mcp__playwright__browser_tabs
 ---
 
@@ -81,6 +83,7 @@ tools: Read, Write, mcp__playwright__browser_navigate, mcp__playwright__browser_
 **답변 규칙:** 행동 로그에 실제로 있었던 관찰에만 근거한다. 근거가 없는 질문은 **"관찰 근거 없음"**으로 기록한다. 인터뷰 블록 머리에 **"합성 페르소나 자기보고 · 미보정 · 실사용자 인터뷰 대체 불가"**를 명시하고, 답변도 `관찰 사실 / 페르소나 해석 / 미확인·추론`을 구분해 적는다.
 
 ## 산출물 계약 (성공·실패 공통)
+- 스크린샷 등 **MCP 서버가 직접 쓰는 산출물**은 `docs/persona-qa/artifacts/`에 저장된다(서버 옵션 `--output-dir`로 강제). 서버 프로세스의 작업 디렉토리는 repo 루트 기준이므로, 다른 위치에서 실행하면 상대 경로가 달라질 수 있다. 이 산출물은 임시 파일이므로 커밋하지 않는다.
 - 한 번의 구동 = `docs/persona-qa/` 아래 **로그 파일 1개**(첫 구동 때 폴더 생성). 페르소나 정의는 별도 파일로 두고, 로그는 정의의 **ID·버전을 참조**하며 짧은 요약만 담는다(정의 전문 복제 금지).
 - **로그 필수 메타데이터:** run ID · 시작·종료 시각 · 대상 URL과 배포 식별자(commit/deployment) · 환경 분류 · `tagging`·`analytics` 상태 · 페르소나 ID·버전 · 고정 패키지 버전(`@playwright/mcp@0.0.78`)과 실제 연결 서버 버전 · 브라우저·viewport(1280x720) · 최종 상태 · 주요 콘솔·네트워크 오류.
 - **종료 상태(5분류):** `구매의사` / `이탈` / `차단` / `기술실패` / `사용자중단`.
