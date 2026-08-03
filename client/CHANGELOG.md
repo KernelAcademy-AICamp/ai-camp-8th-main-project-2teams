@@ -1,3 +1,9 @@
+## [0.2.7](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/compare/v0.2.6...v0.2.7) (2026-08-03)
+
+### Features
+
+* P3-F — provenance 기반 구조(ResolvedIntent·QueryPlan·결정화 flag) ([#38](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/issues/38)) ([2ed1668](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/commit/2ed166848ef0fe851004fa98ada99a74c8c32f60))
+* 제목 lexical 검색 — tier 폴백·0건 구제·결정적 가격 파서 ([#36](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/issues/36)) ([4d0cd8d](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/commit/4d0cd8d1243bbf141f5a462da4605f50d5ba789d))
 ## [0.2.6](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/compare/v0.2.5...v0.2.6) (2026-07-31)
 
 ### Features
