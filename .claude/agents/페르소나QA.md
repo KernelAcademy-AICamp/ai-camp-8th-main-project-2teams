@@ -39,11 +39,11 @@ tools: Read, Write, mcp__playwright__browser_navigate, mcp__playwright__browser_
 
 **환경별 태깅 원칙(먼저 분류부터):**
 - **analytics가 연결된 환경(프로덕션 포함):** `user_type=agent` 태깅이 없으면 조작 전 중단. 태깅이 구현되기 전에는 단건이든 반복이든 전면 금지.
-- **analytics가 비활성인 localhost·preview:** 미태깅 합성 실행을 한시 허용하되, 로그에 반드시 `tagging=unavailable`, `analytics=disabled`를 남긴다.
+- **analytics가 비활성인 localhost·preview:** 미태깅 합성 실행을 한시 허용하되, 로그에 반드시 `tagging=unavailable`, `analytics=disabled`를 남긴다. **단 "analytics 비활성"은 환경 라벨(`localhost`/`preview`)만 보고 가정하지 않는다 — 반드시 아래 2층 네트워크 게이트로 실측 확인한 뒤에만 이 태그를 기록한다.** 게이트에서 analytics가 감지되면 라벨이 localhost/preview여도 허용하지 않고 중단한다.
 
-**1층 — 브라우저를 열기 전(실행 없이):** 환경 분류가 `프로덕션`이면 즉시 거부. 대상의 HTML/설정에 GA(analytics) 로더가 들어 있는지 실행 없이 점검한다. 위험하면 열지 않는다.
+**1층 — 브라우저를 열기 전(실행 없이):** 환경 분류가 `프로덕션`이면 즉시 거부. 대상 HTML/설정을 정적으로 읽을 수 있으면(로컬 파일 경로가 주어졌을 때) GA(analytics) 로더가 들어 있는지 실행 없이 점검하고, 있으면 열지 않는다. **주의: 대상이 URL만 주어진 경우(대부분의 localhost/preview) 노출된 도구로는 HTML을 실행 없이 가져올 수 없어 1층에서 안전을 확정할 수 없다. 이때 1층 통과는 "안전 확정"이 아니라 "판정 보류"이며, 아래 2층 네트워크 게이트가 구속 게이트가 된다.**
 
-**2층 — 안전 판정 후 첫 로드에서:** 첫 페이지 로드 직후 네트워크 요청에 analytics(GA collect 등) 요청이 없음을 재확인한다. 감지되면 즉시 중단·보고한다.
+**2층 — 안전 판정 후 첫 로드에서(구속 게이트):** 첫 페이지 로드 직후, **접근성 스냅샷·클릭·입력 등 어떤 페르소나 상호작용보다 먼저** `browser_network_requests`로 네트워크 요청 목록을 점검하는 것을 필수 첫 단계로 한다. 다음 중 하나라도 매치하면 **로더든 비콘이든** analytics로 간주해 상호작용 전에 즉시 중단·보고한다: `googletagmanager.com/gtag/js`(GA 로더), `google-analytics.com`·`www.google-analytics.com`, `/collect`·`/g/collect`(GA 비콘), 기타 analytics·telemetry 엔드포인트. **로더 script만 있고 collect 비콘이 없어도(예: config 미호출) 로더 요청 자체가 감지 신호다 — "collect가 없으니 안전"으로 판단하지 않는다.** 감지가 없을 때만 `analytics=disabled`로 확정하고 구동을 이어간다.
 
 **거부는 run이 아니다:** preflight에서 거부·중단된 호출은 행동 로그를 만들지 않는다. 중단 사유만 부모 세션에 보고한다.
 
