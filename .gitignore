@@ -5,3 +5,7 @@ node_modules/
 # OS/스크래핑 아티팩트
 .DS_Store
 prod_page.html
+
+# 페르소나QA 임시 산출물(스크린샷 등) — 커밋 금지
+docs/persona-qa/artifacts/
+.playwright-mcp/
