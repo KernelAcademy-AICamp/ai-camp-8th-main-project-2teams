@@ -40,10 +40,12 @@ git checkout -b feature/product-gender-column
 임시 스크립트 `backend/analyze_gender.py`에서 검증한 규칙을 순수 함수 모듈로 이관한다.
 
 **Files:**
+
 - Create: `backend/ingest/gender.py`
 - Test: `backend/tests/test_gender.py`
 
 **Interfaces:**
+
 - Produces: `classify_gender(title: str) -> str` — 반환값은 `'male' | 'female' | 'unisex'` 중 하나. (Task 3의 normalize, Task 4의 backfill이 소비.)
 
 - [ ] **Step 1: 실패하는 테스트 작성**
@@ -145,9 +147,11 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ### Task 2: DB 마이그레이션 — `products.gender` 컬럼
 
 **Files:**
+
 - Create: `backend/supabase/migrations/20260723140000_add_products_gender.sql`
 
 **Interfaces:**
+
 - Produces: `products.gender text not null default 'unisex'` (check: male/female/unisex). Task 3·4·5가 이 컬럼에 의존.
 
 - [ ] **Step 1: 마이그레이션 SQL 작성**
@@ -173,9 +177,11 @@ Expected: 새 마이그레이션 1건 적용 성공. (기존 1806행은 default 
 - [ ] **Step 3: 컬럼 반영 확인**
 
 Run:
+
 ```bash
 cd backend && ./venv/bin/python -c "from db.client import get_client; c=get_client(); print(c.table('products').select('id,gender').limit(3).execute().data)"
 ```
+
 Expected: 각 행에 `'gender': 'unisex'` 키가 보임.
 
 - [ ] **Step 4: 커밋**
@@ -193,10 +199,12 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ### Task 3: 수집 파이프라인에 gender 주입
 
 **Files:**
+
 - Modify: `backend/ingest/normalize.py` (import 추가, `normalize_item` 반환 dict에 `gender` 추가)
 - Test: `backend/tests/test_normalize.py` (기존 파일에 케이스 추가)
 
 **Interfaces:**
+
 - Consumes: `classify_gender(title)` from Task 1.
 - Produces: `normalize_item(...)` 반환 dict에 `"gender"` 키(str) 포함 — `upsert`가 그대로 저장.
 
@@ -274,10 +282,12 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ### Task 4: 기존 상품 gender 백필 + 임시 스크립트 정리
 
 **Files:**
+
 - Create: `backend/backfill_gender.py`
 - Delete: `backend/analyze_gender.py` (임시 집계 스크립트 — 로직은 gender.py로 이관 완료)
 
 **Interfaces:**
+
 - Consumes: `classify_gender` from Task 1, `products.gender` 컬럼 from Task 2.
 
 - [ ] **Step 1: 백필 스크립트 작성**
@@ -325,6 +335,7 @@ Expected: `백필 완료: 1806행 중 ~852행 gender 갱신` (unisex 954는 이�
 - [ ] **Step 3: 분포 확인**
 
 Run:
+
 ```bash
 cd backend && ./venv/bin/python -c "
 from collections import Counter
@@ -337,6 +348,7 @@ for off in range(0,tot,1000):
 print(dict(cnt))
 "
 ```
+
 Expected: `{'unisex': 약1359, 'male': 297, 'female': 150}` (unisex ≈ 954 판정불가 + 405 명시공용).
 
 - [ ] **Step 4: 임시 스크립트 삭제**
@@ -362,11 +374,13 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ### Task 5: 클라이언트 도메인 타입 + Supabase 매핑
 
 **Files:**
+
 - Modify: `client/features/catalog/domain/tee.ts` (Gender 타입·상수·라벨, `Tee.gender`)
 - Modify: `client/features/search/domain/intent.ts` (`Intent.gender`, `IntentChip.kind`에 "gender")
 - Modify: `client/features/catalog/data/supabase-tee-repository.ts` (ProductRow.gender, COLUMNS, 매핑)
 
 **Interfaces:**
+
 - Produces: `Gender` 타입 = `"male" | "female" | "unisex"`, `GENDERS: readonly Gender[]`, `GENDER_LABEL: Record<Gender, string>`, `Tee.gender: Gender`, `Intent.gender?: Gender`. Task 6·7이 소비.
 
 - [ ] **Step 1: tee.ts에 Gender 타입·상수·라벨 추가**
@@ -466,10 +480,12 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ### Task 6: 검색 랭킹 방향성 매칭
 
 **Files:**
+
 - Modify: `client/features/search/domain/search-tees.ts`
 - Test: `client/features/search/domain/search-tees.test.ts`
 
 **Interfaces:**
+
 - Consumes: `Tee.gender`(Task 5), `Intent.gender`(Task 5).
 
 - [ ] **Step 1: 실패하는 테스트 추가**
@@ -582,6 +598,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ### Task 7: 쿼리 파싱(규칙 + LLM) + 의도칩
 
 **Files:**
+
 - Modify: `client/features/search/domain/parse-query.ts` (규칙 파서에 성별 추출)
 - Modify: `client/features/search/domain/intent-chips.ts` (gender 칩 생성)
 - Modify: `client/features/search/domain/remove-constraint.ts` (gender 칩 제거)
@@ -589,6 +606,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 - Test: `client/features/search/domain/parse-query.test.ts`, `client/features/search/domain/intent-chips.test.ts`
 
 **Interfaces:**
+
 - Consumes: `Intent.gender`, `IntentChip.kind` "gender", `Gender`, `GENDERS`, `GENDER_LABEL`(Task 5).
 - Produces: 규칙 파서·LLM 파서 모두 `intent.gender` 채움. `intentToChips`가 gender 칩 생성, `removeConstraintFromIntent`가 제거.
 
@@ -749,9 +767,11 @@ import {
 - [ ] **Step 9: 전체 확인 (린트·타입·테스트)**
 
 Run:
+
 ```bash
 cd client && npm run check && npm run test
 ```
+
 Expected: `npm run check` PASS, `vitest run` 전체 PASS.
 
 - [ ] **Step 10: 커밋**
@@ -780,6 +800,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 cd /Users/kyo/Developments/ecommerce/backend && ./venv/bin/python -m pytest -q
 cd /Users/kyo/Developments/ecommerce/client && npm run check && npm run test && npm run build
 ```
+
 Expected: 백엔드·클라이언트 모든 테스트 PASS, 빌드 성공.
 
 - [ ] **Step 2: 앱에서 성별 검색 육안 확인**

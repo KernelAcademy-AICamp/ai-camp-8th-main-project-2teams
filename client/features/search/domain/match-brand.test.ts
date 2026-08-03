@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { type BrandAlias, matchBrand } from "@/features/search/domain/match-brand";
+import {
+  type BrandAlias,
+  matchBrand,
+  matchBrandDetailed,
+} from "@/features/search/domain/match-brand";
 
 const ALIASES: BrandAlias[] = [
   { aliasNormalized: "나이키", catalogBrand: "나이키" },
@@ -59,5 +63,28 @@ describe("matchBrand", () => {
       { aliasNormalized: "afewgoodkids", catalogBrand: "A FEW GOOD KIDS" },
     ];
     expect(matchBrand("a few good kids 반팔", fourToken)).toBe("A FEW GOOD KIDS");
+  });
+});
+
+describe("matchBrandDetailed", () => {
+  it("매칭된 n-gram의 원문 토큰들을 반환한다", () => {
+    const m = matchBrandDetailed("무신사 스탠다드 오버핏 티", ALIASES);
+    expect(m?.brand).toBe("무신사 스탠다드");
+    expect(m?.consumedTokens).toEqual(["무신사", "스탠다드"]);
+  });
+
+  it("단일 토큰 매칭은 그 토큰 하나", () => {
+    const m = matchBrandDetailed("나이키 반팔", ALIASES);
+    expect(m?.consumedTokens).toEqual(["나이키"]);
+  });
+
+  it("미매칭이면 undefined", () => {
+    expect(matchBrandDetailed("검정 반팔", ALIASES)).toBeUndefined();
+  });
+
+  it("조사가 붙은 브랜드 토큰도 매칭(consumedTokens는 원문 그대로)", () => {
+    const m = matchBrandDetailed("나이키는 반팔", ALIASES);
+    expect(m?.brand).toBe("나이키");
+    expect(m?.consumedTokens).toEqual(["나이키는"]);
   });
 });

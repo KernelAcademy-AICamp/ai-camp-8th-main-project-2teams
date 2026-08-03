@@ -148,3 +148,25 @@ describe("styleScore wearChars", () => {
     expect(styleScore(g, i)).toBe(0);
   });
 });
+
+describe("styleScore — titleTokens 가점", () => {
+  it("매칭 토큰당 3점, 대소문자 무시", () => {
+    const g = goods({ title: "드라이핏 쿨링 반팔 COOL" });
+    const base = styleScore(g, EMPTY_INTENT);
+    const withTokens = styleScore(g, {
+      ...EMPTY_INTENT,
+      titleTokens: ["드라이핏", "cool", "없는토큰"],
+    });
+    expect(withTokens - base).toBe(6); // 드라이핏 + cool 2개 매칭
+  });
+
+  it("keywords 가점과 독립(둘 다 적용)", () => {
+    const g = goods({ title: "홀로그램 드라이핏 반팔" });
+    const s = styleScore(g, {
+      ...EMPTY_INTENT,
+      style: { ...EMPTY_INTENT.style, keywords: ["홀로그램"] },
+      titleTokens: ["드라이핏"],
+    });
+    expect(s).toBe(3 + 3); // keyword 3 + title 3
+  });
+});

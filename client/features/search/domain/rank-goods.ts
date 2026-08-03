@@ -19,7 +19,8 @@ export function rankGoods(rows: Goods[], intent: QueryIntent, limit = 60): Goods
   const byRelevance = (a: Scored, b: Scored): number =>
     b.score - a.score ||
     b.goods.reviewScore - a.goods.reviewScore ||
-    b.goods.reviewCount - a.goods.reviewCount;
+    b.goods.reviewCount - a.goods.reviewCount ||
+    a.goods.goodsNo.localeCompare(b.goods.goodsNo);
 
   let cmp: (a: Scored, b: Scored) => number;
   if (intent.sort === "price_asc") {

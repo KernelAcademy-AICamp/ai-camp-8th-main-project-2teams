@@ -69,4 +69,13 @@ describe("queryIntentToChips", () => {
   it("빈 intent는 빈 배열", () => {
     expect(queryIntentToChips(EMPTY_INTENT)).toEqual([]);
   });
+  it("titleTokens는 브랜드 칩 다음에 title 칩으로", () => {
+    const chips = queryIntentToChips({
+      ...EMPTY_INTENT,
+      brand: "나이키",
+      titleTokens: ["드라이핏"],
+    });
+    expect(chips[0]).toEqual({ kind: "brand", label: "나이키" });
+    expect(chips[1]).toEqual({ kind: "title", label: "드라이핏" });
+  });
 });

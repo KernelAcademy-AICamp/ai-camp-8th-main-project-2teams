@@ -1,14 +1,21 @@
+## [0.2.7](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/compare/v0.2.6...v0.2.7) (2026-08-03)
+
+### Features
+
+* P3-F — provenance 기반 구조(ResolvedIntent·QueryPlan·결정화 flag) ([#38](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/issues/38)) ([2ed1668](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/commit/2ed166848ef0fe851004fa98ada99a74c8c32f60))
+* 제목 lexical 검색 — tier 폴백·0건 구제·결정적 가격 파서 ([#36](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/issues/36)) ([4d0cd8d](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/commit/4d0cd8d1243bbf141f5a462da4605f50d5ba789d))
 ## [0.2.6](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/compare/v0.2.5...v0.2.6) (2026-07-31)
 
 ### Features
 
-* 네이버→무신사 검색 마이그레이션 (raw 랜딩·정규화·검색 컷오버·UI 전환) ([#32](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/issues/32)) ([c3a0799](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/commit/c3a0799e40ddcf36344b53b1f422c018c33f07e2))
-* 브랜드 lexical 검색 레인 — 사전 매칭·eq 하드필터·mode 계약 ([#35](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/issues/35)) ([43371e5](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/commit/43371e5451fb7a28c3b61987a2273e7a40cf7a5d))
+- 네이버→무신사 검색 마이그레이션 (raw 랜딩·정규화·검색 컷오버·UI 전환) ([#32](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/issues/32)) ([c3a0799](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/commit/c3a0799e40ddcf36344b53b1f422c018c33f07e2))
+- 브랜드 lexical 검색 레인 — 사전 매칭·eq 하드필터·mode 계약 ([#35](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/issues/35)) ([43371e5](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/commit/43371e5451fb7a28c3b61987a2273e7a40cf7a5d))
 
 ### Bug Fixes
 
-* 검색 색·스타일을 하드 필터로 + 결과 상한 60→300 ([#33](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/issues/33)) ([fb8daac](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/commit/fb8daac4b6a64d8e5dca60c634338eb3f2335551))
-* 파서 환각 억제 — 명시 안 한 속성 추출 금지 ([#34](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/issues/34)) ([f40f30a](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/commit/f40f30a794bd6a84d23d28ecf1bd88abef895d8c))
+- 검색 색·스타일을 하드 필터로 + 결과 상한 60→300 ([#33](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/issues/33)) ([fb8daac](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/commit/fb8daac4b6a64d8e5dca60c634338eb3f2335551))
+- 파서 환각 억제 — 명시 안 한 속성 추출 금지 ([#34](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/issues/34)) ([f40f30a](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/commit/f40f30a794bd6a84d23d28ecf1bd88abef895d8c))
+
 ## [0.2.5](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/compare/v0.2.4...v0.2.5) (2026-07-27)
 
 ### Features
