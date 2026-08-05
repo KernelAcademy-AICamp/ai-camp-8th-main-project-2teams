@@ -1,7 +1,9 @@
-// View: 자연어 검색 입력. 로컬 입력 상태만 갖고 onSearch로 위임.
+// View: 자연어 검색 입력(워터드롭 유리 필). 로컬 입력 상태만 갖고 onSearch로 위임.
 "use client";
 
 import { useState } from "react";
+
+import { SearchIcon } from "./icons";
 
 export default function SearchBar({
   initialValue = "",
@@ -18,28 +20,28 @@ export default function SearchBar({
 
   return (
     <form
+      className="tf-searchbar"
+      role="search"
       onSubmit={(e) => {
         e.preventDefault();
         if (value.trim()) onSearch(value.trim());
       }}
-      className="flex items-center gap-2 rounded-2xl border-2 border-ink bg-wall p-2 shadow-[0_10px_40px_-20px_rgba(23,24,28,0.5)] focus-within:border-hold-yellow"
     >
-      <input
-        value={value}
-        onChange={(e) => {
-          setValue(e.target.value);
-        }}
-        placeholder={placeholder}
-        aria-label="검색어"
-        autoFocus={autoFocus}
-        className="min-w-0 flex-1 bg-transparent px-3 py-2.5 text-[15px] text-ink outline-none placeholder:text-ink-soft/60"
-      />
-      <button
-        type="submit"
-        className="shrink-0 rounded-xl bg-ink px-5 py-2.5 font-display text-sm font-bold text-chalk transition hover:opacity-90"
-      >
-        찾기
-      </button>
+      <div className="tf-pill">
+        <input
+          value={value}
+          onChange={(e) => {
+            setValue(e.target.value);
+          }}
+          placeholder={placeholder}
+          aria-label="검색어"
+          autoFocus={autoFocus}
+          autoComplete="off"
+        />
+        <button className="tf-pill__btn" type="submit" aria-label="검색">
+          <SearchIcon />
+        </button>
+      </div>
     </form>
   );
 }

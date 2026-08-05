@@ -1,14 +1,35 @@
 "use client";
 
-// 페이지 2 본체 — URL의 q를 읽어 무신사 검색. 이미지 카드 그리드로 표시.
+// 페이지 2 본체 — URL의 q를 읽어 무신사 검색. 다크 오로라 + 유리 토큰 + 카드 그리드.
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
-import AppHeader from "@/components/AppHeader";
+import type { IntentChip } from "@/features/search/domain/query-intent-chips";
 
 import { useSearchViewModel } from "../view-model/use-search-view-model";
 import IntentChips from "./IntentChips";
 import ResultList from "./ResultList";
 import SearchBar from "./SearchBar";
+
+/* 0건일 때 조건 완화 제안 — 질의 문장에 그대로 들어 있는 조건 토큰만
+   빼고 재검색할 수 있게 한다(문장 재작성은 하지 않는다). */
+function relaxations(
+  query: string,
+  chips: IntentChip[],
+): { label: string; nextQuery: string }[] {
+  const seen = new Set<string>();
+  const out: { label: string; nextQuery: string }[] = [];
+  for (const chip of chips) {
+    if (out.length >= 3) break;
+    const token = chip.label;
+    if (seen.has(token) || !query.includes(token)) continue;
+    const nextQuery = query.replace(token, " ").replace(/\s+/g, " ").trim();
+    if (!nextQuery) continue;
+    seen.add(token);
+    out.push({ label: token, nextQuery });
+  }
+  return out;
+}
 
 export default function SearchResults() {
   const router = useRouter();
@@ -19,86 +40,107 @@ export default function SearchResults() {
     router.push(`/search?q=${encodeURIComponent(q)}&src=${src}`);
   };
 
-  return (
-    <div className="flex flex-1 flex-col">
-      <AppHeader />
-      <main className="mx-auto w-full max-w-5xl flex-1 px-5 py-6">
-        <SearchBar key={query} initialValue={query} onSearch={go} />
+  const settled = query.trim() !== "" && !vm.loading;
+  const showParsed = settled && vm.mode !== "failed";
 
-        {query.trim() &&
-          !vm.loading &&
-          vm.mode !== "failed" &&
-          (vm.chips.length > 0 || vm.results.length === 0) && (
-            <div className="rise mt-5">
-              <IntentChips chips={vm.chips} />
-            </div>
-          )}
+  return (
+    <div className="tf-page">
+      <header className="tf-top">
+        <Link href="/" className="tf-top__brand">
+          티:파운드
+        </Link>
+        <SearchBar key={query} initialValue={query} onSearch={go} />
+      </header>
+
+      <main className="tf-main">
+        <h1 className="sr-only">
+          {query.trim() ? `“${query}” 검색 결과` : "티셔츠 검색"}
+        </h1>
+
+        {showParsed && (
+          <section className="tf-parsed" aria-label="해석된 검색 조건">
+            <IntentChips chips={vm.chips} />
+            <span className="tf-parsed__count">{vm.results.length}개</span>
+          </section>
+        )}
 
         {(() => {
           if (vm.loading) {
             return (
-              <div className="mt-6 grid place-items-center rounded-2xl border border-dashed border-line py-16 text-center">
-                <p className="font-display text-lg font-bold text-ink">검색 중…</p>
-                <p className="mt-1 text-[13px] text-ink-soft">
-                  조건을 분석하고 있어요.
+              <div className="tf-state" aria-live="polite">
+                <p className="tf-state__title">
+                  검색 중…
+                  <small>조건을 분석하고 있어요.</small>
                 </p>
               </div>
             );
           }
           if (!query.trim()) {
             return (
-              <div className="mt-6 grid place-items-center rounded-2xl border border-dashed border-line py-16 text-center">
-                <p className="font-display text-lg font-bold text-ink">
+              <div className="tf-state">
+                <p className="tf-state__title">
                   말로 찾아보세요
-                </p>
-                <p className="mt-1 max-w-xs text-[13px] text-ink-soft">
-                  색·핏·소재·사이즈·가격을 한 문장으로.
+                  <small>색·핏·소재·사이즈·가격을 한 문장으로.</small>
                 </p>
               </div>
             );
           }
           if (vm.mode === "failed") {
             return (
-              <div className="mt-6 grid place-items-center rounded-2xl border border-dashed border-line py-16 text-center">
-                <p className="font-display text-lg font-bold text-ink">
+              <div className="tf-state">
+                <p className="tf-state__title">
                   검색을 완료하지 못했어요
+                  <small>잠시 후 다시 시도해 주세요.</small>
                 </p>
-                <p className="mt-1 max-w-xs text-[13px] text-ink-soft">
-                  잠시 후 다시 시도해 주세요.
-                </p>
-                <button
-                  type="button"
-                  onClick={vm.retry}
-                  className="mt-4 rounded-xl bg-ink px-5 py-2.5 font-display text-sm font-bold text-chalk transition hover:opacity-90"
-                >
-                  다시 시도
-                </button>
+                <div className="tf-relax">
+                  <button type="button" onClick={vm.retry}>
+                    다시 시도
+                  </button>
+                </div>
               </div>
             );
           }
           if (vm.results.length === 0) {
+            const suggestions = relaxations(query, vm.chips);
             return (
-              <div className="mt-6 grid place-items-center rounded-2xl border border-dashed border-line py-16 text-center">
-                <p className="font-display text-lg font-bold text-ink">결과가 없어요</p>
-                <p className="mt-1 max-w-xs text-[13px] text-ink-soft">
-                  조건을 조금 줄이거나 다시 검색해 보세요.
+              <div className="tf-state">
+                <p className="tf-state__title">
+                  이 조합의 티는 아직 없어요
+                  <small>조건을 하나만 풀면 찾을 수 있어요</small>
                 </p>
+                <div className="tf-relax">
+                  {suggestions.map((s, i) => (
+                    <button
+                      key={s.label}
+                      type="button"
+                      style={{ "--i": i } as React.CSSProperties}
+                      onClick={() => {
+                        go(s.nextQuery);
+                      }}
+                    >
+                      <b>{s.label}</b> 빼고 검색
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    style={{ "--i": suggestions.length } as React.CSSProperties}
+                    onClick={() => {
+                      go("반팔티");
+                    }}
+                  >
+                    반팔티 전체 보기
+                  </button>
+                </div>
               </div>
             );
           }
           return (
             <>
               {vm.mode === "lexical_only" && (
-                <p className="mb-2 mt-4 rounded-xl border border-line bg-wall px-4 py-2.5 text-[13px] text-ink-soft">
+                <p className="tf-note">
                   조건 분석이 불안정해 검색어와 직접 일치하는 결과만 보여드려요.
                 </p>
               )}
-              <div className="mb-3 mt-6 flex items-baseline justify-between">
-                <h2 className="font-display text-lg font-bold text-ink">검색 결과</h2>
-                <span className="font-mono text-[12px] text-ink-soft">
-                  {vm.results.length}개
-                </span>
-              </div>
               <ResultList
                 goods={vm.results}
                 searchId={vm.searchId}
@@ -108,11 +150,6 @@ export default function SearchResults() {
           );
         })()}
       </main>
-      <footer className="border-t border-line px-5 py-6">
-        <p className="mx-auto max-w-5xl font-mono text-[11px] text-ink-soft">
-          무신사 상품 · 자연어 발견 검색
-        </p>
-      </footer>
     </div>
   );
 }
