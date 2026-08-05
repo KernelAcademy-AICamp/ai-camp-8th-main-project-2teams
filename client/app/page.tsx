@@ -1,48 +1,33 @@
-"use client";
+import Link from "next/link";
 
-// 페이지 1 — 구글형 검색 랜딩. 검색창 하나에 집중. 검색 시 /search 로 이동.
-import { useRouter } from "next/navigation";
-
-import ExampleChips from "@/features/search/presentation/components/ExampleChips";
-import SearchBar from "@/features/search/presentation/components/SearchBar";
+import HeroVideo from "@/components/HeroVideo";
+import LandingFinder from "@/features/search/presentation/components/LandingFinder";
 
 export default function LandingPage() {
-  const router = useRouter();
-  const go = (q: string, src: string) => {
-    router.push(`/search?q=${encodeURIComponent(q)}&src=${src}`);
-  };
-
   return (
-    <div className="chalk-grain flex flex-1 flex-col items-center justify-center px-5 pb-24">
-      <main className="w-full max-w-xl text-center">
-        <p className="mb-4 font-mono text-[12px] uppercase tracking-[0.2em] text-ink-soft">
-          무신사 반팔티 · 말로 찾는 발견 검색
-        </p>
-        <h1 className="font-display text-5xl font-extrabold tracking-tight text-ink sm:text-6xl">
-          search<span className="text-hold-yellow">·</span>by
-          <span className="text-hold-yellow">·</span>llm
+    <main className="tf-home">
+      <a className="tf-skip-link" href="#finder">
+        검색으로 바로가기
+      </a>
+
+      <HeroVideo />
+      <div className="tf-home__veil" aria-hidden="true" />
+
+      <header className="tf-nav">
+        <Link href="/" className="tf-nav__brand">
+          티:파운드
+        </Link>
+      </header>
+
+      <section className="tf-hero" aria-labelledby="hero-title">
+        <h1 id="hero-title" className="tf-hero__title">
+          입고 싶은 티셔츠,
+          <br />
+          <span>문장으로 검색하세요</span>
         </h1>
-        <p className="mx-auto mt-4 max-w-md text-[15px] leading-relaxed text-ink-soft">
-          원하는 반팔티를 말로 찾으세요. 색·핏·소재·사이즈·가격을 한 문장으로.
-        </p>
 
-        <div className="mt-8">
-          <SearchBar
-            onSearch={(q) => {
-              go(q, "typed");
-            }}
-            autoFocus
-          />
-        </div>
-
-        <div className="mt-5">
-          <ExampleChips
-            onPick={(q) => {
-              go(q, "chip");
-            }}
-          />
-        </div>
-      </main>
-    </div>
+        <LandingFinder />
+      </section>
+    </main>
   );
 }
