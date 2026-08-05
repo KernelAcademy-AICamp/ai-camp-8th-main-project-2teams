@@ -141,7 +141,7 @@ body {
 }
 
 .tf-hero__title span {
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--tf-muted);
 }
 
 /* 검색 영역 (필 + 칩) */
@@ -508,6 +508,7 @@ body {
 }
 
 .tf-top .tf-searchbar {
+  min-width: 0; /* 좁은 폰에서 검색 필이 뷰포트 밖으로 밀려 잘리지 않도록 축소 허용 */
   max-width: 44rem;
   flex: 1;
 }
@@ -875,8 +876,32 @@ body {
 }
 
 @media (max-width: 46rem) {
-  /* 모바일에선 fixed 배경 재합성 비용(특히 iOS Safari)이 커 스크롤로 되돌린다 */
+  /* 모바일에선 fixed 배경 재합성 비용(특히 iOS Safari)이 커 스크롤로 되돌린다.
+     또 오로라 그라데이션이 rem 고정 크기라 좁은 화면에선 색 덩어리가 뷰포트보다
+     커져 과포화된다 → 크기·알파를 낮춰 데스크톱과 비슷한 은은함으로 맞춘다. */
   .tf-page {
+    background:
+      radial-gradient(
+        40rem 28rem at 12% -6%,
+        rgba(53, 110, 255, 0.24),
+        transparent 58%
+      ),
+      radial-gradient(
+        36rem 24rem at 105% 22%,
+        rgba(148, 70, 245, 0.2),
+        transparent 58%
+      ),
+      radial-gradient(
+        32rem 22rem at 88% 108%,
+        rgba(255, 110, 45, 0.15),
+        transparent 58%
+      ),
+      radial-gradient(
+        30rem 20rem at -4% 90%,
+        rgba(40, 200, 145, 0.12),
+        transparent 58%
+      ),
+      #0d0f13;
     background-attachment: scroll;
   }
 
