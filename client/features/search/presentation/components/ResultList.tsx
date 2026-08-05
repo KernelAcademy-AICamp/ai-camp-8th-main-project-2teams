@@ -16,9 +16,13 @@ export default function ResultList({
   resultType: ResultType;
 }) {
   return (
-    <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+    <ul className="tf-grid">
       {goods.map((item, rank) => (
-        <li key={item.goodsNo}>
+        <li
+          key={item.goodsNo}
+          className="tf-card"
+          style={{ "--i": rank } as React.CSSProperties}
+        >
           <Link
             href={`/goods/${item.goodsNo}?sid=${encodeURIComponent(searchId)}&rank=${rank}&rt=${resultType}`}
             onClick={() => {
@@ -29,33 +33,24 @@ export default function ResultList({
                 result_type: resultType,
               });
             }}
-            className="group block overflow-hidden rounded-2xl border border-line bg-wall transition hover:shadow-md"
           >
-            <div className="relative aspect-square overflow-hidden bg-chalk">
+            <div className="tf-card__frame">
               {item.thumbnail && (
                 <Image
                   src={item.thumbnail}
                   alt={item.title}
                   fill
                   sizes="(max-width: 640px) 50vw, 25vw"
-                  className="object-cover transition group-hover:scale-105"
                 />
               )}
             </div>
-            <div className="p-3">
-              <p className="truncate font-mono text-[11px] uppercase tracking-wide text-ink-soft">
-                {item.brand}
-              </p>
-              <h3 className="mt-0.5 line-clamp-2 min-h-[2.5em] font-sans text-[14px] font-semibold text-ink">
-                {item.title}
-              </h3>
-              <div className="mt-1.5 flex items-center justify-between">
-                <span className="font-display text-[15px] font-bold text-ink">
-                  {item.price.toLocaleString()}
-                  <span className="text-[11px] font-medium text-ink-soft">원</span>
-                </span>
+            <div className="tf-card__meta">
+              <p className="tf-card__brand">{item.brand}</p>
+              <h3 className="tf-card__title">{item.title}</h3>
+              <div className="tf-card__row">
+                <span className="tf-card__price">{item.price.toLocaleString()}원</span>
                 {item.reviewCount > 0 && (
-                  <span className="font-mono text-[11px] text-ink-soft">
+                  <span className="tf-card__review">
                     ★ {item.reviewScore.toFixed(1)} ({item.reviewCount})
                   </span>
                 )}

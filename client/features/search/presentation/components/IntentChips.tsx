@@ -1,27 +1,47 @@
-// View: LLM이 "이해한 조건"을 텍스트 칩으로 표시(읽기 전용).
-import type { IntentChip } from "@/features/search/domain/query-intent-chips";
+// View: LLM이 "이해한 조건"을 물방울 유리 토큰으로 표시(읽기 전용).
+import type { ChipKind, IntentChip } from "@/features/search/domain/query-intent-chips";
+import { COLOR_HEX } from "@/shared/color-swatch";
+
+const KIND_LABEL: Partial<Record<ChipKind, string>> = {
+  brand: "브랜드",
+  gender: "성별",
+  size: "사이즈",
+  price: "가격",
+  color: "색상",
+  pattern: "패턴",
+  material: "소재",
+  fit: "핏",
+  wear: "착용감",
+  exclude: "제외",
+};
 
 export default function IntentChips({ chips }: { chips: IntentChip[] }) {
   if (chips.length === 0) {
     return (
-      <p className="font-mono text-[12px] text-ink-soft">
+      <p className="tf-parsed__hint">
         조건을 못 알아들었어요. 색·핏·소재·사이즈·가격을 넣어 다시 적어보세요.
       </p>
     );
   }
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <span className="mr-1 font-mono text-[12px] uppercase tracking-wide text-ink-soft">
-        이해한 조건 ▸
-      </span>
-      {chips.map((c, i) => (
-        <span
-          key={i}
-          className="inline-flex items-center rounded-full border border-line bg-wall px-3 py-1 text-[13px] font-medium text-ink shadow-sm"
-        >
-          {c.label}
-        </span>
-      ))}
-    </div>
+    <>
+      {chips.map((c, i) => {
+        const swatch = c.kind === "color" ? COLOR_HEX[c.label] : undefined;
+        const kindLabel = KIND_LABEL[c.kind];
+        return (
+          <span
+            key={i}
+            className="tf-token"
+            style={{ "--i": i } as React.CSSProperties}
+          >
+            {swatch && (
+              <span className="tf-swatch" style={{ background: swatch }} aria-hidden />
+            )}
+            {kindLabel && <i>{kindLabel}</i>}
+            {c.label}
+          </span>
+        );
+      })}
+    </>
   );
 }

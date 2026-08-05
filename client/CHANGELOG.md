@@ -1,3 +1,9 @@
+## [0.2.8](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/compare/v0.2.7...v0.2.8) (2026-08-05)
+
+### Features
+
+* 페르소나QA 에이전트 Playwright MCP 전환 ([#41](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/issues/41)) ([ecd257a](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/commit/ecd257aea9fb153248bddd0e7c773b26d41b7b51))
+* 홈·검색·상세 리퀴드 글래스 디자인 적용 ([#43](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/issues/43)) ([242ecb6](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/commit/242ecb6fd7aaccc8036a1603ca63d3ee934c4085)), closes [#finder](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/issues/finder)
 ## [0.2.7](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/compare/v0.2.6...v0.2.7) (2026-08-03)
 
 ### Features

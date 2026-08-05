@@ -1,15 +1,16 @@
 "use client";
 
-// product-detail feature: 무신사 상세. 갤러리(경량 캐러셀)·속성·착용감·사이즈(cm)표 → 무신사 아웃바운드.
+// product-detail feature: 무신사 상세 — 다크 유리. 갤러리·속성 토큰·사이즈(cm)표 → 무신사 아웃바운드.
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import AppHeader from "@/components/AppHeader";
 import type { Goods } from "@/features/catalog/domain/goods";
 import { buildSizeTable } from "@/features/product-detail/domain/size-table";
 import { WEAR_AXES } from "@/features/search/domain/query-intent";
 import { track } from "@/shared/analytics";
+import { COLOR_HEX } from "@/shared/color-swatch";
 
 import { useGoodsDetailViewModel } from "../view-model/use-goods-detail-view-model";
 
@@ -18,60 +19,66 @@ function Gallery({ goods }: { goods: Goods }) {
     goods.gallery.length > 0 ? goods.gallery : goods.thumbnail ? [goods.thumbnail] : [];
   const [main, setMain] = useState(imgs[0] ?? "");
   return (
-    <div className="flex flex-col gap-3">
-      <div className="relative aspect-[4/5] w-full overflow-hidden rounded-2xl border border-line bg-chalk">
+    <section aria-label="상품 이미지">
+      <div className="tf-gallery__main">
         {main && (
           <Image
             src={main}
             alt={goods.title}
             fill
             sizes="(max-width: 640px) 100vw, 50vw"
-            className="object-cover"
           />
         )}
       </div>
       {imgs.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {imgs.map((src) => (
+        <div className="tf-gallery__thumbs">
+          {imgs.map((src, i) => (
             <button
               key={src}
               type="button"
+              className={src === main ? "is-active" : undefined}
+              aria-pressed={src === main}
               onClick={() => {
                 setMain(src);
               }}
-              aria-label="이미지 보기"
-              className={`relative aspect-square w-16 shrink-0 overflow-hidden rounded-lg border bg-chalk ${src === main ? "border-ink" : "border-line"}`}
+              aria-label={`이미지 ${i + 1} 보기`}
             >
-              <Image
-                src={src}
-                alt={goods.title}
-                fill
-                sizes="64px"
-                className="object-cover"
-              />
+              <Image src={src} alt="" fill sizes="72px" />
             </button>
           ))}
         </div>
       )}
-    </div>
+    </section>
   );
 }
 
-function Badges({ label, values }: { label: string; values: string[] }) {
+function TokenGroup({
+  label,
+  values,
+  swatch = false,
+}: {
+  label: string;
+  values: string[];
+  swatch?: boolean;
+}) {
   if (values.length === 0) return null;
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <span className="font-mono text-[12px] uppercase tracking-wide text-ink-soft">
-        {label}
-      </span>
-      {values.map((v) => (
-        <span
-          key={v}
-          className="rounded-full border border-line bg-wall px-2.5 py-0.5 text-[13px] text-ink"
-        >
-          {v}
-        </span>
-      ))}
+    <div>
+      <div className="tf-label">{label}</div>
+      <div className="tf-tokens">
+        {values.map((v) => (
+          <span key={v} className="tf-token">
+            {swatch && COLOR_HEX[v] && (
+              <span
+                className="tf-swatch"
+                style={{ background: COLOR_HEX[v] }}
+                aria-hidden
+              />
+            )}
+            {v}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
@@ -80,32 +87,24 @@ function SizeTableView({ goods }: { goods: Goods }) {
   const table = buildSizeTable(goods.sizeMeasures);
   if (table.rows.length === 0 || table.cols.length === 0) return null;
   return (
-    <div className="flex flex-col gap-2">
-      <span className="font-mono text-[12px] uppercase tracking-wide text-ink-soft">
-        사이즈 실측(cm)
-      </span>
-      <div className="max-h-80 overflow-auto rounded-2xl border border-line">
-        <table className="w-full border-collapse text-[13px]">
+    <div>
+      <div className="tf-label">사이즈 실측(cm)</div>
+      <div className="tf-table-wrap">
+        <table className="tf-table">
           <thead>
-            <tr className="bg-chalk text-ink-soft">
-              <th className="px-3 py-2 text-left font-mono text-[11px] uppercase">
-                사이즈
-              </th>
+            <tr>
+              <th>사이즈</th>
               {table.cols.map((c) => (
-                <th key={c} className="px-3 py-2 text-right font-mono text-[11px]">
-                  {c}
-                </th>
+                <th key={c}>{c}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {table.rows.map((r) => (
-              <tr key={r.name} className="border-t border-line">
-                <td className="px-3 py-2 font-semibold text-ink">{r.name}</td>
+              <tr key={r.name}>
+                <td>{r.name}</td>
                 {r.cells.map((v, i) => (
-                  <td key={i} className="px-3 py-2 text-right text-ink">
-                    {v ?? "—"}
-                  </td>
+                  <td key={i}>{v ?? "—"}</td>
                 ))}
               </tr>
             ))}
@@ -135,93 +134,127 @@ export default function GoodsDetail({ goodsNo }: { goodsNo: string }) {
   const wear = goods
     ? WEAR_AXES.flatMap((axis) => {
         const v = goods.wearChars[axis];
-        return v ? [`${axis}:${v}`] : [];
+        return v ? [`${axis} ${v}`] : [];
       })
     : [];
 
   return (
-    <div className="flex flex-1 flex-col">
-      <AppHeader />
-      <main className="mx-auto w-full max-w-4xl flex-1 px-5 py-6">
+    <div className="tf-page">
+      <header className="tf-top">
         <button
           type="button"
+          className="tf-back"
+          aria-label="검색 결과로 돌아가기"
           onClick={() => {
             // 앱 내 히스토리가 있으면 이전 검색으로, 직접 진입(새 탭/공유링크)이면 /search 폴백.
             if (window.history.length > 1) router.back();
             else router.push("/search");
           }}
-          className="mb-5 inline-flex items-center gap-1 font-mono text-[12px] text-ink-soft transition hover:text-ink"
         >
-          ← 검색으로
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M14.5 5 7.5 12l7 7"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
         </button>
+        <Link href="/" className="tf-top__brand">
+          티:파운드
+        </Link>
+      </header>
 
-        {loading ? (
-          <p className="py-20 text-center font-mono text-[13px] text-ink-soft">
+      {loading ? (
+        <main className="tf-state" aria-live="polite">
+          <h1 className="tf-state__title">
             불러오는 중…
-          </p>
-        ) : !goods ? (
-          <div className="grid place-items-center py-20 text-center">
-            <p className="font-display text-lg font-bold text-ink">
-              상품을 찾을 수 없어요
-            </p>
-          </div>
-        ) : (
-          <div className="grid gap-8 sm:grid-cols-2">
-            <Gallery goods={goods} />
-            <div className="flex flex-col gap-4">
-              <div>
-                <p className="font-mono text-[12px] uppercase tracking-wide text-ink-soft">
-                  {goods.brand}
-                </p>
-                <h1 className="mt-1 font-display text-2xl font-extrabold leading-tight tracking-tight text-ink">
-                  {goods.title}
-                </h1>
-                <div className="mt-3 flex items-center gap-3">
-                  <p className="font-display text-2xl font-bold text-ink">
-                    {goods.price.toLocaleString()}
-                    <span className="text-sm font-medium text-ink-soft">원</span>
-                  </p>
-                  {goods.reviewCount > 0 && (
-                    <span className="font-mono text-[12px] text-ink-soft">
-                      ★ {goods.reviewScore.toFixed(1)} ({goods.reviewCount})
-                    </span>
-                  )}
-                </div>
-              </div>
+            <small>상품 정보를 가져오고 있어요.</small>
+          </h1>
+        </main>
+      ) : !goods ? (
+        <main className="tf-state">
+          <h1 className="tf-state__title">
+            상품을 찾을 수 없어요
+            <small>목록으로 돌아가 다시 골라주세요.</small>
+          </h1>
+        </main>
+      ) : (
+        <main className="tf-detail">
+          <Gallery goods={goods} />
 
-              <div className="flex flex-col gap-2">
-                <Badges label="색" values={goods.colors} />
-                <Badges label="패턴" values={goods.patterns} />
-                <Badges label="소재" values={goods.materials} />
-                <Badges label="핏" values={goods.fits} />
-                {wear.length > 0 && <Badges label="착용감" values={wear} />}
+          <section className="tf-info">
+            <div style={{ "--i": 0 } as React.CSSProperties}>
+              <p className="tf-info__brand">{goods.brand}</p>
+              <h1 className="tf-info__title">{goods.title}</h1>
+              <div className="tf-info__row">
+                <span className="tf-info__price">{goods.price.toLocaleString()}원</span>
+                {goods.reviewCount > 0 && (
+                  <span className="tf-info__review">
+                    <b>★ {goods.reviewScore.toFixed(1)}</b> · 리뷰 {goods.reviewCount}
+                  </span>
+                )}
               </div>
+            </div>
 
+            <div style={{ "--i": 1 } as React.CSSProperties}>
+              <TokenGroup label="색상" values={goods.colors} swatch />
+            </div>
+            <div style={{ "--i": 2 } as React.CSSProperties}>
+              <TokenGroup label="패턴" values={goods.patterns} />
+            </div>
+            <div style={{ "--i": 3 } as React.CSSProperties}>
+              <TokenGroup label="소재" values={goods.materials} />
+            </div>
+            <div style={{ "--i": 4 } as React.CSSProperties}>
+              <TokenGroup label="핏" values={goods.fits} />
+            </div>
+            {wear.length > 0 && (
+              <div style={{ "--i": 5 } as React.CSSProperties}>
+                <TokenGroup label="착용감" values={wear} />
+              </div>
+            )}
+
+            <div style={{ "--i": 6 } as React.CSSProperties}>
               <SizeTableView goods={goods} />
+            </div>
 
-              <a
-                href={goods.url}
-                target="_blank"
-                rel="noreferrer noopener"
-                onClick={() => {
-                  track("outbound_click", {
-                    search_id: sid,
-                    product_id: goods.goodsNo,
-                    mall: "무신사",
-                    from: "detail",
-                  });
-                }}
-                className="mt-2 rounded-xl bg-ink px-5 py-3 text-center font-display text-sm font-bold text-chalk transition hover:opacity-90"
-              >
-                무신사에서 구매 →
-              </a>
-              <p className="text-center font-mono text-[11px] text-ink-soft">
-                무신사 상품 페이지로 이동합니다
-              </p>
+            <a
+              className="tf-cta"
+              style={{ "--i": 7 } as React.CSSProperties}
+              href={goods.url}
+              target="_blank"
+              rel="noreferrer noopener"
+              onClick={() => {
+                track("outbound_click", {
+                  search_id: sid,
+                  product_id: goods.goodsNo,
+                  mall: "무신사",
+                  from: "detail",
+                });
+              }}
+            >
+              무신사에서 보기
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M7 17 17 7M9 7h8v8"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </a>
+            <p className="tf-subnote" style={{ "--i": 8 } as React.CSSProperties}>
+              무신사 상품 페이지로 이동합니다
+            </p>
 
+            <div style={{ "--i": 9 } as React.CSSProperties}>
               {!reported ? (
                 <button
                   type="button"
+                  className="tf-report"
                   onClick={() => {
                     track("mismatch_reported", {
                       search_id: sid,
@@ -229,19 +262,18 @@ export default function GoodsDetail({ goodsNo }: { goodsNo: string }) {
                     });
                     setReported(true);
                   }}
-                  className="w-full font-mono text-[11px] text-ink-soft underline underline-offset-2 transition hover:text-ink"
                 >
                   검색 조건과 안 맞아요 · 신고
                 </button>
               ) : (
-                <p className="text-center font-mono text-[11px] text-ink-soft">
+                <p className="tf-report tf-report--done">
                   신고 접수됐어요. 고맙습니다.
                 </p>
               )}
             </div>
-          </div>
-        )}
-      </main>
+          </section>
+        </main>
+      )}
     </div>
   );
 }
