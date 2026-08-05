@@ -63,6 +63,8 @@ export default function LandingFinder() {
     <div
       ref={areaRef}
       id="finder"
+      // 스킵 링크(#finder) 대상이 포커스를 받도록. div는 기본 포커스 불가.
+      tabIndex={-1}
       className={`tf-finder${isOpen ? " is-open" : ""}`}
       onFocus={() => {
         setIsOpen(true);

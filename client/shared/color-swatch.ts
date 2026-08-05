@@ -1,5 +1,5 @@
 // 색상 이름(무신사 정규 컬러) → 스와치 표시색. 매핑이 없으면 스와치 없이 라벨만.
-export const COLOR_HEX: Record<string, string> = {
+export const COLOR_HEX: Record<string, string | undefined> = {
   블랙: "#17181c",
   화이트: "#f4f2ec",
   아이보리: "#f1e9d7",
