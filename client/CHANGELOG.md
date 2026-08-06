@@ -1,3 +1,10 @@
+## [0.2.9](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/compare/v0.2.8...v0.2.9) (2026-08-06)
+
+### Bug Fixes
+
+* 모바일 홈·검색 리퀴드 글래스 UI 수정 ([#44](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/issues/44)) ([6832826](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/commit/6832826023e84caff3ee418634d9ee16e99cd384))
+* 상세 썸네일 카러셀 마우스 스크롤 불가 수정 ([#46](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/issues/46)) ([7fcd177](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/commit/7fcd177f7d31e4d751913241049a208b709cebd9))
+* 상세→뒤로가기 시 재검색·중복 분석 이벤트 제거 ([#45](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/issues/45)) ([ac61c35](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/commit/ac61c3509c48ac84f117380c89bfdbc42c187c5c))
 ## [0.2.8](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/compare/v0.2.7...v0.2.8) (2026-08-05)
 
 ### Features

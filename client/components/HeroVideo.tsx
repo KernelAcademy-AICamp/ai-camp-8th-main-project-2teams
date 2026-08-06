@@ -2,9 +2,9 @@
 
 import { useEffect, useRef } from "react";
 
-/* 모바일·데이터 절약·모션 최소화 환경에서는 4.6MB 영상을 받지 않고
-   포스터만 보여준다. 마운트 후 환경이 바뀌어도(reduced-motion 토글,
-   가로폭 변경) 다시 판정한다. */
+/* 데이터 절약·모션 최소화를 켠 환경에서만 4.6MB 영상을 받지 않고
+   포스터만 보여준다. 모바일이라도 그런 설정이 없으면 영상을 재생한다.
+   마운트 후 환경이 바뀌어도(reduced-motion 토글) 다시 판정한다. */
 export default function HeroVideo() {
   const ref = useRef<HTMLVideoElement>(null);
 
@@ -13,12 +13,10 @@ export default function HeroVideo() {
     if (!video) return;
 
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const narrow = window.matchMedia("(max-width: 40rem)");
     const nav = navigator as Navigator & { connection?: { saveData?: boolean } };
 
     const apply = () => {
-      const blocked =
-        reduceMotion.matches || narrow.matches || (nav.connection?.saveData ?? false);
+      const blocked = reduceMotion.matches || (nav.connection?.saveData ?? false);
       if (blocked) {
         if (video.getAttribute("src")) {
           video.pause();
@@ -32,10 +30,8 @@ export default function HeroVideo() {
 
     apply();
     reduceMotion.addEventListener("change", apply);
-    narrow.addEventListener("change", apply);
     return () => {
       reduceMotion.removeEventListener("change", apply);
-      narrow.removeEventListener("change", apply);
     };
   }, []);
 

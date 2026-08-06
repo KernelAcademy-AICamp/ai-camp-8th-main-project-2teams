@@ -4,10 +4,15 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { Goods } from "@/features/catalog/domain/goods";
 import { buildSizeTable } from "@/features/product-detail/domain/size-table";
+import {
+  type OverflowState,
+  overflowState,
+  wheelToHorizontal,
+} from "@/features/product-detail/domain/thumb-scroll";
 import { WEAR_AXES } from "@/features/search/domain/query-intent";
 import { track } from "@/shared/analytics";
 import { COLOR_HEX } from "@/shared/color-swatch";
@@ -18,6 +23,53 @@ function Gallery({ goods }: { goods: Goods }) {
   const imgs =
     goods.gallery.length > 0 ? goods.gallery : goods.thumbnail ? [goods.thumbnail] : [];
   const [main, setMain] = useState(imgs[0] ?? "");
+  const thumbsRef = useRef<HTMLDivElement>(null);
+  // 스크롤 위치에 따른 가장자리 페이드(더 있음 힌트) 상태.
+  const [edges, setEdges] = useState<OverflowState>({
+    overflowing: false,
+    atStart: true,
+    atEnd: true,
+  });
+
+  useEffect(() => {
+    const el = thumbsRef.current;
+    if (!el) return;
+    const measure = () => {
+      setEdges(
+        overflowState({
+          scrollLeft: el.scrollLeft,
+          scrollWidth: el.scrollWidth,
+          clientWidth: el.clientWidth,
+        }),
+      );
+    };
+    // 세로 휠을 가로 스크롤로 변환 — 마우스 사용자도 카러셀을 넘길 수 있게.
+    // 넘칠 여지가 있을 때만 기본 동작을 막고, 끝에 닿으면 페이지 세로 스크롤로 흘려보낸다.
+    const onWheel = (e: WheelEvent) => {
+      const delta = wheelToHorizontal(e.deltaX, e.deltaY);
+      if (delta === 0) return; // 가로 트랙패드 제스처는 브라우저 기본에 맡김
+      const st = overflowState({
+        scrollLeft: el.scrollLeft,
+        scrollWidth: el.scrollWidth,
+        clientWidth: el.clientWidth,
+      });
+      if (!st.overflowing) return;
+      if ((delta > 0 && st.atEnd) || (delta < 0 && st.atStart)) return;
+      el.scrollLeft += delta;
+      e.preventDefault();
+    };
+    measure();
+    // wheel은 passive:false여야 preventDefault가 먹는다(React onWheel은 passive라 직접 등록).
+    el.addEventListener("wheel", onWheel, { passive: false });
+    el.addEventListener("scroll", measure, { passive: true });
+    window.addEventListener("resize", measure);
+    return () => {
+      el.removeEventListener("wheel", onWheel);
+      el.removeEventListener("scroll", measure);
+      window.removeEventListener("resize", measure);
+    };
+  }, [imgs.length]);
+
   return (
     <section aria-label="상품 이미지">
       <div className="tf-gallery__main">
@@ -31,7 +83,12 @@ function Gallery({ goods }: { goods: Goods }) {
         )}
       </div>
       {imgs.length > 1 && (
-        <div className="tf-gallery__thumbs">
+        <div
+          ref={thumbsRef}
+          className="tf-gallery__thumbs"
+          data-fade-left={edges.overflowing && !edges.atStart ? "" : undefined}
+          data-fade-right={edges.overflowing && !edges.atEnd ? "" : undefined}
+        >
           {imgs.map((src, i) => (
             <button
               key={src}
