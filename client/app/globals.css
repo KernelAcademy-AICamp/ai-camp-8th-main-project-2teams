@@ -1010,6 +1010,52 @@ body {
   padding-bottom: 0.3rem;
   gap: 0.7rem;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.28) transparent;
+}
+
+/* 데스크톱에서 항상 보이는 얇은 스크롤바 — 넘칠 때 드래그 가능한 어포던스. */
+.tf-gallery__thumbs::-webkit-scrollbar {
+  height: 6px;
+}
+
+.tf-gallery__thumbs::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.24);
+}
+
+.tf-gallery__thumbs::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* 가장자리 페이드(더 있음 힌트) — 실제 배경이 비치도록 mask로 투명 처리.
+   스크롤 위치에 따라 왼/오른쪽 페이드를 켠다(컴포넌트가 data 속성으로 토글). */
+.tf-gallery__thumbs[data-fade-right]:not([data-fade-left]) {
+  mask-image: linear-gradient(to right, #000 calc(100% - 2rem), transparent);
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 2rem), transparent);
+}
+
+.tf-gallery__thumbs[data-fade-left]:not([data-fade-right]) {
+  mask-image: linear-gradient(to right, transparent, #000 2rem);
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 2rem);
+}
+
+.tf-gallery__thumbs[data-fade-left][data-fade-right] {
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 2rem,
+    #000 calc(100% - 2rem),
+    transparent
+  );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 2rem,
+    #000 calc(100% - 2rem),
+    transparent
+  );
 }
 
 .tf-gallery__thumbs button {
