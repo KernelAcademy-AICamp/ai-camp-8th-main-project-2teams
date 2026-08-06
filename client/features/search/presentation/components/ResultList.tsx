@@ -51,9 +51,6 @@ export default function ResultList({
                     sizes="(max-width: 640px) 50vw, 25vw"
                   />
                 )}
-                {item.displayImage && (
-                  <span className="tf-card__color">{item.displayImage.color}</span>
-                )}
                 {summary.length > 0 && (
                   <div className="tf-card__summary" aria-hidden="true">
                     {summary.map((row) => (
