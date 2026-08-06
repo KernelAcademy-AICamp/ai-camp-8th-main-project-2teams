@@ -1,4 +1,8 @@
 // 무신사 상품 도메인 엔티티 — search_goods 뷰 컬럼과 짝. 프레임워크 독립 순수 타입.
+import type {
+  ColorImages,
+  DisplayImage,
+} from "@/features/search/domain/pick-color-image";
 
 // search_goods.size_measures: 사이즈별 측정치(cm).
 export interface SizeMeasureItem {
@@ -36,4 +40,9 @@ export interface Goods {
   // 착용감 축별 단일값. 상품은 축을 다 갖지 않으므로 partial(인덱스 접근 = string | undefined).
   wearChars: Partial<Record<string, string>>;
   sizeMeasures: SizeMeasureRow[]; // 사이즈 실측(cm). 검색 응답에선 비어있고(summary select), 상세에서 채움.
+  // 색별 이미지 인덱스(오프라인 배치 산출). 서버 전용 — 표시 이미지 선택에만 쓰고
+  // 응답 전 제거한다(클라이언트로 맵 전체를 보내지 않음). 상세에선 비어있음.
+  colorImages?: ColorImages;
+  // 서버가 검색 의도 색으로 고른 표시 이미지(교체 대상일 때만). 없으면 thumbnail 사용.
+  displayImage?: DisplayImage;
 }

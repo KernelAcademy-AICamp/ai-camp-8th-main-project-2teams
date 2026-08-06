@@ -35,13 +35,21 @@ export default function ResultList({
             }}
           >
             <div className="tf-card__frame">
-              {item.thumbnail && (
+              {(item.displayImage?.url ?? item.thumbnail) && (
                 <Image
-                  src={item.thumbnail}
-                  alt={item.title}
+                  src={item.displayImage?.url ?? item.thumbnail}
+                  // 교체된 색은 대체 텍스트로도 알린다(스크린리더). 교체 아니면 상품명만.
+                  alt={
+                    item.displayImage
+                      ? `${item.title} — ${item.displayImage.color}`
+                      : item.title
+                  }
                   fill
                   sizes="(max-width: 640px) 50vw, 25vw"
                 />
+              )}
+              {item.displayImage && (
+                <span className="tf-card__color">{item.displayImage.color}</span>
               )}
             </div>
             <div className="tf-card__meta">
