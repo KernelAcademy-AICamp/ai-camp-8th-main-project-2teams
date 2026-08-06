@@ -1,3 +1,13 @@
+## [0.2.10](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/compare/v0.2.9...v0.2.10) (2026-08-06)
+
+### Features
+
+* 검색 카드 호버 요약 오버레이 (색·핏·소재·착용감) ([#49](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/issues/49)) ([e850525](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/commit/e8505259976846b35e03f1f4916c5eeccd70ed40))
+* 색 매칭 썸네일 — 검색한 색으로 결과 이미지 교체 ([#47](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/issues/47)) ([a52e4a7](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/commit/a52e4a7488d0089387d7d9a35607dc988b88abc9))
+
+### Bug Fixes
+
+* 모바일 홈·검색 리퀴드 글래스 UI 수정 ([#48](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/issues/48)) ([92e0e5b](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/commit/92e0e5b30caa8a01cf4ea84e1b1e48d6b180609a))
 ## [0.2.9](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/compare/v0.2.8...v0.2.9) (2026-08-06)
 
 ### Bug Fixes
