@@ -1,5 +1,11 @@
 // search_goods 뷰 행 → Goods 도메인. 얇은 매핑(뷰가 이미 정제). null 코얼레싱만.
 import type { Goods, SizeMeasureRow } from "@/features/catalog/domain/goods";
+import type { ColorImages } from "@/features/search/domain/pick-color-image";
+
+// m_raw_goods.color_images 저장 형태: { v: {...메타}, byColor: { <색>: {...} } }
+interface ColorImagesColumn {
+  byColor?: ColorImages | null;
+}
 
 export interface SearchGoodsRow {
   goods_no: string | number;
@@ -27,6 +33,8 @@ export interface SearchGoodsRow {
   thumbnail: string | null;
   wear_chars: Record<string, string> | null;
   size_measures?: SizeMeasureRow[] | null;
+  // 색별 이미지 인덱스(검색 summary select에서만 옴, 상세엔 없음). 서버 전용.
+  color_images?: ColorImagesColumn | null;
 }
 
 export function mapGoodsRow(row: SearchGoodsRow): Goods {
@@ -54,5 +62,6 @@ export function mapGoodsRow(row: SearchGoodsRow): Goods {
     thumbnail: row.thumbnail ?? "",
     wearChars: row.wear_chars ?? {},
     sizeMeasures: row.size_measures ?? [],
+    colorImages: row.color_images?.byColor ?? undefined,
   };
 }

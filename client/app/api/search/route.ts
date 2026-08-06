@@ -23,6 +23,7 @@ import {
 import { extractExplicitPrice } from "@/features/search/domain/extract-explicit-price";
 import { extractTitleTokens } from "@/features/search/domain/extract-title-tokens";
 import { matchBrandDetailed } from "@/features/search/domain/match-brand";
+import { pickColorImage } from "@/features/search/domain/pick-color-image";
 import { EMPTY_INTENT, type QueryIntent } from "@/features/search/domain/query-intent";
 import { rankGoods } from "@/features/search/domain/rank-goods";
 import { resolveIntent } from "@/features/search/domain/resolved-intent";
@@ -38,9 +39,14 @@ import {
 
 export const maxDuration = 30;
 
+// 결과 상한. 실질 상한은 Supabase PostgREST max_rows(=1000, backend/supabase/config.toml)라
+// 이 값을 그 이상으로 올려도 DB 후보가 최대 ~1000건이다(그 이상은 페이지네이션 = Phase 1.5b).
+const RESULT_LIMIT = 1000;
+
 const SEARCH_SUMMARY_COLUMNS =
   "goods_no,style_key,title,brand,category,gender,season,color,colors,patterns," +
-  "materials,fits,sizes,size_free,size_std,price,review_count,review_score,url,thumbnail,wear_chars";
+  "materials,fits,sizes,size_free,size_std,price,review_count,review_score,url,thumbnail,wear_chars," +
+  "color_images";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "";
@@ -178,10 +184,15 @@ export async function POST(request: Request): Promise<Response> {
         seen.add(g.goodsNo);
         return true;
       });
-      if (fresh.length) groups.push(rankGoods(fresh, rankIntentOf(forIntent), 300));
+      if (fresh.length)
+        groups.push(rankGoods(fresh, rankIntentOf(forIntent), RESULT_LIMIT));
       if (seen.size >= TITLE_TARGET) break;
     }
-    return { results: groups.flat().slice(0, 300), titleTier, uniqueCount: seen.size };
+    return {
+      results: groups.flat().slice(0, RESULT_LIMIT),
+      titleTier,
+      uniqueCount: seen.size,
+    };
   };
 
   let results: Goods[];
@@ -223,7 +234,7 @@ export async function POST(request: Request): Promise<Response> {
       const dropRankIntent = decisive
         ? { ...responseIntent, titleTokens: [] }
         : intentNoTitle;
-      const dropped = rankGoods(data.map(mapGoodsRow), dropRankIntent, 300);
+      const dropped = rankGoods(data.map(mapGoodsRow), dropRankIntent, RESULT_LIMIT);
       if (dropped.length > 0) {
         results = dropped;
         titleTier = null;
@@ -235,12 +246,26 @@ export async function POST(request: Request): Promise<Response> {
   } else {
     const { data, error } = await fetchTier(intent);
     if (error || !data) return failed(respIntent());
-    results = rankGoods(data.map(mapGoodsRow), rankIntentOf(intent), 300);
+    results = rankGoods(data.map(mapGoodsRow), rankIntentOf(intent), RESULT_LIMIT);
   }
 
+  // 표시 이미지 선택(조언 층) — 검색 의도 색으로 색별 이미지를 고른다.
+  //   · results 순서·랭킹·mode엔 영향 없음(순수 후처리).
+  //   · 색별 이미지 맵(colorImages)은 응답에서 제거하고 고른 1장(displayImage)만 내려보낸다.
+  const finalIntent = respIntent();
+  const withDisplay: Goods[] = results.map((g) => {
+    const displayImage =
+      pickColorImage(
+        g.colorImages,
+        finalIntent.style.colors,
+        finalIntent.exclude.colors,
+      ) ?? undefined;
+    return { ...g, colorImages: undefined, displayImage };
+  });
+
   return Response.json({
-    results,
-    intent: respIntent(),
+    results: withDisplay,
+    intent: finalIntent,
     mode,
     titleTier,
     titleSalvage,

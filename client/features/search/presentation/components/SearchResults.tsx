@@ -86,6 +86,33 @@ export default function SearchResults() {
             );
           }
           if (vm.mode === "failed") {
+            // 근거 신호(색·브랜드·속성)가 하나도 없으면(칩 0개) = 카테고리 단어만 넣은
+            // "너무 일반적인 질의"다. 기술 오류가 아니므로 '다시 시도' 대신 속성 안내를 준다.
+            if (vm.chips.length === 0) {
+              const examples = ["흰 반팔티", "검정 오버핏 반팔", "네이비 그래픽 티"];
+              return (
+                <div className="tf-state">
+                  <p className="tf-state__title">
+                    조금만 더 구체적으로
+                    <small>색·핏·소재·프린트 같은 보이는 속성을 넣어보세요.</small>
+                  </p>
+                  <div className="tf-relax">
+                    {examples.map((ex, i) => (
+                      <button
+                        key={ex}
+                        type="button"
+                        style={{ "--i": i } as React.CSSProperties}
+                        onClick={() => {
+                          go(ex);
+                        }}
+                      >
+                        {ex}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            }
             return (
               <div className="tf-state">
                 <p className="tf-state__title">
