@@ -12,30 +12,63 @@ import {
   type GoodsQuery,
   type TitleTier,
 } from "@/features/search/data/build-goods-query";
+import {
+  applyColorwayPrefilter,
+  COLORWAY_COLUMNS,
+  refineColorwayRows,
+} from "@/features/search/data/colorway-adapter";
+import { interpretSemantic } from "@/features/search/data/interpret-semantic";
 import { mapGoodsRow, type SearchGoodsRow } from "@/features/search/data/map-goods-row";
 import { parseQueryIntent } from "@/features/search/data/parse-query-intent";
+import { linkRelations } from "@/features/search/data/relation-linker";
+import { colorwayPlanToChips } from "@/features/search/domain/colorway-chips";
+import type { ColorwayProductRow } from "@/features/search/domain/colorway-evaluate";
+import {
+  applyColorwayMatches,
+  type ColorwayExecutor,
+  colorwayOwnedFilters,
+  isColorwayLaneOn,
+  prepareColorwayLane,
+  productColorOverride,
+  runColorwayLane,
+} from "@/features/search/domain/colorway-lane";
+import { isEmptyColorwayPlan } from "@/features/search/domain/colorway-plan";
+import { compileSemanticPlan } from "@/features/search/domain/compile-semantic-plan";
 import {
   decisiveQueryIntent,
   decisiveResponseIntent,
   hasGroundedSignal,
   isDecisiveLaneOn,
 } from "@/features/search/domain/decisive-lane";
+import { enrichIntent } from "@/features/search/domain/enrich-intent";
+import { extractExplicitFit } from "@/features/search/domain/extract-explicit-fit";
+import { extractExplicitGender } from "@/features/search/domain/extract-explicit-gender";
 import { extractExplicitPrice } from "@/features/search/domain/extract-explicit-price";
+import { extractExplicitSize } from "@/features/search/domain/extract-explicit-size";
+import { extractSoftPreference } from "@/features/search/domain/extract-soft-preference";
 import { extractTitleTokens } from "@/features/search/domain/extract-title-tokens";
 import { matchBrandDetailed } from "@/features/search/domain/match-brand";
 import { pickColorImage } from "@/features/search/domain/pick-color-image";
+import { buildQueryFrame } from "@/features/search/domain/query-frame";
 import { EMPTY_INTENT, type QueryIntent } from "@/features/search/domain/query-intent";
 import { rankGoods } from "@/features/search/domain/rank-goods";
+import { resolveSemantic } from "@/features/search/domain/resolve-semantic";
 import { resolveIntent } from "@/features/search/domain/resolved-intent";
 import {
   hasNonTitleHardFilters,
   hasStyleHardFilters,
+  hasWearSignal,
   stripStyleHardFilters,
 } from "@/features/search/domain/salvage-intent";
 import {
   deriveSearchMode,
   type SearchMode,
 } from "@/features/search/domain/search-mode";
+import { ownershipPreview } from "@/features/search/domain/semantic-ownership";
+import {
+  type SemanticExpression,
+  validateSemantic,
+} from "@/features/search/domain/validate-semantic";
 
 export const maxDuration = 30;
 
@@ -45,7 +78,7 @@ const RESULT_LIMIT = 1000;
 
 const SEARCH_SUMMARY_COLUMNS =
   "goods_no,style_key,title,brand,category,gender,season,color,colors,patterns," +
-  "materials,fits,sizes,size_free,size_std,price,review_count,review_score,url,thumbnail,wear_chars," +
+  "materials,fits,sizes,size_free,size_std,price,review_count,review_score,url,thumbnail,wear_chars,review_tags," +
   "color_images";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
@@ -57,6 +90,12 @@ function readQuery(body: unknown): string {
   return typeof q === "string" ? q.trim() : "";
 }
 
+// 요청 단위 LLM off(설계 §8 — 내부 실험용 override). "off" 외 값·부재 = 현행 동작.
+function readLlmOff(body: unknown): boolean {
+  if (typeof body !== "object" || body === null) return false;
+  return (body as Record<string, unknown>).llm === "off";
+}
+
 interface SearchPayload {
   results: Goods[];
   intent: QueryIntent;
@@ -64,9 +103,31 @@ interface SearchPayload {
   titleTier: TitleTier | null;
   titleSalvage: boolean;
   titleDropped: boolean;
+  /** 서버가 실제 적용한 컬러웨이 해석 칩(설계 §10) — 레인 실행 성공 시에만 채움. */
+  colorwayChips?: ReturnType<typeof colorwayPlanToChips>;
+  /** LLM 의미 해석 shadow(설계 §8.2) — 검증 통과분만, 검색 결과에는 미반영. */
+  semanticShadow?: {
+    expressions: SemanticExpression[];
+    modelId: string;
+    latencyMs: number;
+    /** true = 소프트 랭킹에 반영됨(§8.3 최소 on). false = 관측만(§8.2 shadow). */
+    applied: boolean;
+  };
+  /** 시맨틱 링커 Shadow1(설계 §6) — 후보 plan 관측만, 검색 결과 미반영. */
+  semanticLinkerShadow?: {
+    printClauses: import("@/features/search/domain/compile-semantic-plan").SemanticPrintClause[];
+    coverage: number;
+    ownership: { claimedSpans: [number, number][]; suppressedFlatAxes: string[] };
+    graphHash: string;
+    modelId: string;
+    latencyMs: number;
+  };
 }
 
-function failed(intent: QueryIntent): Response {
+function failed(
+  intent: QueryIntent,
+  semanticShadow?: SearchPayload["semanticShadow"],
+): Response {
   return Response.json({
     results: [],
     intent,
@@ -74,6 +135,7 @@ function failed(intent: QueryIntent): Response {
     titleTier: null,
     titleSalvage: false,
     titleDropped: false,
+    ...(semanticShadow ? { semanticShadow } : {}),
   } satisfies SearchPayload);
 }
 
@@ -84,10 +146,31 @@ export async function POST(request: Request): Promise<Response> {
   if (!SUPABASE_URL || !SUPABASE_KEY) return failed(EMPTY_INTENT);
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+  const llmOff = readLlmOff(body);
 
-  // 1) LLM 파싱(semantic 레인) — 계약 불변.
-  const { intent: parsedIntent, degraded: parserDegraded } =
-    await parseQueryIntent(query);
+  // 0) 의미 해석(설계 §8) — env로 제어. shadow=관측만 / on=검증 통과분을 소프트로만 병합.
+  //    실패는 해석 없음(§8.4). 본 검색과 병렬 실행.
+  const llmSemanticMode = process.env.SEARCH_LLM_MODE;
+  const semanticActive = llmSemanticMode === "shadow" || llmSemanticMode === "on";
+  //    interpretSemantic은 실패를 null로 돌려주지만, 어떤 예외도 검색을 죽이지 않도록 한 번 더 방어.
+  const semanticPromise = semanticActive
+    ? interpretSemantic(query).catch((): null => null)
+    : Promise.resolve(null);
+
+  // 0b) 시맨틱 링커 Shadow1(§6) — mention 추출 후 관계 링커를 병렬 실행. 결과 미반영·응답 OFF 동일.
+  const linkerActive =
+    process.env.SEARCH_LLM_MODE === "shadow" || process.env.SEARCH_LLM_MODE === "on";
+  const linkerFrame = linkerActive ? buildQueryFrame(query) : null;
+  const linkerPromise =
+    linkerFrame && linkerFrame.mentions.length > 0
+      ? linkRelations(linkerFrame).catch((): null => null)
+      : Promise.resolve(null);
+
+  // 1) LLM 파싱(semantic 레인) — 계약 불변. llm=off면 호출 자체를 생략하고
+  //    결정적 경로(가격·브랜드·제목·컬러웨이)만 사용한다(로고 토글 스펙).
+  const { intent: parsedIntent, degraded: parserDegraded } = llmOff
+    ? { intent: EMPTY_INTENT, degraded: true }
+    : await parseQueryIntent(query);
 
   // 1b) 결정적 가격 파서(설계 P0-①) — 통화 단위가 명시된 가격 표현이 있으면 LLM의
   //     priceMin/Max 환각(예: "2만원 이하"→2000원으로 오파싱)을 결정적 결과로 전량 대체한다.
@@ -102,7 +185,75 @@ export async function POST(request: Request): Promise<Response> {
     };
   }
 
+  // 1b-2) 결정적 사이즈 파서 — llm=off 전용(LLM 경로의 사이즈 파싱은 계약 불변).
+  //       "사이즈 95"·"95 입는"처럼 보수적 패턴만. 소비 표현은 제목 토큰에서 제외한다.
+  const explicitSize = llmOff ? extractExplicitSize(query) : null;
+  if (explicitSize) {
+    intent = {
+      ...intent,
+      sizeStd: [...new Set([...intent.sizeStd, ...explicitSize.sizeStd])],
+    };
+  }
+  const explicitGender = llmOff ? extractExplicitGender(query) : null;
+  if (explicitGender) intent = { ...intent, gender: explicitGender.gender };
+  const explicitFit = llmOff ? extractExplicitFit(query) : null;
+  if (explicitFit) {
+    intent = {
+      ...intent,
+      style: {
+        ...intent.style,
+        fits: [...new Set([...intent.style.fits, ...explicitFit.fits])],
+      },
+    };
+  }
+
+  // 결정적 정책 보강(설계 §7 승격) — 색 유사어·계열색·패턴/소재 유사어·주관어·장소→계절·
+  // 활동→리뷰태그를 LLM 결과 위에 결정적으로 덮어 모델 재량 변동을 제거한다(모든 모드).
+  intent = enrichIntent(query, intent).intent;
+
   const decisive = isDecisiveLaneOn(process.env);
+
+  // 1c) 컬러웨이 결속 레인(기본 꺼짐, 결정 기록 D3) — 꺼짐이면 해석·실행 일절 미호출.
+  //     계획이 비면 null → 기존 경로 그대로. 소비 표현은 제목 토큰에서 제외(D4).
+  //     llm=off 요청은 결정적 검색 데모이므로 레인을 요청 단위로 활성화한다.
+  const colorwayLane =
+    isColorwayLaneOn(process.env) || llmOff ? prepareColorwayLane(query) : null;
+
+  // 1d) 바탕색 단독 계획은 기존 colors 필드로 이관(결정 기록 D7 — base_colors 당분간 미사용).
+  //     결속 파이프라인 대신 기존 하드필터·랭킹을 그대로 타서 전 카탈로그를 커버한다.
+  const colorOverride = colorwayLane ? productColorOverride(colorwayLane) : null;
+  if (colorOverride) {
+    intent = {
+      ...intent,
+      style: {
+        ...intent.style,
+        colors: [...new Set([...intent.style.colors, ...colorOverride.colors])],
+      },
+      exclude: {
+        ...intent.exclude,
+        colors: [
+          ...new Set([...intent.exclude.colors, ...colorOverride.excludeColors]),
+        ],
+      },
+    };
+  }
+
+  // 1e) D4 조건 소유권 확장 — 결속(프린트) 계획이 소유한 색·'프린트' 패턴을 LLM 평면
+  //     하드필터에서 제거한다. 안 그러면 "블랙 프린팅"이 평면 colors=[블랙](바탕·프린트
+  //     혼동)으로도 걸려 이중 필터 충돌·오염이 난다. 결속은 컬러웨이 레인이 전담한다.
+  const owned = colorwayLane ? colorwayOwnedFilters(colorwayLane) : null;
+  if (owned) {
+    const ownedSet = new Set(owned.colors);
+    intent = {
+      ...intent,
+      style: {
+        ...intent.style,
+        colors: intent.style.colors.filter((c) => !ownedSet.has(c)),
+        // 명시적 패턴어가 없으면 LLM이 '프린팅'에서 과추론한 평면 패턴을 전부 제거(변동 제거).
+        patterns: owned.stripAllPatterns ? [] : intent.style.patterns,
+      },
+    };
+  }
 
   // 2) lexical 브랜드 레이어 — safe alias만 로드하므로 매칭 성공 = safe(불변식).
   //    사전 조회 실패 → failed(설계 §4.4). flag-on이면 오류 경로도 resolved 응답 계약 준수.
@@ -114,7 +265,13 @@ export async function POST(request: Request): Promise<Response> {
     const aliases = await getSafeBrandAliases(supabase as unknown as AliasDb);
     const brandMatch = matchBrandDetailed(query, aliases);
     if (brandMatch) intent = { ...intent, brand: brandMatch.brand };
-    const titleTokens = extractTitleTokens(query, brandMatch?.consumedTokens ?? []);
+    const titleTokens = extractTitleTokens(query, [
+      ...(brandMatch?.consumedTokens ?? []),
+      ...(colorwayLane?.consumedTokens ?? []),
+      ...(explicitSize?.consumedTokens ?? []),
+      ...(explicitGender?.consumedTokens ?? []),
+      ...(explicitFit?.consumedTokens ?? []),
+    ]);
     if (titleTokens.length) intent = { ...intent, titleTokens };
   } catch {
     return failed(
@@ -134,29 +291,115 @@ export async function POST(request: Request): Promise<Response> {
   const respIntent = (): QueryIntent => (decisive ? responseIntent : intent);
   // flag-off 랭킹은 조회 intent 그대로(현행과 참조 동일) / flag-on은 소프트 강등분을
   // 반영하기 위해 responseIntent(색 등 유지)로 랭킹한다.
-  const rankIntentOf = (forIntent: QueryIntent): QueryIntent =>
-    decisive ? responseIntent : forIntent;
+  const rankIntentOf = (forIntent: QueryIntent): QueryIntent => {
+    const base = decisive ? responseIntent : forIntent;
+    if (!semanticApplied) return base;
+    // ON 소프트 병합: 랭킹에서만 색 선호 — 조회 하드필터에는 넣지 않는다.
+    return {
+      ...base,
+      style: {
+        ...base.style,
+        colors: [...new Set([...base.style.colors, ...semanticRankColors])],
+      },
+    };
+  };
+
+  // 2c) ON 모드(§8.3 최소): 검증 통과한 의미 해석 중 옷 바탕색 후보를 "소프트 랭킹 선호"로만
+  //     병합한다. 하드필터 금지(§7 — LLM 해석은 기본 should), 결정적 색 조건이 있으면 양보(결정적 우선).
+  let semanticApplied = false;
+  let semanticRankColors: string[] = [];
+  // 승격된 결정적 소프트 선호(§7) — 유행류 표현. LLM 여부와 무관하게 항상 결정적으로 적용.
+  const softPref =
+    intent.style.colors.length === 0 ? extractSoftPreference(query) : null;
+  if (softPref) {
+    semanticRankColors = [...softPref.colors];
+    semanticApplied = true;
+  }
+  let semanticEarly: Awaited<typeof semanticPromise> = null;
+  if (llmSemanticMode === "on") {
+    semanticEarly = await semanticPromise;
+    if (semanticEarly) {
+      const validated = validateSemantic(semanticEarly.raw, query);
+      const noDeterministicColor =
+        intent.style.colors.length === 0 &&
+        (!colorwayLane || isEmptyColorwayPlan(colorwayLane.plan));
+      if (noDeterministicColor) {
+        const llmColors = validated.expressions
+          .filter(
+            (e) =>
+              e.target === "garment_base" &&
+              (e.resolution === "semantic" || e.resolution === "family"),
+          )
+          .flatMap((e) => e.candidates);
+        semanticRankColors = [...new Set([...semanticRankColors, ...llmColors])];
+        semanticApplied = semanticRankColors.length > 0;
+      }
+    }
+  }
 
   // 3) mode 판정 — 신호 없으면 DB 조회 없이 failed(일반 상위 상품 노출 금지).
   //    flag-on: grounded 신호(결정적 출처 ≥1)만 신호로 인정(설계 §3.5, v2.1 명문화 ②).
-  const mode: SearchMode = decisive
+  let mode: SearchMode = decisive
     ? hasGroundedSignal(resolved)
       ? parserDegraded
         ? "lexical_only"
         : "full"
       : "failed"
     : deriveSearchMode(parserDegraded, intent);
-  if (mode === "failed") return failed(respIntent());
+  // 컬러웨이 결속 "조건"이 있는 계획만 검색 신호다(빈 계획 lane은 소비 span 전달용).
+  if (mode === "failed" && colorwayLane && !isEmptyColorwayPlan(colorwayLane.plan))
+    mode = "lexical_only";
+  if (mode === "failed" && semanticApplied) mode = "lexical_only";
+  if (mode === "failed") {
+    // on 모드에서 이미 받은 해석은 failed여도 관측 가능하게 동봉한다.
+    let failedShadow: SearchPayload["semanticShadow"];
+    if (semanticEarly) {
+      const v = validateSemantic(semanticEarly.raw, query);
+      if (v.expressions.length > 0)
+        failedShadow = {
+          expressions: v.expressions,
+          modelId: semanticEarly.meta.modelId,
+          latencyMs: semanticEarly.meta.latencyMs,
+          applied: false,
+        };
+    }
+    return failed(respIntent(), failedShadow);
+  }
 
   // 4) 하드 필터 쿼리(브랜드 eq 포함) → 후보 페치 → 소프트 랭킹.
   //    제목 잔여 토큰이 있으면 phrase→and→or tier 순으로 폴백(설계 §9-2).
   const TITLE_TARGET = 24; // 다른 하드필터 적용 후 고유 상품 24개면 폴백 중단
   const TIERS: TitleTier[] = ["phrase", "and", "or"];
 
+  // 4a) 컬러웨이 결속 실행을 본 쿼리보다 먼저 — 일치 goods_no를 본 쿼리 IN 필터로
+  //     내려 후보 1000행 상한에 의한 누락을 막는다(교집합만으로는 후보 밖 상품을 놓친다).
+  //     실행 실패는 필터 미적용 폴백(설계 §8.4).
+  let colorwayMatched: Set<number> | null = null;
+  if (colorwayLane && colorwayLane.plan.printClauses.length > 0) {
+    const executor: ColorwayExecutor = async (plan) => {
+      const base = supabase
+        .from("search_goods")
+        .select(`goods_no,${COLORWAY_COLUMNS}`)
+        .limit(RESULT_LIMIT);
+      const { data, error } = await applyColorwayPrefilter(base, plan);
+      if (error) throw new Error(error.message);
+      const rows = data as unknown as ColorwayProductRow[];
+      return new Set(refineColorwayRows(rows, plan).map((r) => r.goods_no));
+    };
+    colorwayMatched = await runColorwayLane(executor, colorwayLane);
+  }
+  // IN 필터로 내릴 수 있는 상한 — URL 길이 제약. 초과 시 사후 교집합만 사용(현재 라벨
+  // 규모에서는 도달 불가, 대량 라벨 후 재검토 항목은 followup 문서 참조).
+  const COLORWAY_IN_LIMIT = 800;
+  const colorwayInIds =
+    colorwayMatched && colorwayMatched.size <= COLORWAY_IN_LIMIT
+      ? [...colorwayMatched]
+      : null;
+
   const fetchTier = async (forIntent: QueryIntent, tier?: TitleTier) => {
-    const base = supabase
-      .from("search_goods")
-      .select(SEARCH_SUMMARY_COLUMNS) as unknown as GoodsQuery;
+    let builder = supabase.from("search_goods").select(SEARCH_SUMMARY_COLUMNS);
+    if (colorwayInIds) builder = builder.in("goods_no", colorwayInIds);
+    const base = builder as unknown as GoodsQuery;
     return await (buildGoodsQuery(base, forIntent, tier) as unknown as PromiseLike<{
       data: SearchGoodsRow[] | null;
       error: unknown;
@@ -226,7 +469,11 @@ export async function POST(request: Request): Promise<Response> {
     // 제목 하드 게이트가 대화 필러를 오탐(예: "내가 105 입는데…")했을 가능성이 있다.
     // 다른 비제목 하드 조건이 실제로 남아있을 때만(hasNonTitleHardFilters), 제목 토큰을
     // 통째로 뺀 원본 intent로 Phase 1 단일 쿼리(tier 없음) 1회 재시도한다.
-    if (uniqueCount === 0 && hasNonTitleHardFilters(intent)) {
+    // 착용감 소프트 신호도 폐기 재시도 가치가 있다(mode 판정과 동일 기준 — "바캉스" 케이스).
+    if (
+      uniqueCount === 0 &&
+      (hasNonTitleHardFilters(intent) || hasWearSignal(intent))
+    ) {
       const intentNoTitle: QueryIntent = { ...intent, titleTokens: [] };
       const { data, error } = await fetchTier(intentNoTitle);
       if (error || !data) return failed(respIntent());
@@ -249,6 +496,10 @@ export async function POST(request: Request): Promise<Response> {
     results = rankGoods(data.map(mapGoodsRow), rankIntentOf(intent), RESULT_LIMIT);
   }
 
+  // 4b) 컬러웨이 결속 사후 교집합 — IN 필터를 못 내린 경우(상한 초과)의 안전망이며,
+  //     IN 필터가 적용됐다면 무손실 no-op이다. 실행 실패(matched=null)면 미적용 폴백.
+  results = applyColorwayMatches(results, colorwayMatched);
+
   // 표시 이미지 선택(조언 층) — 검색 의도 색으로 색별 이미지를 고른다.
   //   · results 순서·랭킹·mode엔 영향 없음(순수 후처리).
   //   · 색별 이미지 맵(colorImages)은 응답에서 제거하고 고른 1장(displayImage)만 내려보낸다.
@@ -263,6 +514,39 @@ export async function POST(request: Request): Promise<Response> {
     return { ...g, colorImages: undefined, displayImage };
   });
 
+  // 의미 해석 응답 필드 — on은 앞에서 await한 결과 재사용, shadow는 여기서 대기(지연 숨김).
+  let semanticShadow: SearchPayload["semanticShadow"];
+  const semantic = llmSemanticMode === "on" ? semanticEarly : await semanticPromise;
+  if (semantic) {
+    const validated = validateSemantic(semantic.raw, query);
+    if (validated.expressions.length > 0) {
+      semanticShadow = {
+        expressions: validated.expressions,
+        modelId: semantic.meta.modelId,
+        latencyMs: semantic.meta.latencyMs,
+        applied: semanticApplied,
+      };
+    }
+  }
+
+  // 시맨틱 링커 Shadow1(§6) 응답 필드 — 후보 plan을 관측만 한다(결과·intent 무영향).
+  let semanticLinkerShadow: SearchPayload["semanticLinkerShadow"];
+  const linked = await linkerPromise;
+  if (linkerFrame && linked) {
+    const graph = resolveSemantic(linkerFrame, linked.proposal);
+    if (graph) {
+      const compiled = compileSemanticPlan(graph);
+      semanticLinkerShadow = {
+        printClauses: compiled.printClauses,
+        coverage: compiled.coverage,
+        ownership: ownershipPreview(linkerFrame, graph),
+        graphHash: graph.graphHash,
+        modelId: linked.meta.modelId,
+        latencyMs: linked.meta.latencyMs,
+      };
+    }
+  }
+
   return Response.json({
     results: withDisplay,
     intent: finalIntent,
@@ -270,5 +554,11 @@ export async function POST(request: Request): Promise<Response> {
     titleTier,
     titleSalvage,
     titleDropped,
+    ...(semanticShadow ? { semanticShadow } : {}),
+    ...(semanticLinkerShadow ? { semanticLinkerShadow } : {}),
+    // 적용된 해석만 칩으로: 결속 실행 성공(matched) 또는 기존 색 필터 이관(override).
+    ...(colorwayLane && (colorwayMatched !== null || colorOverride)
+      ? { colorwayChips: colorwayPlanToChips(colorwayLane.plan) }
+      : {}),
   } satisfies SearchPayload);
 }

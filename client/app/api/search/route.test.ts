@@ -9,8 +9,17 @@ const dbResult = vi.fn();
 vi.mock("@/features/search/data/parse-query-intent", () => ({
   parseQueryIntent: (...a: unknown[]) => parseMock(...a) as never,
 }));
+const semanticMock = vi.fn();
+vi.mock("@/features/search/data/interpret-semantic", () => ({
+  interpretSemantic: (...a: unknown[]) => semanticMock(...a) as never,
+}));
 vi.mock("@/features/search/data/brand-alias-repository", () => ({
   getSafeBrandAliases: (...a: unknown[]) => aliasMock(...a) as never,
+}));
+const linkerMock = vi.fn();
+vi.mock("@/features/search/data/relation-linker", () => ({
+  linkRelations: (...a: unknown[]) => linkerMock(...a) as never,
+  LINKER_PROMPT_VERSION: "relation-linker@v1",
 }));
 vi.mock("@supabase/supabase-js", () => ({
   createClient: () => ({
@@ -29,6 +38,8 @@ function chainable(): unknown {
     "gte",
     "lte",
     "overlaps",
+    "contains",
+    "in",
     "not",
     "order",
     "limit",
@@ -43,13 +54,16 @@ function chainable(): unknown {
   return self;
 }
 
-async function post(query: string): Promise<{ status: number; body: never }> {
+async function post(
+  query: string,
+  extra: Record<string, unknown> = {},
+): Promise<{ status: number; body: never }> {
   const { POST } = await import("@/app/api/search/route");
   const res = await POST(
     new Request("http://test/api/search", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query }),
+      body: JSON.stringify({ query, ...extra }),
     }),
   );
   return { status: res.status, body: (await res.json()) as never };
@@ -62,6 +76,10 @@ beforeEach(() => {
   vi.stubEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "k");
   parseMock.mockReset();
   aliasMock.mockReset();
+  semanticMock.mockReset();
+  semanticMock.mockResolvedValue(null);
+  linkerMock.mockReset();
+  linkerMock.mockResolvedValue(null);
   dbResult.mockReset();
   dbCalls.length = 0;
   aliasMock.mockResolvedValue([{ aliasNormalized: "나이키", catalogBrand: "나이키" }]);
@@ -477,5 +495,343 @@ describe("POST /api/search — 결정화 레인(flag-on, P3-F)", () => {
     const { body } = await post("검정 반팔");
     expect((body as { mode: string }).mode).toBe("full");
     expect(dbCalls.some(([m, c]) => m === "overlaps" && c === "colors")).toBe(true);
+  });
+});
+
+describe("POST /api/search — llm=off 요청 단위 override(로고 토글)", () => {
+  it("llm:'off'면 LLM 파서를 호출하지 않고 컬러웨이 레인이 활성화된다", async () => {
+    const { body } = await post("블랙 바탕에 화이트 프린팅", { llm: "off" });
+    expect(parseMock).not.toHaveBeenCalled();
+    expect((body as { mode: string }).mode).toBe("lexical_only");
+    // 컬러웨이 사전필터(prints @>)가 실제 DB 체인에 내려간다.
+    expect(dbCalls.some(([m, c]) => m === "contains" && c === "prints")).toBe(true);
+  });
+
+  it("llm 필드가 없으면 현행 동작 그대로 — LLM 파서 호출, 컬러웨이 레인 미호출", async () => {
+    parseMock.mockResolvedValue({
+      intent: { ...EMPTY_INTENT, style: { ...EMPTY_INTENT.style, colors: ["블랙"] } },
+      degraded: false,
+    });
+    const { body } = await post("블랙 바탕에 화이트 프린팅");
+    expect(parseMock).toHaveBeenCalledTimes(1);
+    expect((body as { mode: string }).mode).toBe("full");
+    expect(dbCalls.some(([m, c]) => m === "contains" && c === "prints")).toBe(false);
+  });
+
+  it("llm:'off' + 결정적 신호·컬러웨이 조건이 전무하면 failed 유지", async () => {
+    // 전 토큰이 스톱워드(추천·예쁜·느낌) → 제목 신호도 없음.
+    const { body } = await post("예쁜 느낌 추천", { llm: "off" });
+    expect(parseMock).not.toHaveBeenCalled();
+    expect((body as { mode: string }).mode).toBe("failed");
+  });
+
+  it("llm:'off' 사이즈·만원대 가격: 결정적으로 해석된다", async () => {
+    const { body } = await post("사이즈 95인 2만원대 티", { llm: "off" });
+    expect(parseMock).not.toHaveBeenCalled();
+    const b = body as {
+      mode: string;
+      intent: {
+        sizeStd: number[];
+        priceMin?: number;
+        priceMax?: number;
+        titleTokens?: string[];
+      };
+    };
+    expect(b.mode).toBe("lexical_only");
+    expect(b.intent.sizeStd).toEqual([95]);
+    expect(b.intent.priceMin).toBe(20000);
+    expect(b.intent.priceMax).toBe(29999);
+    expect(b.intent.titleTokens ?? []).not.toContain("95인");
+  });
+
+  it("llm:'off' 바탕색 단독: 기존 colors 필터로 이관되고 결속 실행은 없다(D7)", async () => {
+    const { body } = await post("블랙티 보여줘", { llm: "off" });
+    expect(parseMock).not.toHaveBeenCalled();
+    expect((body as { mode: string }).mode).toBe("lexical_only");
+    // 기존 colors 하드필터가 걸리고, prints 결속 사전필터는 없다.
+    expect(dbCalls.some(([m, c]) => m === "overlaps" && c === "colors")).toBe(true);
+    expect(dbCalls.some(([m, c]) => m === "contains" && c === "prints")).toBe(false);
+    // 적용 해석 칩은 유지된다.
+    expect((body as { colorwayChips?: unknown }).colorwayChips).toEqual([
+      { kind: "baseColor", label: "블랙" },
+    ]);
+  });
+
+  it("llm:'off' 응답에 서버가 적용한 컬러웨이 칩이 실린다", async () => {
+    const { body } = await post("블랙 바탕에 화이트 프린팅", { llm: "off" });
+    const chips = (body as { colorwayChips?: { kind: string; label: string }[] })
+      .colorwayChips;
+    expect(chips).toEqual([
+      { kind: "baseColor", label: "블랙" },
+      { kind: "printColor", label: "화이트" },
+    ]);
+  });
+
+  it("llm 필드가 없으면 colorwayChips도 없다(현행 응답 그대로)", async () => {
+    parseMock.mockResolvedValue({ intent: EMPTY_INTENT, degraded: true });
+    const { body } = await post("나이키 반팔");
+    expect((body as { colorwayChips?: unknown }).colorwayChips).toBeUndefined();
+  });
+
+  it("llm:'off'에서 소비 표현은 제목 토큰으로 재유입되지 않는다", async () => {
+    const { body } = await post("블랙 바탕에 화이트 백프린팅", { llm: "off" });
+    const intent = (body as { intent: { titleTokens?: string[] } }).intent;
+    expect(intent.titleTokens ?? []).not.toContain("백프린팅");
+  });
+});
+
+describe("POST /api/search — 착용감 신호 제목 폐기 구제(바캉스 케이스)", () => {
+  it("제목 전멸 + 착용감 신호만 있으면 제목을 폐기하고 재시도한다", async () => {
+    parseMock.mockResolvedValue({
+      intent: {
+        ...EMPTY_INTENT,
+        wearChars: { ...EMPTY_INTENT.wearChars, 계절: ["여름"] },
+      },
+      degraded: false,
+    });
+    // tier 스윕(phrase/and/or) 3회는 0건, 제목 폐기 재시도에서 행 반환.
+    dbResult
+      .mockReturnValueOnce({ data: [], error: null })
+      .mockReturnValueOnce({ data: [], error: null })
+      .mockReturnValueOnce({ data: [], error: null })
+      .mockReturnValue({
+        data: [
+          {
+            goods_no: 1,
+            title: "쿨 반팔",
+            price: 10000,
+            colors: [],
+            patterns: [],
+            materials: [],
+            fits: [],
+            sizes: [],
+            size_std: [],
+            wear_chars: {},
+          },
+        ],
+        error: null,
+      });
+    const { body } = await post("바캉스");
+    const b = body as { mode: string; results: unknown[]; titleDropped: boolean };
+    expect(b.mode).toBe("full");
+    expect(b.titleDropped).toBe(true);
+    expect(b.results.length).toBeGreaterThan(0);
+  });
+
+  it("착용감 신호조차 없으면 기존대로 폐기 재시도 없이 0건", async () => {
+    parseMock.mockResolvedValue({ intent: EMPTY_INTENT, degraded: false });
+    dbResult.mockReturnValue({ data: [], error: null });
+    const { body } = await post("아무개무의미단어");
+    const b = body as { results: unknown[]; titleDropped: boolean };
+    expect(b.titleDropped).toBe(false);
+    expect(b.results).toHaveLength(0);
+  });
+});
+
+describe("POST /api/search — 의미 해석 shadow(설계 §8.2)", () => {
+  const SHADOW_RAW = {
+    raw: {
+      expressions: [
+        {
+          surface: "시커먼",
+          target: "garment_base",
+          candidates: ["블랙"],
+          resolution: "semantic",
+          evidence: "시커먼 티",
+        },
+      ],
+    },
+    meta: { modelId: "m", promptVersion: "p", vocabVersion: "v", latencyMs: 10 },
+  };
+
+  it("shadow: 검증 통과 해석이 응답에 실리고 결과·모드는 off와 동일하다", async () => {
+    parseMock.mockResolvedValue({ intent: EMPTY_INTENT, degraded: true });
+    const offRes = await post("시커먼 티");
+    expect(semanticMock).not.toHaveBeenCalled(); // 기본 off — 미호출
+
+    vi.stubEnv("SEARCH_LLM_MODE", "shadow");
+    semanticMock.mockResolvedValue(SHADOW_RAW);
+    const shadowRes = await post("시커먼 티");
+    expect(semanticMock).toHaveBeenCalledTimes(1);
+
+    const off = offRes.body as {
+      mode: string;
+      results: unknown[];
+      semanticShadow?: unknown;
+    };
+    const sh = shadowRes.body as {
+      mode: string;
+      results: unknown[];
+      semanticShadow?: { expressions: { target: string; candidates: string[] }[] };
+    };
+    // §8.2: 결정적 검색 결과는 OFF와 완전히 같아야 한다.
+    expect(sh.mode).toBe(off.mode);
+    expect(sh.results).toEqual(off.results);
+    expect(off.semanticShadow).toBeUndefined();
+    if (sh.mode !== "failed") {
+      expect(sh.semanticShadow?.expressions[0]).toMatchObject({
+        target: "garment_base",
+        candidates: ["블랙"],
+      });
+    }
+  });
+
+  it("shadow: LLM 실패·무효 출력은 해석 없음 폴백 — 요청은 정상(§8.4)", async () => {
+    vi.stubEnv("SEARCH_LLM_MODE", "shadow");
+    parseMock.mockResolvedValue({
+      intent: { ...EMPTY_INTENT, style: { ...EMPTY_INTENT.style, colors: ["블랙"] } },
+      degraded: false,
+    });
+    semanticMock.mockRejectedValue(new Error("timeout"));
+    const { body } = await post("시커먼 티");
+    expect((body as { mode: string }).mode).toBe("full");
+    expect((body as { semanticShadow?: unknown }).semanticShadow).toBeUndefined();
+  });
+});
+
+describe("POST /api/search — 의미 해석 최소 ON(설계 §8.3)", () => {
+  const TREND_RAW = {
+    raw: {
+      expressions: [
+        {
+          surface: "유행하는",
+          target: "garment_base",
+          candidates: ["화이트", "블랙", "그레이"],
+          resolution: "semantic",
+          evidence: "유행하는",
+        },
+      ],
+    },
+    meta: { modelId: "m", promptVersion: "p", vocabVersion: "v", latencyMs: 10 },
+  };
+  const goodsRow = {
+    goods_no: 1,
+    title: "베이직 티",
+    price: 10000,
+    colors: ["화이트"],
+    patterns: [],
+    materials: [],
+    fits: [],
+    sizes: [],
+    size_std: [],
+    wear_chars: {},
+  };
+
+  it("on: 신호가 없던 쿼리가 의미 소프트 신호로 살아나고 applied가 표시된다", async () => {
+    vi.stubEnv("SEARCH_LLM_MODE", "on");
+    parseMock.mockResolvedValue({ intent: EMPTY_INTENT, degraded: true });
+    semanticMock.mockResolvedValue(TREND_RAW);
+    dbResult.mockReturnValue({ data: [goodsRow], error: null });
+
+    const { body } = await post("유행하는 옷");
+    const b = body as {
+      mode: string;
+      results: unknown[];
+      semanticShadow?: { applied: boolean };
+    };
+    expect(b.mode).toBe("lexical_only");
+    expect(b.results.length).toBeGreaterThan(0);
+    expect(b.semanticShadow?.applied).toBe(true);
+    // 소프트 병합 — 조회 하드필터(colors overlaps)에는 들어가지 않는다(§7: LLM은 must 불가).
+    expect(dbCalls.some(([m, c]) => m === "overlaps" && c === "colors")).toBe(false);
+  });
+
+  it("on: 결정적 색 조건이 있으면 의미 색은 양보한다(결정적 우선 §8.3)", async () => {
+    vi.stubEnv("SEARCH_LLM_MODE", "on");
+    parseMock.mockResolvedValue({
+      intent: { ...EMPTY_INTENT, style: { ...EMPTY_INTENT.style, colors: ["블랙"] } },
+      degraded: false,
+    });
+    semanticMock.mockResolvedValue(TREND_RAW);
+    dbResult.mockReturnValue({ data: [goodsRow], error: null });
+
+    const { body } = await post("검정 유행하는 옷");
+    expect(
+      (body as { semanticShadow?: { applied: boolean } }).semanticShadow?.applied,
+    ).toBe(false);
+  });
+
+  it("승격 규칙: LLM 없이도 유행류는 소프트 선호로 살아난다(모드 무관 결정적)", async () => {
+    // env 미설정(off) — 결정적 승격 규칙만으로 동작해야 한다.
+    parseMock.mockResolvedValue({ intent: EMPTY_INTENT, degraded: true });
+    dbResult.mockReturnValue({
+      data: [
+        {
+          goods_no: 1,
+          title: "베이직 티",
+          price: 10000,
+          colors: ["화이트"],
+          patterns: [],
+          materials: [],
+          fits: [],
+          sizes: [],
+          size_std: [],
+          wear_chars: {},
+        },
+      ],
+      error: null,
+    });
+    const { body } = await post("유행하는 옷");
+    const b = body as { mode: string; results: unknown[] };
+    expect(b.mode).toBe("lexical_only");
+    expect(b.results.length).toBeGreaterThan(0);
+    expect(dbCalls.some(([m, c]) => m === "overlaps" && c === "colors")).toBe(false); // 소프트만
+  });
+
+  it("on: 의미 해석·승격 규칙 다 없으면 기존대로 failed 유지", async () => {
+    vi.stubEnv("SEARCH_LLM_MODE", "on");
+    parseMock.mockResolvedValue({ intent: EMPTY_INTENT, degraded: true });
+    semanticMock.mockResolvedValue(null);
+    const { body } = await post("예쁜 느낌 추천");
+    expect((body as { mode: string }).mode).toBe("failed");
+  });
+});
+
+describe("POST /api/search — semantic linker shadow(§6 Shadow1)", () => {
+  const PROPOSAL = {
+    proposal: {
+      clauses: [
+        {
+          base: { refs: ["m03"], operator: "single" },
+          print: { refs: ["m01", "m02"], operator: "anyOf", operatorRef: "o01" },
+          placement: { refs: [], operator: "single" },
+          graphic: { refs: [], operator: "single" },
+          anchorRefs: ["a01"],
+        },
+      ],
+      alternatives: [{ clauseIndexes: [0] }],
+      external: [],
+      newMentions: [],
+    },
+    meta: { modelId: "m", promptVersion: "relation-linker@v1", latencyMs: 5 },
+  };
+
+  it("shadow: 후보 plan을 관측 필드로 기록하되 결과·mode는 OFF와 동일", async () => {
+    parseMock.mockResolvedValue({ intent: EMPTY_INTENT, degraded: true });
+    const offRes = await post("검은색이나 하얀색 무늬가 있는 빨간색 티셔츠");
+
+    vi.stubEnv("SEARCH_LLM_MODE", "shadow");
+    linkerMock.mockResolvedValue(PROPOSAL);
+    const shRes = await post("검은색이나 하얀색 무늬가 있는 빨간색 티셔츠");
+
+    const off = offRes.body as {
+      results: unknown[];
+      mode: string;
+      semanticLinkerShadow?: unknown;
+    };
+    const sh = shRes.body as {
+      results: unknown[];
+      mode: string;
+      semanticLinkerShadow?: { printClauses: { printColors: string[] }[] };
+    };
+    expect(sh.results).toEqual(off.results); // 결과 동일
+    expect(sh.mode).toBe(off.mode); // mode 동일
+    expect(off.semanticLinkerShadow).toBeUndefined(); // off엔 없음
+    if (sh.mode !== "failed") {
+      expect(sh.semanticLinkerShadow?.printClauses[0].printColors.sort()).toEqual([
+        "블랙",
+        "화이트",
+      ]);
+    }
   });
 });
