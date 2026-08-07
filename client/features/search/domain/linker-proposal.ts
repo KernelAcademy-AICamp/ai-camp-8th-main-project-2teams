@@ -44,6 +44,8 @@ function parseField(v: unknown): FieldGroup | null {
   const operatorRef = typeof r.operatorRef === "string" ? r.operatorRef : undefined;
   if (refs.length >= 2 && operator === "anyOf" && !operatorRef) return null; // OR 근거 필수
   if (refs.length >= 2 && operator !== "anyOf") return null;
+  if (operator === "anyOf" && refs.length < 2) return null; // anyOf는 2개↑ OR 대상 전제
+  if (operator === "single" && operatorRef) return null; // single인데 유령 근거 금지
   return { refs, operator, operatorRef };
 }
 
@@ -72,13 +74,18 @@ export function parseLinkerProposal(raw: unknown): LinkerProposal | null {
   for (const a of r.alternatives) {
     const ar = rec(a);
     if (!ar || !Array.isArray(ar.clauseIndexes)) return null;
+    const clauseIndexes = ar.clauseIndexes.filter(
+      (x): x is number => typeof x === "number",
+    );
+    if (clauseIndexes.length !== ar.clauseIndexes.length) return null;
     alternatives.push({
-      clauseIndexes: ar.clauseIndexes.filter((x): x is number => typeof x === "number"),
+      clauseIndexes,
       operatorRef: typeof ar.operatorRef === "string" ? ar.operatorRef : undefined,
     });
   }
-  const external = Array.isArray(r.external)
-    ? r.external.filter((x): x is string => typeof x === "string")
-    : [];
+  if (r.external !== undefined && !Array.isArray(r.external)) return null;
+  const externalRaw = Array.isArray(r.external) ? r.external : [];
+  const external = externalRaw.filter((x): x is string => typeof x === "string");
+  if (external.length !== externalRaw.length) return null;
   return { clauses, alternatives, external, newMentions: [] }; // Shadow1: newMentions 미지원
 }
