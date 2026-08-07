@@ -3,6 +3,7 @@
 import type { FieldGroup, LinkerProposal } from "./linker-proposal";
 import type { FrameMention, QueryFrame } from "./query-frame";
 import type { Cond, ResolvedClause, ResolvedSemanticGraph } from "./semantic-graph";
+import { canonicalizeGraph } from "./semantic-graph";
 
 function mentionById(frame: QueryFrame): Map<string, FrameMention> {
   return new Map(frame.mentions.map((m) => [m.id, m]));
@@ -71,12 +72,15 @@ export function resolveSemantic(
     objectKind: "any_object",
     existence: "independent",
   };
-  return {
+  const graph: ResolvedSemanticGraph = {
     clauses: [clause],
     alternatives: [["c1"]],
     productBaseColors: [], // Shadow1: 결속 clause가 있으므로 상품수준 이관 없음
     external: [],
     unresolved: [],
-    graphHash: "", // Task4에서 채움
+    graphHash: "",
   };
+  const inventoryHash = JSON.stringify(frame.mentions.map((m) => [m.id, m.canon]));
+  graph.graphHash = canonicalizeGraph(graph, inventoryHash);
+  return graph;
 }

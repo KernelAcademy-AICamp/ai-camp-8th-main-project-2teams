@@ -1,0 +1,37 @@
+// semantic-graph.test.ts
+import { describe, expect, it } from "vitest";
+
+import { parseLinkerProposal } from "./linker-proposal";
+import { buildQueryFrame } from "./query-frame";
+import { resolveSemantic } from "./resolve-semantic";
+
+const build = (q: string) => {
+  const frame = buildQueryFrame(q);
+  const p = parseLinkerProposal({
+    clauses: [
+      {
+        base: { refs: ["m03"], operator: "single" },
+        print: { refs: ["m01", "m02"], operator: "anyOf", operatorRef: "o01" },
+        placement: { refs: [], operator: "single" },
+        graphic: { refs: [], operator: "single" },
+        anchorRefs: ["a01"],
+      },
+    ],
+    alternatives: [{ clauseIndexes: [0] }],
+    external: [],
+    newMentions: [],
+  });
+  if (!p) throw new Error("fixture proposal 파싱 실패");
+  const g = resolveSemantic(frame, p);
+  if (!g) throw new Error("expected non-null graph");
+  return g;
+};
+
+describe("graphHash", () => {
+  it("동일 그래프는 동일 해시(결정성)", () => {
+    const a = build("검은색이나 하얀색 무늬가 있는 빨간색 티셔츠");
+    const b = build("검은색이나 하얀색 무늬가 있는 빨간색 티셔츠");
+    expect(a.graphHash).toBe(b.graphHash);
+    expect(a.graphHash).toMatch(/^sg@[0-9a-f]{8}$/);
+  });
+});
