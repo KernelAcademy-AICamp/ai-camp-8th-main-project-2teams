@@ -33,7 +33,10 @@ import {
   runColorwayLane,
 } from "@/features/search/domain/colorway-lane";
 import { isEmptyColorwayPlan } from "@/features/search/domain/colorway-plan";
-import { compileSemanticPlan } from "@/features/search/domain/compile-semantic-plan";
+import {
+  compileSemanticPlan,
+  type SemanticPrintClause,
+} from "@/features/search/domain/compile-semantic-plan";
 import {
   decisiveQueryIntent,
   decisiveResponseIntent,
@@ -115,7 +118,7 @@ interface SearchPayload {
   };
   /** 시맨틱 링커 Shadow1(설계 §6) — 후보 plan 관측만, 검색 결과 미반영. */
   semanticLinkerShadow?: {
-    printClauses: import("@/features/search/domain/compile-semantic-plan").SemanticPrintClause[];
+    printClauses: SemanticPrintClause[];
     coverage: number;
     ownership: { claimedSpans: [number, number][]; suppressedFlatAxes: string[] };
     graphHash: string;
@@ -158,8 +161,7 @@ export async function POST(request: Request): Promise<Response> {
     : Promise.resolve(null);
 
   // 0b) 시맨틱 링커 Shadow1(§6) — mention 추출 후 관계 링커를 병렬 실행. 결과 미반영·응답 OFF 동일.
-  const linkerActive =
-    process.env.SEARCH_LLM_MODE === "shadow" || process.env.SEARCH_LLM_MODE === "on";
+  const linkerActive = llmSemanticMode === "shadow" || llmSemanticMode === "on";
   const linkerFrame = linkerActive ? buildQueryFrame(query) : null;
   const linkerPromise =
     linkerFrame && linkerFrame.mentions.length > 0
@@ -533,17 +535,21 @@ export async function POST(request: Request): Promise<Response> {
   let semanticLinkerShadow: SearchPayload["semanticLinkerShadow"];
   const linked = await linkerPromise;
   if (linkerFrame && linked) {
-    const graph = resolveSemantic(linkerFrame, linked.proposal);
-    if (graph) {
-      const compiled = compileSemanticPlan(graph);
-      semanticLinkerShadow = {
-        printClauses: compiled.printClauses,
-        coverage: compiled.coverage,
-        ownership: ownershipPreview(linkerFrame, graph),
-        graphHash: graph.graphHash,
-        modelId: linked.meta.modelId,
-        latencyMs: linked.meta.latencyMs,
-      };
+    try {
+      const graph = resolveSemantic(linkerFrame, linked.proposal);
+      if (graph) {
+        const compiled = compileSemanticPlan(graph);
+        semanticLinkerShadow = {
+          printClauses: compiled.printClauses,
+          coverage: compiled.coverage,
+          ownership: ownershipPreview(linkerFrame, graph),
+          graphHash: graph.graphHash,
+          modelId: linked.meta.modelId,
+          latencyMs: linked.meta.latencyMs,
+        };
+      }
+    } catch {
+      semanticLinkerShadow = undefined;
     }
   }
 
