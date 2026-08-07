@@ -53,7 +53,7 @@ const GARMENT_WORDS = ["티셔츠", "티", "반팔", "반팔티", "상의", "옷
 const PRINT_WORDS = ["프린팅", "프린트", "나염", "백프린팅"];
 const PATTERN_ANCHOR = ["무늬"];
 const PLACEMENT_WORDS = ["앞", "뒤", "소매", "등판", "올오버"];
-const OR_WORDS = ["이나", "나", "또는", "혹은"];
+const OR_WORDS = ["이나", "또는", "혹은"];
 
 interface Hit {
   start: number;

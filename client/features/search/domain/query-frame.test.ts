@@ -26,5 +26,6 @@ describe("buildQueryFrame", () => {
     const f = buildQueryFrame("나이키 10만원 이하");
     expect(f.mentions).toHaveLength(0);
     expect(f.anchors).toHaveLength(0);
+    expect(f.operators).toHaveLength(0);
   });
 });
