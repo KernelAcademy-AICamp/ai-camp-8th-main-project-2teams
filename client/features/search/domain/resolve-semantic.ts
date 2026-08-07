@@ -63,6 +63,15 @@ export function resolveSemantic(
     }
   }
 
+  // external(외부 맥락 mention) 분리: 선언 안 됨 → 무효, clause와 겹침(배타 위반) → 무효
+  const external: { surface: string; span: [number, number] }[] = [];
+  for (const ref of proposal.external) {
+    const m = byId.get(ref);
+    if (!m) return null; // 선언 안 된 ref → 무효
+    if (used.has(ref)) return null; // clause에서 이미 쓴 mention을 external로도 지정 → 배타 위반
+    external.push({ surface: m.surface, span: m.span });
+  }
+
   const clause: ResolvedClause = {
     id: "c1",
     base,
@@ -76,7 +85,7 @@ export function resolveSemantic(
     clauses: [clause],
     alternatives: [["c1"]],
     productBaseColors: [], // Shadow1: 결속 clause가 있으므로 상품수준 이관 없음
-    external: [],
+    external,
     unresolved: [],
     graphHash: "",
   };
