@@ -892,3 +892,86 @@ describe("POST /api/search — semantic linker shadow(§6 Shadow1)", () => {
     expect(t.get("레드")).toBe("print"); // 역전이 그대로 관측됨
   });
 });
+
+describe("POST /api/search — On1a apply mode(rerank overlay)", () => {
+  const rows = Array.from({ length: 6 }, (_, i) => ({
+    goods_no: i + 1,
+    style_key: `s${String(i)}`,
+    title: `t${String(i)}`,
+    brand: "b",
+    review_score: 4,
+    review_count: 1,
+    colors_status: "확인",
+  }));
+  const PROPOSAL = {
+    status: "parsed",
+    proposal: {
+      assignments: [
+        { mentionRef: "m01", target: "print" },
+        { mentionRef: "m02", target: "print" },
+        { mentionRef: "m03", target: "base" },
+      ],
+      orGroups: [{ memberRefs: ["m01", "m02"], operatorRef: "o01" }],
+    },
+    meta: { modelId: "m", promptVersion: "relation-linker@v2", latencyMs: 5 },
+  };
+  const Q = "검은색이나 하얀색 무늬가 있는 빨간색 티셔츠";
+  const ids = (b: unknown) =>
+    (b as { results: { goodsNo: string }[] }).results.map((r) => r.goodsNo).sort();
+
+  it("apply=rerank는 멤버십·개수 불변(순서만) — 하드필터 아님", async () => {
+    parseMock.mockResolvedValue({ intent: EMPTY_INTENT, degraded: true });
+    dbResult.mockReturnValue({ data: rows, error: null });
+    vi.stubEnv("SEARCH_LLM_MODE", "shadow");
+    linkerMock.mockResolvedValue(PROPOSAL);
+
+    vi.stubEnv("SEARCH_LINKER_APPLY_MODE", "off");
+    const off = (await post(Q)).body;
+    vi.stubEnv("SEARCH_LINKER_APPLY_MODE", "rerank");
+    const rr = (await post(Q)).body;
+
+    // 개수·멤버십 동일(rerank는 재정렬일 뿐 제거·추가 없음)
+    expect((rr as { results: unknown[] }).results.length).toBe(
+      (off as { results: unknown[] }).results.length,
+    );
+    expect(ids(rr)).toEqual(ids(off));
+    const sl = (rr as { semanticLinkerShadow?: { shadow2?: { applyMode: string } } })
+      .semanticLinkerShadow;
+    expect(sl?.shadow2?.applyMode).toBe("rerank");
+  });
+
+  it("요청 llm=off면 apply=rerank여도 링커·재정렬 없음(최우선 kill)", async () => {
+    parseMock.mockResolvedValue({ intent: EMPTY_INTENT, degraded: true });
+    dbResult.mockReturnValue({ data: rows, error: null });
+    vi.stubEnv("SEARCH_LLM_MODE", "shadow");
+    vi.stubEnv("SEARCH_LINKER_APPLY_MODE", "rerank");
+    linkerMock.mockResolvedValue(PROPOSAL);
+    const b = (await post(Q, { llm: "off" })).body;
+    expect(linkerMock).not.toHaveBeenCalled();
+    expect(
+      (b as { semanticLinkerShadow?: unknown }).semanticLinkerShadow,
+    ).toBeUndefined();
+  });
+
+  it("base-only(ineligible)는 apply=rerank여도 결과 순서 OFF 그대로", async () => {
+    parseMock.mockResolvedValue({ intent: EMPTY_INTENT, degraded: true });
+    dbResult.mockReturnValue({ data: rows, error: null });
+    vi.stubEnv("SEARCH_LLM_MODE", "shadow");
+    vi.stubEnv("SEARCH_LINKER_APPLY_MODE", "rerank");
+    linkerMock.mockResolvedValue({
+      status: "parsed",
+      proposal: {
+        assignments: [{ mentionRef: "m01", target: "base" }],
+        orGroups: [],
+      },
+      meta: { modelId: "m", promptVersion: "relation-linker@v2", latencyMs: 5 },
+    });
+    const b = (await post("검은색 티셔츠")).body;
+    const sl = (
+      b as {
+        semanticLinkerShadow?: { shadow2?: { eligible: boolean; reason?: string } };
+      }
+    ).semanticLinkerShadow;
+    expect(sl?.shadow2?.eligible).toBe(false);
+  });
+});

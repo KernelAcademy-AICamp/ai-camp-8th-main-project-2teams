@@ -171,18 +171,24 @@ interface SearchPayload {
     graphHash?: string;
     /** Shadow2 — 실행자격·DB 실평가·rerank 시뮬레이션 관측(응답 결과엔 미반영). */
     shadow2?: {
+      /** 적용 권한: off(관측만)/mark(순서불변+표식)/rerank(On1a 재정렬 커밋). */
+      applyMode: "off" | "mark" | "rerank";
       eligible: boolean;
       eligibleReason?: string;
       adapterFailed?: boolean;
       adaptedPlanKey?: string;
       eval?: {
         status: "success" | "failure";
+        /** DB 카탈로그 전체 match 수(결과 집합 밖 포함). */
         matchCount?: number;
         truncated?: boolean;
         failureReason?: string;
         latencyMs: number;
       };
-      rerank?: { matchedCount: number; matchedInTopK: number };
+      /** OFF 결과 집합 안에서의 match 수(실제 rerank 영향) + 상위 K 내 수. */
+      rerank?: { matchedResultCount: number; matchedInTopK: number };
+      /** rerank 모드에서 실제 결과 순서가 커밋됐는지. */
+      committed?: boolean;
     };
   };
 }
@@ -214,6 +220,16 @@ export async function POST(request: Request): Promise<Response> {
   // 0) 의미 해석(설계 §8) — env로 제어. shadow=관측만 / on=검증 통과분을 소프트로만 병합.
   //    실패는 해석 없음(§8.4). 본 검색과 병렬 실행.
   const llmSemanticMode = process.env.SEARCH_LLM_MODE;
+  // atomic 링커 적용 권한(SEARCH_LLM_MODE와 분리, On1a). off=Shadow2 관측만 / mark=순서
+  //   불변+표식 / rerank=stable rerank. llm=off 요청이면 모든 적용을 끈다(행동 kill switch).
+  const rawApplyMode = process.env.SEARCH_LINKER_APPLY_MODE;
+  const linkerApplyMode: "off" | "mark" | "rerank" = llmOff
+    ? "off"
+    : rawApplyMode === "rerank"
+      ? "rerank"
+      : rawApplyMode === "mark"
+        ? "mark"
+        : "off";
   // 요청 llm=off는 §12 계약상 모든 LLM 경로를 끈다(의미 해석·관계 링커 포함).
   const semanticActive =
     (llmSemanticMode === "shadow" || llmSemanticMode === "on") && !llmOff;
@@ -381,8 +397,10 @@ export async function POST(request: Request): Promise<Response> {
     semanticRankColors = [...softPref.colors];
     semanticApplied = true;
   }
+  // atomic apply(mark/rerank)가 켜지면 기존 LLM interpretSemantic 색 병합은 끈다(이중 소유
+  //   방지, codex). 결정적 softPref는 그대로 유지 — atomic 때문에 결정적 승격을 끄면 안 됨.
   let semanticEarly: Awaited<typeof semanticPromise> = null;
-  if (llmSemanticMode === "on") {
+  if (llmSemanticMode === "on" && linkerApplyMode === "off") {
     semanticEarly = await semanticPromise;
     if (semanticEarly) {
       const validated = validateSemantic(semanticEarly.raw, query);
@@ -597,6 +615,8 @@ export async function POST(request: Request): Promise<Response> {
 
   // 시맨틱 링커 Shadow1(§6) 응답 필드 — 후보 plan을 관측만 한다(결과·intent 무영향).
   let semanticLinkerShadow: SearchPayload["semanticLinkerShadow"];
+  // On1a 커밋 후보(rerank 모드+성공 시에만 채워짐). 실패·부적격·off/mark면 null → withDisplay.
+  let on1Reranked: Goods[] | null = null;
   const attempt = await linkerPromise;
   if (linkerFrame && attempt) {
     try {
@@ -620,11 +640,19 @@ export async function POST(request: Request): Promise<Response> {
           const elig = executionEligible(compiled.graph, plan);
           let shadow2: NonNullable<SearchPayload["semanticLinkerShadow"]>["shadow2"];
           if (!elig.eligible) {
-            shadow2 = { eligible: false, eligibleReason: elig.reason };
+            shadow2 = {
+              applyMode: linkerApplyMode,
+              eligible: false,
+              eligibleReason: elig.reason,
+            };
           } else {
             const adapted = adaptSemanticPlan(plan.printClauses);
             if (!adapted) {
-              shadow2 = { eligible: true, adapterFailed: true };
+              shadow2 = {
+                applyMode: linkerApplyMode,
+                eligible: true,
+                adapterFailed: true,
+              };
             } else {
               // 결정적 컬러웨이 executor와 동일 로직이지만 완전 별도(본 조회에 IN 미주입).
               const semanticExecutor: ColorwayExecutor = async (p) => {
@@ -642,9 +670,14 @@ export async function POST(request: Request): Promise<Response> {
                 evaluation.status === "success"
                   ? simulateSemanticRerank(withDisplay, evaluation.matchedIds)
                   : undefined;
+              // On1a: rerank 모드일 때만 재정렬 결과를 커밋 후보로 잡는다(응답 최종에 한 번만
+              //   선택, withDisplay는 mutate 안 함). off/mark는 관측만.
+              if (linkerApplyMode === "rerank" && rerank) on1Reranked = rerank.reranked;
               shadow2 = {
+                applyMode: linkerApplyMode,
                 eligible: true,
                 adaptedPlanKey: adapted.planKey,
+                committed: linkerApplyMode === "rerank" && rerank !== undefined,
                 eval:
                   evaluation.status === "success"
                     ? {
@@ -661,7 +694,7 @@ export async function POST(request: Request): Promise<Response> {
                 ...(rerank
                   ? {
                       rerank: {
-                        matchedCount: rerank.matchedCount,
+                        matchedResultCount: rerank.matchedCount,
                         matchedInTopK: rerank.matchedInTopK,
                       },
                     }
@@ -715,8 +748,13 @@ export async function POST(request: Request): Promise<Response> {
     }
   }
 
+  // On1a 커밋: rerank 모드+성공이면 재정렬 결과만, 그 외엔 OFF(withDisplay). 여기서 한 번만
+  //   선택하고 다른 응답 필드(intent·mode·titleTier·chips)는 OFF 그대로(멤버십·개수 불변).
+  const committedResults =
+    linkerApplyMode === "rerank" && on1Reranked ? on1Reranked : withDisplay;
+
   return Response.json({
-    results: withDisplay,
+    results: committedResults,
     intent: finalIntent,
     mode,
     titleTier,
