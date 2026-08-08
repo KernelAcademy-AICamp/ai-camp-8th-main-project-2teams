@@ -1,5 +1,9 @@
 # 시맨틱 링커 On 승격 계획 (Shadow2 → On1)
 
+> **진척(2026-08-08)**: Phase A(Shadow2) A1~A5+route 배선 완료(관측 전용·OFF parity). Phase B **On1a 배선 완료·기본 off**(커밋 6eaaebb·d658dbf·09e8aa5·226d759·396874c·86b5d46). `SEARCH_LINKER_APPLY_MODE=rerank`로 활성 가능하나 **라벨 12행 편향 때문에 off 유지 권장**. 남은 것(데이터/후속): On1a 실활성=라벨 확대 후, A6 sealed(DB-match 라벨 확대 후), On1b(effectiveIntent commit=재조회), On2(하드필터=sealed accepted_wrong 0). DB 적재가 게이팅.
+
+
+
 > 실행자 안내: `superpowers:subagent-driven-development` 또는 `executing-plans`로 태스크 단위 실행.
 
 **목표:** atomic v2 링커를 실제 검색에 반영한다. 단 바로 하드 반영이 아니라 **Shadow2(실행 bundle을 DB로 실평가하되 응답은 OFF 완전 동일·로그만) → On1(rerank/그룹만, 하드필터 금지)** 2단계로 안전하게 승격한다.
