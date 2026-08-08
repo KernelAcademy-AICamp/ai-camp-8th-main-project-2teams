@@ -61,7 +61,17 @@ function detectDirection(rest: string): "min" | "max" | null {
   return null;
 }
 
+// "N만원대"는 모호하지 않은 결정적 범위다: N만원 이상 (N+1)만원 미만.
+// (숫자 없는 "만원대"만 모호 범위어로 남겨 LLM에 맡긴다.)
+const MAN_WON_DAE = /(\d[\d,]*)\s*만\s*원\s*대/;
+
 export function extractExplicitPrice(query: string): ExplicitPrice | null {
+  const dae = MAN_WON_DAE.exec(query);
+  if (dae) {
+    const n = toNumber(dae[1]);
+    return { priceMin: n * 10000, priceMax: (n + 1) * 10000 - 1 };
+  }
+
   const matches: PriceMatch[] = [];
   PRICE_TOKEN.lastIndex = 0;
   let m: RegExpExecArray | null;
