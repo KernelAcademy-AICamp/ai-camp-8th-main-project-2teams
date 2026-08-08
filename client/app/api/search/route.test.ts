@@ -789,6 +789,7 @@ describe("POST /api/search — 의미 해석 최소 ON(설계 §8.3)", () => {
 
 describe("POST /api/search — semantic linker shadow(§6 Shadow1)", () => {
   const PROPOSAL = {
+    status: "parsed",
     proposal: {
       clauses: [
         {
@@ -852,12 +853,54 @@ describe("POST /api/search — semantic linker shadow(§6 Shadow1)", () => {
     expect(b.semanticLinkerShadow).toBeUndefined();
   });
 
-  it("링커가 null(타임아웃·실패)이면 관측 필드 없이 OFF와 동일하게 동작한다(폴백)", async () => {
+  it("링커 timeout은 null로 뭉개지 않고 status=timeout으로 관측(검색은 OFF 동일)", async () => {
     parseMock.mockResolvedValue({ intent: EMPTY_INTENT, degraded: true });
     vi.stubEnv("SEARCH_LLM_MODE", "shadow");
-    linkerMock.mockResolvedValue(null);
+    linkerMock.mockResolvedValue({
+      status: "timeout",
+      meta: { modelId: "m", promptVersion: "relation-linker@v1", latencyMs: 4000 },
+    });
     const res = await post("검은색이나 하얀색 무늬가 있는 빨간색 티셔츠");
-    const b = res.body as { semanticLinkerShadow?: unknown };
-    expect(b.semanticLinkerShadow).toBeUndefined();
+    const b = res.body as {
+      semanticLinkerShadow?: { status: string; printClauses?: unknown };
+    };
+    expect(b.semanticLinkerShadow?.status).toBe("timeout");
+    expect(b.semanticLinkerShadow?.printClauses).toBeUndefined();
+  });
+
+  it("파싱됐으나 검증 거부되면 status=validation_error + rawAssignments 관측(역전 등)", async () => {
+    parseMock.mockResolvedValue({ intent: EMPTY_INTENT, degraded: true });
+    vi.stubEnv("SEARCH_LLM_MODE", "shadow");
+    // 역전 제안: 빨간색(m03)을 print, 검은/하얀을 base → 검증이 거부하지만 rawAssignments는 남는다
+    linkerMock.mockResolvedValue({
+      status: "parsed",
+      proposal: {
+        clauses: [
+          {
+            base: { refs: ["m01", "m02"], operator: "anyOf", operatorRef: "o01" },
+            print: { refs: ["m03"], operator: "single" },
+            placement: { refs: [], operator: "single" },
+            graphic: { refs: [], operator: "single" },
+            anchorRefs: ["a01"],
+          },
+        ],
+        alternatives: [{ clauseIndexes: [0] }],
+        external: [],
+        newMentions: [],
+      },
+      meta: { modelId: "m", promptVersion: "relation-linker@v1", latencyMs: 5 },
+    });
+    const res = await post("검은색이나 하얀색 무늬가 있는 빨간색 티셔츠");
+    const b = res.body as {
+      semanticLinkerShadow?: {
+        status: string;
+        rawAssignments?: { canon?: string; target: string }[];
+      };
+    };
+    // 이 역전 제안은 무손실 검증(완전성 등)에서 거부될 수 있음 — status는 valid_graph가 아님
+    const sl = b.semanticLinkerShadow;
+    expect(sl?.rawAssignments).toBeDefined();
+    const t = new Map((sl?.rawAssignments ?? []).map((a) => [a.canon, a.target]));
+    expect(t.get("레드")).toBe("print"); // 역전이 그대로 관측됨
   });
 });

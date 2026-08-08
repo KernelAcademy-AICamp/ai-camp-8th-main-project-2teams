@@ -20,7 +20,11 @@ import {
 import { interpretSemantic } from "@/features/search/data/interpret-semantic";
 import { mapGoodsRow, type SearchGoodsRow } from "@/features/search/data/map-goods-row";
 import { parseQueryIntent } from "@/features/search/data/parse-query-intent";
-import { linkRelations } from "@/features/search/data/relation-linker";
+import {
+  type LinkerAttempt,
+  type LinkerCallStatus,
+  linkRelations,
+} from "@/features/search/data/relation-linker";
 import { colorwayPlanToChips } from "@/features/search/domain/colorway-chips";
 import type { ColorwayProductRow } from "@/features/search/domain/colorway-evaluate";
 import {
@@ -67,6 +71,10 @@ import {
   deriveSearchMode,
   type SearchMode,
 } from "@/features/search/domain/search-mode";
+import {
+  deriveRawAssignments,
+  type RawAssignment,
+} from "@/features/search/domain/semantic-assignments";
 import { ownershipPreview } from "@/features/search/domain/semantic-ownership";
 import {
   type SemanticExpression,
@@ -116,15 +124,27 @@ interface SearchPayload {
     /** true = 소프트 랭킹에 반영됨(§8.3 최소 on). false = 관측만(§8.2 shadow). */
     applied: boolean;
   };
-  /** 시맨틱 링커 Shadow1(설계 §6) — 후보 plan 관측만, 검색 결과 미반영. */
+  /** 시맨틱 링커 Shadow1(설계 §6) — 후보 plan·호출 상태 관측만, 검색 결과 미반영. */
   semanticLinkerShadow?: {
-    printClauses: SemanticPrintClause[];
-    coverage: number;
-    ownership: { claimedSpans: [number, number][]; suppressedFlatAxes: string[] };
-    external: { surface: string; span: [number, number] }[];
-    graphHash: string;
+    /**
+     * 링커 호출의 terminal status — no_proposal 뭉개기 없이 원인을 분해한다.
+     * 호출단계(no_key/no_mentions/http_error/timeout/empty_content/json_error/schema_error)
+     * + 검증단계(valid_graph=통과 / validation_error=파싱됐으나 검증 거부).
+     */
+    status: Exclude<LinkerCallStatus, "parsed"> | "valid_graph" | "validation_error";
     modelId: string;
     latencyMs: number;
+    /** 진단용 — 스키마 검증 전 원문/JSON(shadow 전용). */
+    rawText?: string;
+    rawJson?: unknown;
+    /** 파싱된 경우: 검증 성패와 무관한 색/그래픽별 target 귀속(base/print 역전 측정용). */
+    rawAssignments?: RawAssignment[];
+    // 아래는 valid_graph일 때만 존재(검증 통과 후 컴파일 결과).
+    printClauses?: SemanticPrintClause[];
+    coverage?: number;
+    ownership?: { claimedSpans: [number, number][]; suppressedFlatAxes: string[] };
+    external?: { surface: string; span: [number, number] }[];
+    graphHash?: string;
   };
 }
 
@@ -167,10 +187,10 @@ export async function POST(request: Request): Promise<Response> {
   const linkerActive =
     (llmSemanticMode === "shadow" || llmSemanticMode === "on") && !llmOff;
   const linkerFrame = linkerActive ? buildQueryFrame(query) : null;
-  const linkerPromise =
-    linkerFrame && linkerFrame.mentions.length > 0
-      ? linkRelations(linkerFrame).catch((): null => null)
-      : Promise.resolve(null);
+  // linkRelations는 no_mentions·실패를 status로 자체 보존한다(null 반환 안 함). 예외만 방어.
+  const linkerPromise: Promise<LinkerAttempt | null> = linkerFrame
+    ? linkRelations(linkerFrame).catch((): null => null)
+    : Promise.resolve(null);
 
   // 1) LLM 파싱(semantic 레인) — 계약 불변. llm=off면 호출 자체를 생략하고
   //    결정적 경로(가격·브랜드·제목·컬러웨이)만 사용한다(로고 토글 스펙).
@@ -537,21 +557,42 @@ export async function POST(request: Request): Promise<Response> {
 
   // 시맨틱 링커 Shadow1(§6) 응답 필드 — 후보 plan을 관측만 한다(결과·intent 무영향).
   let semanticLinkerShadow: SearchPayload["semanticLinkerShadow"];
-  const linked = await linkerPromise;
-  if (linkerFrame && linked) {
+  const attempt = await linkerPromise;
+  if (linkerFrame && attempt) {
     try {
-      const graph = resolveSemantic(linkerFrame, linked.proposal);
-      if (graph) {
-        const compiled = compileSemanticPlan(graph);
-        semanticLinkerShadow = {
-          printClauses: compiled.printClauses,
-          coverage: compiled.coverage,
-          ownership: ownershipPreview(linkerFrame, graph),
-          external: graph.external,
-          graphHash: graph.graphHash,
-          modelId: linked.meta.modelId,
-          latencyMs: linked.meta.latencyMs,
-        };
+      const base = {
+        modelId: attempt.meta.modelId,
+        latencyMs: attempt.meta.latencyMs,
+        rawText: attempt.rawText,
+        rawJson: attempt.rawJson,
+      };
+      if (attempt.status === "parsed" && attempt.proposal) {
+        // 파싱된 제안의 raw 귀속은 검증 성패와 무관하게 관측한다(부분 관측 허용).
+        const rawAssignments = deriveRawAssignments(linkerFrame, attempt.proposal);
+        const graph = resolveSemantic(linkerFrame, attempt.proposal);
+        if (graph) {
+          const compiled = compileSemanticPlan(graph);
+          semanticLinkerShadow = {
+            ...base,
+            status: "valid_graph",
+            rawAssignments,
+            printClauses: compiled.printClauses,
+            coverage: compiled.coverage,
+            ownership: ownershipPreview(linkerFrame, graph),
+            external: graph.external,
+            graphHash: graph.graphHash,
+          };
+        } else {
+          // 파싱은 됐으나 검증 거부 — 의미 오류(역전·누락·환각)를 관측만(실행 미반영).
+          semanticLinkerShadow = {
+            ...base,
+            status: "validation_error",
+            rawAssignments,
+          };
+        }
+      } else if (attempt.status !== "parsed") {
+        // 호출단계 실패 — no_proposal을 원인별 status로 보존(평가 histogram용).
+        semanticLinkerShadow = { ...base, status: attempt.status };
       }
     } catch {
       semanticLinkerShadow = undefined;

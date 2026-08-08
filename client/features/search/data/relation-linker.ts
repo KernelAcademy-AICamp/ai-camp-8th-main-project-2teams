@@ -22,6 +22,26 @@ export interface RelationLinkerMeta {
   latencyMs: number;
 }
 
+// 호출을 null로 뭉개지 않고 단계별 terminal status로 보존(설계 §7·codex 평가루프).
+// 검색은 proposal(=parsed)만 사용하고, 나머지는 shadow 평가에서 원인 분해용.
+export type LinkerCallStatus =
+  | "no_key" // API 키 없음(호출 안 함)
+  | "no_mentions" // 프레임에 mention 없음(호출 안 함)
+  | "http_error" // 응답 비ok·네트워크 오류
+  | "timeout" // shadow timeout으로 abort
+  | "empty_content" // 응답은 왔으나 content 비어있음
+  | "json_error" // content에서 JSON 객체 파싱 실패
+  | "schema_error" // JSON은 됐으나 parseLinkerProposal 스키마 거부
+  | "parsed"; // 스키마 통과 — proposal 존재
+
+export interface LinkerAttempt {
+  status: LinkerCallStatus;
+  rawText?: string; // LLM 원문 content(진단용)
+  rawJson?: unknown; // content에서 뽑은 JSON 객체(스키마 검증 전, 진단용)
+  proposal?: LinkerProposal; // status==="parsed"일 때만
+  meta: RelationLinkerMeta;
+}
+
 function extractContent(payload: unknown): string | null {
   if (typeof payload !== "object" || payload === null) return null;
   const choices = (payload as { choices?: unknown }).choices;
@@ -41,13 +61,23 @@ function parseJsonObject(content: string): unknown {
   }
 }
 
-/** 관계 연결 LLM 호출 — mention이 없거나 API키가 없거나 실패하면 전부 null(연결 없음 폴백). */
+/**
+ * 관계 연결 LLM 호출 — 결과를 terminal status로 보존한다(null 뭉개기 금지).
+ * 검색 경로는 status==="parsed"의 proposal만 사용하고, 나머지 status는 shadow 평가에서
+ * no_proposal의 원인(empty/json/schema/timeout)을 분해하는 데 쓴다.
+ */
 export async function linkRelations(
   frame: QueryFrame,
   fetchFn: typeof fetch = fetch,
-): Promise<{ proposal: LinkerProposal; meta: RelationLinkerMeta } | null> {
+): Promise<LinkerAttempt> {
+  const meta: RelationLinkerMeta = {
+    modelId: MODEL,
+    promptVersion: LINKER_PROMPT_VERSION,
+    latencyMs: 0,
+  };
   const apiKey = process.env.NVIDIA_API_KEY;
-  if (!apiKey || frame.mentions.length === 0) return null;
+  if (!apiKey) return { status: "no_key", meta };
+  if (frame.mentions.length === 0) return { status: "no_mentions", meta };
 
   const inventory = {
     query: frame.normalizedQuery,
@@ -91,23 +121,22 @@ export async function linkRelations(
       }),
       signal: controller.signal,
     });
-    if (!res.ok) return null;
+    meta.latencyMs = Date.now() - startedAt;
+    if (!res.ok) return { status: "http_error", meta };
     const payload: unknown = await res.json();
     const content = extractContent(payload);
-    const raw = content ? parseJsonObject(content) : null;
-    if (!raw) return null;
+    if (!content) return { status: "empty_content", meta };
+    const raw = parseJsonObject(content);
+    if (raw === null) return { status: "json_error", rawText: content, meta };
     const proposal = parseLinkerProposal(raw);
-    if (!proposal) return null;
-    return {
-      proposal,
-      meta: {
-        modelId: MODEL,
-        promptVersion: LINKER_PROMPT_VERSION,
-        latencyMs: Date.now() - startedAt,
-      },
-    };
-  } catch {
-    return null;
+    if (!proposal)
+      return { status: "schema_error", rawText: content, rawJson: raw, meta };
+    return { status: "parsed", rawText: content, rawJson: raw, proposal, meta };
+  } catch (e) {
+    meta.latencyMs = Date.now() - startedAt;
+    // AbortController.abort()는 AbortError를 던진다 → shadow timeout.
+    const timedOut = e instanceof Error && e.name === "AbortError";
+    return { status: timedOut ? "timeout" : "http_error", meta };
   } finally {
     clearTimeout(timer);
   }
