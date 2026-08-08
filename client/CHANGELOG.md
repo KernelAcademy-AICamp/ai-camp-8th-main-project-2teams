@@ -1,3 +1,8 @@
+## [0.2.11](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/compare/v0.2.10...v0.2.11) (2026-08-08)
+
+### Features
+
+* 컬러웨이 결속 프린팅 검색 + 시맨틱 링커(atomic v2)·On1a 배선 ([#53](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/issues/53)) ([71c8243](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/commit/71c8243ad610d19e860804d71c6f7734d1523761))
 ## [0.2.10](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/compare/v0.2.9...v0.2.10) (2026-08-06)
 
 ### Features
