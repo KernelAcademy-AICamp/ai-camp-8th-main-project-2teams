@@ -121,6 +121,7 @@ interface SearchPayload {
     printClauses: SemanticPrintClause[];
     coverage: number;
     ownership: { claimedSpans: [number, number][]; suppressedFlatAxes: string[] };
+    external: { surface: string; span: [number, number] }[];
     graphHash: string;
     modelId: string;
     latencyMs: number;
@@ -154,14 +155,17 @@ export async function POST(request: Request): Promise<Response> {
   // 0) 의미 해석(설계 §8) — env로 제어. shadow=관측만 / on=검증 통과분을 소프트로만 병합.
   //    실패는 해석 없음(§8.4). 본 검색과 병렬 실행.
   const llmSemanticMode = process.env.SEARCH_LLM_MODE;
-  const semanticActive = llmSemanticMode === "shadow" || llmSemanticMode === "on";
+  // 요청 llm=off는 §12 계약상 모든 LLM 경로를 끈다(의미 해석·관계 링커 포함).
+  const semanticActive =
+    (llmSemanticMode === "shadow" || llmSemanticMode === "on") && !llmOff;
   //    interpretSemantic은 실패를 null로 돌려주지만, 어떤 예외도 검색을 죽이지 않도록 한 번 더 방어.
   const semanticPromise = semanticActive
     ? interpretSemantic(query).catch((): null => null)
     : Promise.resolve(null);
 
   // 0b) 시맨틱 링커 Shadow1(§6) — mention 추출 후 관계 링커를 병렬 실행. 결과 미반영·응답 OFF 동일.
-  const linkerActive = llmSemanticMode === "shadow" || llmSemanticMode === "on";
+  const linkerActive =
+    (llmSemanticMode === "shadow" || llmSemanticMode === "on") && !llmOff;
   const linkerFrame = linkerActive ? buildQueryFrame(query) : null;
   const linkerPromise =
     linkerFrame && linkerFrame.mentions.length > 0
@@ -543,6 +547,7 @@ export async function POST(request: Request): Promise<Response> {
           printClauses: compiled.printClauses,
           coverage: compiled.coverage,
           ownership: ownershipPreview(linkerFrame, graph),
+          external: graph.external,
           graphHash: graph.graphHash,
           modelId: linked.meta.modelId,
           latencyMs: linked.meta.latencyMs,

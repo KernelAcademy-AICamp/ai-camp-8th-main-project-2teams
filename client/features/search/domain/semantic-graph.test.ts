@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { parseLinkerProposal } from "./linker-proposal";
 import { buildQueryFrame } from "./query-frame";
 import { resolveSemantic } from "./resolve-semantic";
+import { canonicalizeGraph, type ResolvedSemanticGraph } from "./semantic-graph";
 
 const build = (q: string) => {
   const frame = buildQueryFrame(q);
@@ -33,5 +34,29 @@ describe("graphHash", () => {
     const b = build("검은색이나 하얀색 무늬가 있는 빨간색 티셔츠");
     expect(a.graphHash).toBe(b.graphHash);
     expect(a.graphHash).toMatch(/^sg@[0-9a-f]{8}$/);
+  });
+
+  it("external 분리 결과가 다르면 hash가 다르다(관측에서 e46118d 수정 효과 구분)", () => {
+    const g = (external: ResolvedSemanticGraph["external"]): ResolvedSemanticGraph => ({
+      clauses: [
+        {
+          id: "c1",
+          base: [],
+          print: [],
+          placement: [],
+          graphic: [],
+          objectKind: "any_object",
+          existence: "independent",
+        },
+      ],
+      alternatives: [["c1"]],
+      productBaseColors: [],
+      external,
+      unresolved: [],
+      graphHash: "",
+    });
+    const withExt = canonicalizeGraph(g([{ surface: "노란색", span: [0, 3] }]), "inv");
+    const without = canonicalizeGraph(g([]), "inv");
+    expect(withExt).not.toBe(without);
   });
 });

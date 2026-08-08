@@ -9,6 +9,8 @@ export interface Cond {
   coverageProvenance: "hard_eligible" | "soft_only";
   evidence: string;
   relationEvidenceRefs: string[];
+  /** 이 Cond를 만든 mention id들(mXX). ownership을 캐논값이 아닌 정확한 span으로 산정하기 위함. */
+  sourceMentionRefs: string[];
 }
 export interface ResolvedClause {
   id: string;
@@ -54,6 +56,11 @@ export function canonicalizeGraph(
     })),
     alternatives: g.alternatives,
     productBaseColors: g.productBaseColors.map((x) => [...x.values].sort()),
+    // external(외부 맥락으로 분리한 색)도 canonical에 포함 — 같은 쿼리라도 외부 분리 결과가
+    // 다르면 hash가 달라져야 Shadow 관측/캐시에서 e46118d 수정 효과를 구분할 수 있다.
+    external: g.external
+      .map((e) => [e.span[0], e.span[1], e.surface] as const)
+      .sort((a, b) => a[0] - b[0] || a[1] - b[1] || a[2].localeCompare(b[2])),
     inventoryHash,
     compiler: COMPILER_VERSION,
   };

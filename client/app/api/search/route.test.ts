@@ -817,15 +817,21 @@ describe("POST /api/search — semantic linker shadow(§6 Shadow1)", () => {
     const off = offRes.body as {
       results: unknown[];
       mode: string;
+      intent: unknown;
+      titleTier: unknown;
       semanticLinkerShadow?: unknown;
     };
     const sh = shRes.body as {
       results: unknown[];
       mode: string;
+      intent: unknown;
+      titleTier: unknown;
       semanticLinkerShadow?: { printClauses: { printColors: string[] }[] };
     };
     expect(sh.results).toEqual(off.results); // 결과 동일
     expect(sh.mode).toBe(off.mode); // mode 동일
+    expect(sh.intent).toEqual(off.intent); // §7: intent도 OFF와 동일
+    expect(sh.titleTier).toEqual(off.titleTier); // §7: titleTier도 OFF와 동일
     expect(off.semanticLinkerShadow).toBeUndefined(); // off엔 없음
     if (sh.mode !== "failed") {
       expect(sh.semanticLinkerShadow?.printClauses[0].printColors.sort()).toEqual([
@@ -833,5 +839,25 @@ describe("POST /api/search — semantic linker shadow(§6 Shadow1)", () => {
         "화이트",
       ]);
     }
+  });
+
+  it("mode=shadow라도 요청 llm=off면 링커를 호출하지 않고 관측 필드도 없다(§12)", async () => {
+    vi.stubEnv("SEARCH_LLM_MODE", "shadow");
+    linkerMock.mockResolvedValue(PROPOSAL);
+    const res = await post("검은색이나 하얀색 무늬가 있는 빨간색 티셔츠", {
+      llm: "off",
+    });
+    const b = res.body as { semanticLinkerShadow?: unknown };
+    expect(linkerMock).not.toHaveBeenCalled();
+    expect(b.semanticLinkerShadow).toBeUndefined();
+  });
+
+  it("링커가 null(타임아웃·실패)이면 관측 필드 없이 OFF와 동일하게 동작한다(폴백)", async () => {
+    parseMock.mockResolvedValue({ intent: EMPTY_INTENT, degraded: true });
+    vi.stubEnv("SEARCH_LLM_MODE", "shadow");
+    linkerMock.mockResolvedValue(null);
+    const res = await post("검은색이나 하얀색 무늬가 있는 빨간색 티셔츠");
+    const b = res.body as { semanticLinkerShadow?: unknown };
+    expect(b.semanticLinkerShadow).toBeUndefined();
   });
 });

@@ -54,4 +54,40 @@ describe("parseLinkerProposal", () => {
     } as unknown as (typeof bad.clauses)[0]["base"];
     expect(parseLinkerProposal(bad)).toBeNull();
   });
+  it("newMentions가 비어있지 않으면 조용히 드롭하지 않고 null(Shadow1 미지원)", () => {
+    const bad = structuredClone(VALID);
+    bad.newMentions = [
+      { localId: "u01", kind: "color", evidence: "형광" },
+    ] as unknown as typeof bad.newMentions;
+    expect(parseLinkerProposal(bad)).toBeNull();
+  });
+  it("anchorRefs에 비문자열이 섞이면 조용히 드롭하지 않고 null", () => {
+    const bad = structuredClone(VALID);
+    bad.clauses[0].anchorRefs = ["a01", 7] as unknown as string[];
+    expect(parseLinkerProposal(bad)).toBeNull();
+  });
+  it("alternatives.operatorRef가 문자열이 아니면 조용히 undefined로 바꾸지 않고 null", () => {
+    const bad = structuredClone(VALID);
+    bad.alternatives = [
+      { clauseIndexes: [0], operatorRef: 7 },
+    ] as unknown as typeof bad.alternatives;
+    expect(parseLinkerProposal(bad)).toBeNull();
+  });
+  it("FieldGroup.operatorRef가 문자열이 아니면 조용히 undefined로 바꾸지 않고 null", () => {
+    const bad = structuredClone(VALID);
+    bad.clauses[0].base = {
+      refs: ["m03"],
+      operator: "single",
+      operatorRef: 7,
+    } as unknown as (typeof bad.clauses)[0]["base"];
+    expect(parseLinkerProposal(bad)).toBeNull();
+  });
+  it("objectKind가 있으면(Shadow1 미지원) 조용히 버리지 않고 null", () => {
+    const bad = structuredClone(VALID);
+    bad.clauses[0] = {
+      ...bad.clauses[0],
+      objectKind: "pattern_object",
+    } as unknown as (typeof bad.clauses)[0];
+    expect(parseLinkerProposal(bad)).toBeNull();
+  });
 });

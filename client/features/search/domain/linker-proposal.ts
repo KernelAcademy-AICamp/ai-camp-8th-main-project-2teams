@@ -41,6 +41,8 @@ function parseField(v: unknown): FieldGroup | null {
   const operator =
     r.operator === "anyOf" ? "anyOf" : r.operator === "single" ? "single" : null;
   if (!operator) return null;
+  // operatorRef가 있는데 문자열이 아니면 조용히 undefined로 바꾸지 말고 전체 무효(무손실).
+  if (r.operatorRef !== undefined && typeof r.operatorRef !== "string") return null;
   const operatorRef = typeof r.operatorRef === "string" ? r.operatorRef : undefined;
   if (refs.length >= 2 && operator === "anyOf" && !operatorRef) return null; // OR 근거 필수
   if (refs.length >= 2 && operator !== "anyOf") return null;
@@ -61,13 +63,17 @@ export function parseLinkerProposal(raw: unknown): LinkerProposal | null {
     const placement = parseField(cr.placement);
     const graphic = parseField(cr.graphic);
     if (!base || !print || !placement || !graphic) return null;
+    const anchorRefs = cr.anchorRefs.filter((x): x is string => typeof x === "string");
+    if (anchorRefs.length !== cr.anchorRefs.length) return null; // 비문자열 섞이면 조용히 삭제 말고 전체 무효
+    // Shadow1은 objectKind(다객체 구분)를 지원하지 않고 resolve가 always any_object로
+    // 정규화한다. 값이 오면 조용히 버리지 말고 무효화 — 서버가 못 지키는 관계 정보이기 때문.
+    if (cr.objectKind !== undefined) return null;
     clauses.push({
       base,
       print,
       placement,
       graphic,
-      anchorRefs: cr.anchorRefs.filter((x): x is string => typeof x === "string"),
-      objectKind: typeof cr.objectKind === "string" ? cr.objectKind : undefined,
+      anchorRefs,
     });
   }
   const alternatives: ProposalAlternative[] = [];
@@ -78,6 +84,8 @@ export function parseLinkerProposal(raw: unknown): LinkerProposal | null {
       (x): x is number => typeof x === "number",
     );
     if (clauseIndexes.length !== ar.clauseIndexes.length) return null;
+    // operatorRef가 있는데 문자열이 아니면 조용히 undefined로 바꾸지 말고 전체 무효.
+    if (ar.operatorRef !== undefined && typeof ar.operatorRef !== "string") return null;
     alternatives.push({
       clauseIndexes,
       operatorRef: typeof ar.operatorRef === "string" ? ar.operatorRef : undefined,
@@ -87,5 +95,11 @@ export function parseLinkerProposal(raw: unknown): LinkerProposal | null {
   const externalRaw = Array.isArray(r.external) ? r.external : [];
   const external = externalRaw.filter((x): x is string => typeof x === "string");
   if (external.length !== externalRaw.length) return null;
-  return { clauses, alternatives, external, newMentions: [] }; // Shadow1: newMentions 미지원
+  // Shadow1은 newMentions(신규 표현 도입)를 지원하지 않는다. 비어있지 않으면 조용히 []로
+  // 삭제하지 말고 후보 전체를 무효화한다 — LLM이 프레임 밖 표현을 끼워넣은 신호이기 때문.
+  if (r.newMentions !== undefined) {
+    if (!Array.isArray(r.newMentions)) return null;
+    if (r.newMentions.length > 0) return null;
+  }
+  return { clauses, alternatives, external, newMentions: [] };
 }
