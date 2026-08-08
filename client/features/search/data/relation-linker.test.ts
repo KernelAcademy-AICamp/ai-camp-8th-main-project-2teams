@@ -13,26 +13,21 @@ const okResponse = (obj: unknown) =>
   }) as never;
 
 describe("linkRelations", () => {
-  it("LLM JSON을 파싱해 LinkerProposal 반환", async () => {
+  it("LLM JSON을 파싱해 AtomicProposal 반환", async () => {
     process.env.NVIDIA_API_KEY = "k";
     const proposal = {
-      clauses: [
-        {
-          base: { refs: ["m03"], operator: "single" },
-          print: { refs: ["m01", "m02"], operator: "anyOf", operatorRef: "o01" },
-          placement: { refs: [], operator: "single" },
-          graphic: { refs: [], operator: "single" },
-          anchorRefs: ["a01"],
-        },
+      assignments: [
+        { mentionRef: "m01", target: "print" },
+        { mentionRef: "m02", target: "print" },
+        { mentionRef: "m03", target: "base" },
       ],
-      alternatives: [{ clauseIndexes: [0] }],
-      external: [],
-      newMentions: [],
+      orGroups: [{ memberRefs: ["m01", "m02"], operatorRef: "o01" }],
     };
     const fetchMock = vi.fn().mockResolvedValue(okResponse(proposal));
     const r = await linkRelations(frame(), fetchMock as typeof fetch);
     expect(r.status).toBe("parsed");
-    expect(r.proposal?.clauses[0].print.refs).toEqual(["m01", "m02"]);
+    expect(r.proposal?.assignments).toHaveLength(3);
+    expect(r.proposal?.orGroups[0].operatorRef).toBe("o01");
   });
 
   it("비ok 응답은 http_error(null 아님)", async () => {
@@ -68,22 +63,8 @@ describe("linkRelations", () => {
 
   it("JSON은 되나 스키마 위반은 schema_error + rawJson 보존", async () => {
     process.env.NVIDIA_API_KEY = "k";
-    // objectKind 있으면 parseLinkerProposal이 통째 거부(Shadow1 미지원)
-    const bad = {
-      clauses: [
-        {
-          base: { refs: ["m03"], operator: "single" },
-          print: { refs: ["m01", "m02"], operator: "anyOf", operatorRef: "o01" },
-          placement: { refs: [], operator: "single" },
-          graphic: { refs: [], operator: "single" },
-          anchorRefs: ["a01"],
-          objectKind: "pattern_object",
-        },
-      ],
-      alternatives: [{ clauseIndexes: [0] }],
-      external: [],
-      newMentions: [],
-    };
+    // 잘못된 target → parseAtomicProposal이 통째 거부
+    const bad = { assignments: [{ mentionRef: "m01", target: "몸통" }] };
     const fetchMock = vi.fn().mockResolvedValue(okResponse(bad));
     const r = await linkRelations(frame(), fetchMock as typeof fetch);
     expect(r.status).toBe("schema_error");

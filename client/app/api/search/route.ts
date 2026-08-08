@@ -25,6 +25,10 @@ import {
   type LinkerCallStatus,
   linkRelations,
 } from "@/features/search/data/relation-linker";
+import {
+  type AtomicRawAssignment,
+  deriveAtomicRawAssignments,
+} from "@/features/search/domain/atomic-proposal";
 import { colorwayPlanToChips } from "@/features/search/domain/colorway-chips";
 import type { ColorwayProductRow } from "@/features/search/domain/colorway-evaluate";
 import {
@@ -37,6 +41,7 @@ import {
   runColorwayLane,
 } from "@/features/search/domain/colorway-lane";
 import { isEmptyColorwayPlan } from "@/features/search/domain/colorway-plan";
+import { compileAtomic } from "@/features/search/domain/compile-atomic";
 import {
   compileSemanticPlan,
   type SemanticPrintClause,
@@ -59,7 +64,6 @@ import { pickColorImage } from "@/features/search/domain/pick-color-image";
 import { buildQueryFrame } from "@/features/search/domain/query-frame";
 import { EMPTY_INTENT, type QueryIntent } from "@/features/search/domain/query-intent";
 import { rankGoods } from "@/features/search/domain/rank-goods";
-import { resolveSemantic } from "@/features/search/domain/resolve-semantic";
 import { resolveIntent } from "@/features/search/domain/resolved-intent";
 import {
   hasNonTitleHardFilters,
@@ -71,10 +75,6 @@ import {
   deriveSearchMode,
   type SearchMode,
 } from "@/features/search/domain/search-mode";
-import {
-  deriveRawAssignments,
-  type RawAssignment,
-} from "@/features/search/domain/semantic-assignments";
 import { ownershipPreview } from "@/features/search/domain/semantic-ownership";
 import {
   type SemanticExpression,
@@ -107,6 +107,13 @@ function readLlmOff(body: unknown): boolean {
   return (body as Record<string, unknown>).llm === "off";
 }
 
+// 링커 모델 오버라이드(eval 전용 — 모델 상한 비교). 부재 시 env 모델.
+function readLinkerModel(body: unknown): string | undefined {
+  if (typeof body !== "object" || body === null) return undefined;
+  const m = (body as Record<string, unknown>).linkerModel;
+  return typeof m === "string" ? m : undefined;
+}
+
 interface SearchPayload {
   results: Goods[];
   intent: QueryIntent;
@@ -131,14 +138,21 @@ interface SearchPayload {
      * 호출단계(no_key/no_mentions/http_error/timeout/empty_content/json_error/schema_error)
      * + 검증단계(valid_graph=통과 / validation_error=파싱됐으나 검증 거부).
      */
-    status: Exclude<LinkerCallStatus, "parsed"> | "valid_graph" | "validation_error";
+    status:
+      | Exclude<LinkerCallStatus, "parsed">
+      | "valid_graph"
+      | "valid_abstain"
+      | "validation_error";
     modelId: string;
+    promptVersion: string;
     latencyMs: number;
     /** 진단용 — 스키마 검증 전 원문/JSON(shadow 전용). */
     rawText?: string;
     rawJson?: unknown;
     /** 파싱된 경우: 검증 성패와 무관한 색/그래픽별 target 귀속(base/print 역전 측정용). */
-    rawAssignments?: RawAssignment[];
+    rawAssignments?: AtomicRawAssignment[];
+    /** validation_error일 때 원인 코드(무손실 진단). */
+    compileErrors?: string[];
     // 아래는 valid_graph일 때만 존재(검증 통과 후 컴파일 결과).
     printClauses?: SemanticPrintClause[];
     coverage?: number;
@@ -187,9 +201,10 @@ export async function POST(request: Request): Promise<Response> {
   const linkerActive =
     (llmSemanticMode === "shadow" || llmSemanticMode === "on") && !llmOff;
   const linkerFrame = linkerActive ? buildQueryFrame(query) : null;
+  const linkerModel = readLinkerModel(body);
   // linkRelations는 no_mentions·실패를 status로 자체 보존한다(null 반환 안 함). 예외만 방어.
   const linkerPromise: Promise<LinkerAttempt | null> = linkerFrame
-    ? linkRelations(linkerFrame).catch((): null => null)
+    ? linkRelations(linkerFrame, fetch, linkerModel).catch((): null => null)
     : Promise.resolve(null);
 
   // 1) LLM 파싱(semantic 레인) — 계약 불변. llm=off면 호출 자체를 생략하고
@@ -562,32 +577,40 @@ export async function POST(request: Request): Promise<Response> {
     try {
       const base = {
         modelId: attempt.meta.modelId,
+        promptVersion: attempt.meta.promptVersion,
         latencyMs: attempt.meta.latencyMs,
         rawText: attempt.rawText,
         rawJson: attempt.rawJson,
       };
       if (attempt.status === "parsed" && attempt.proposal) {
         // 파싱된 제안의 raw 귀속은 검증 성패와 무관하게 관측한다(부분 관측 허용).
-        const rawAssignments = deriveRawAssignments(linkerFrame, attempt.proposal);
-        const graph = resolveSemantic(linkerFrame, attempt.proposal);
-        if (graph) {
-          const compiled = compileSemanticPlan(graph);
+        const rawAssignments = deriveAtomicRawAssignments(
+          linkerFrame,
+          attempt.proposal,
+        );
+        const compiled = compileAtomic(linkerFrame, attempt.proposal);
+        if (compiled.disposition === "valid_graph" && compiled.graph) {
+          const plan = compileSemanticPlan(compiled.graph);
           semanticLinkerShadow = {
             ...base,
             status: "valid_graph",
             rawAssignments,
-            printClauses: compiled.printClauses,
-            coverage: compiled.coverage,
-            ownership: ownershipPreview(linkerFrame, graph),
-            external: graph.external,
-            graphHash: graph.graphHash,
+            printClauses: plan.printClauses,
+            coverage: plan.coverage,
+            ownership: ownershipPreview(linkerFrame, compiled.graph),
+            external: compiled.graph.external,
+            graphHash: compiled.graph.graphHash,
           };
+        } else if (compiled.disposition === "valid_abstain") {
+          // unresolved 포함 — 완전한 의미적 abstain(실행 부적격, 관측만).
+          semanticLinkerShadow = { ...base, status: "valid_abstain", rawAssignments };
         } else {
           // 파싱은 됐으나 검증 거부 — 의미 오류(역전·누락·환각)를 관측만(실행 미반영).
           semanticLinkerShadow = {
             ...base,
             status: "validation_error",
             rawAssignments,
+            compileErrors: compiled.errors,
           };
         }
       } else if (attempt.status !== "parsed") {

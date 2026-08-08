@@ -791,20 +791,14 @@ describe("POST /api/search — semantic linker shadow(§6 Shadow1)", () => {
   const PROPOSAL = {
     status: "parsed",
     proposal: {
-      clauses: [
-        {
-          base: { refs: ["m03"], operator: "single" },
-          print: { refs: ["m01", "m02"], operator: "anyOf", operatorRef: "o01" },
-          placement: { refs: [], operator: "single" },
-          graphic: { refs: [], operator: "single" },
-          anchorRefs: ["a01"],
-        },
+      assignments: [
+        { mentionRef: "m01", target: "print" },
+        { mentionRef: "m02", target: "print" },
+        { mentionRef: "m03", target: "base" },
       ],
-      alternatives: [{ clauseIndexes: [0] }],
-      external: [],
-      newMentions: [],
+      orGroups: [{ memberRefs: ["m01", "m02"], operatorRef: "o01" }],
     },
-    meta: { modelId: "m", promptVersion: "relation-linker@v1", latencyMs: 5 },
+    meta: { modelId: "m", promptVersion: "relation-linker@v2", latencyMs: 5 },
   };
 
   it("shadow: 후보 plan을 관측 필드로 기록하되 결과·mode는 OFF와 동일", async () => {
@@ -871,24 +865,18 @@ describe("POST /api/search — semantic linker shadow(§6 Shadow1)", () => {
   it("파싱됐으나 검증 거부되면 status=validation_error + rawAssignments 관측(역전 등)", async () => {
     parseMock.mockResolvedValue({ intent: EMPTY_INTENT, degraded: true });
     vi.stubEnv("SEARCH_LLM_MODE", "shadow");
-    // 역전 제안: 빨간색(m03)을 print, 검은/하얀을 base → 검증이 거부하지만 rawAssignments는 남는다
+    // 역전 제안: 빨간색(m03)을 print, 검은/하얀을 base → rawAssignments에 그대로 관측된다
     linkerMock.mockResolvedValue({
       status: "parsed",
       proposal: {
-        clauses: [
-          {
-            base: { refs: ["m01", "m02"], operator: "anyOf", operatorRef: "o01" },
-            print: { refs: ["m03"], operator: "single" },
-            placement: { refs: [], operator: "single" },
-            graphic: { refs: [], operator: "single" },
-            anchorRefs: ["a01"],
-          },
+        assignments: [
+          { mentionRef: "m01", target: "base" },
+          { mentionRef: "m02", target: "base" },
+          { mentionRef: "m03", target: "print" },
         ],
-        alternatives: [{ clauseIndexes: [0] }],
-        external: [],
-        newMentions: [],
+        orGroups: [{ memberRefs: ["m01", "m02"], operatorRef: "o01" }],
       },
-      meta: { modelId: "m", promptVersion: "relation-linker@v1", latencyMs: 5 },
+      meta: { modelId: "m", promptVersion: "relation-linker@v2", latencyMs: 5 },
     });
     const res = await post("검은색이나 하얀색 무늬가 있는 빨간색 티셔츠");
     const b = res.body as {
