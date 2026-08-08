@@ -1,3 +1,17 @@
+> ✅ **완료(2026-08-08)**: atomic-IR 전환으로 목표 달성. 커밋 ace137a(lossless attempt)·b4d2e9c(atomic v2).
+>
+> **최종 측정(골든, RUNS=3 worst-of-runs, supported 42건):**
+> | 지표 | flash | pro |
+> |---|---|---|
+> | proposalExact(raw) | 88% | 88% |
+> | executableExactYield | 76% | 81% |
+> | selectiveRisk | 3%(1) | 0% |
+> | unsupportedSafeReject | 77% | 77% |
+>
+> **결론**: 포맷(nested→atomic)이 병목이었음이 입증(flash nested 0%→atomic 76% executable). 모델 티어는 포맷 고친 뒤 근소차 → **shadow는 flash 유지**, pro는 On 재평가 후보. base↔print 역전 0(양 모델·RUNS3).
+> **Task6 결정**: 4A(anchor규칙)·4B(few-shot) = 잔여가 반복 supported 패턴 아님(범위밖·산발 schema) → **불필요, 스킵**. critic(2콜) = 역전0·accepted_wrong≤1 → **스킵**(재개조건: RUNS3에서 위험오답이 valid graph로 반복 + 결정적 검증으로 구별 불가 시). atomic v2는 **shadow 유지**.
+> **On 승격 = 별도 실행안전성 계획**(조건: supported sealed RUNS3 accepted_wrong 0, 실PrintClause 어댑터·런타임 재검증, ExecutionBundle all-or-nothing·flat colors 소유권, off/0건/fallback 계약, 충분한 shadow 표본에서 검색·intent·titleTokens 불변). 잔여 개선여지: supportedRejectRate 17%(supported인데 거부된 7건), unsupported 3건 valid_graph 누출(다clause 안전거부 강화).
+
 # Relation Linker 프롬프트 품질 + 평가 루프 구현 계획
 
 > 실행자 안내: `superpowers:subagent-driven-development` 또는 `executing-plans`로 태스크 단위 실행. 각 단계 체크박스로 추적.
