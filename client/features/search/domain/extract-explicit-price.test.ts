@@ -42,8 +42,12 @@ describe("extractExplicitPrice", () => {
     expect(extractExplicitPrice("가성비 반팔")).toBeNull();
   });
 
-  it("'3만원대'도 모호(원대) → null", () => {
-    expect(extractExplicitPrice("3만원대 반팔")).toBeNull();
+  it("'3만원대'는 결정적 범위로 인식한다(2026-08-07 변경 — 구: LLM 위임)", () => {
+    // 숫자+만원대는 모호하지 않다: 30000~39999. llm=off 모드에서도 가격 검색이 되도록 승격.
+    expect(extractExplicitPrice("3만원대 셔츠")).toEqual({
+      priceMin: 30000,
+      priceMax: 39999,
+    });
   });
 
   it("'5만원 넘는' → priceMin=50000", () => {
@@ -106,5 +110,18 @@ describe("extractExplicitPrice", () => {
     expect(extractExplicitPrice("1만원 이하인 티")).toEqual({
       priceMax: 10000,
     });
+  });
+
+  it("N만원대는 결정적 범위다: N만원 이상 (N+1)만원 미만", () => {
+    expect(extractExplicitPrice("2만원대 티셔츠")).toEqual({
+      priceMin: 20000,
+      priceMax: 29999,
+    });
+    expect(extractExplicitPrice("사이즈 95인 2만원대 티")).toEqual({
+      priceMin: 20000,
+      priceMax: 29999,
+    });
+    // 숫자 없는 "만원대"는 여전히 LLM에 맡긴다.
+    expect(extractExplicitPrice("만원대 티셔츠")).toBeNull();
   });
 });

@@ -29,7 +29,8 @@ export function hasSearchSignal(intent: QueryIntent): boolean {
     intent.priceMax != null ||
     styleHasAny(intent.style) ||
     styleHasAny(intent.exclude) ||
-    WEAR_AXES.some((axis) => intent.wearChars[axis].length > 0)
+    WEAR_AXES.some((axis) => intent.wearChars[axis].length > 0) ||
+    intent.reviewTags.length > 0
   );
 }
 

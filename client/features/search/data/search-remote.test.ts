@@ -18,6 +18,8 @@ describe("searchRemote — mode 계약", () => {
       titleTier: null,
       titleSalvage: false,
       titleDropped: false,
+      colorwayChips: [],
+      semanticShadow: null,
     });
   });
 
@@ -26,7 +28,7 @@ describe("searchRemote — mode 계약", () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValue(res({ results: goods, intent: EMPTY_INTENT, mode: "full" }));
-    const r = await searchRemote("검정 티", fetchMock as typeof fetch);
+    const r = await searchRemote("검정 티", { fetchFn: fetchMock as typeof fetch });
     expect(r.mode).toBe("full");
     expect(r.results).toHaveLength(1);
   });
@@ -38,7 +40,7 @@ describe("searchRemote — mode 계약", () => {
       .mockResolvedValue(
         res({ results: goods, intent: EMPTY_INTENT, mode: "lexical_only" }),
       );
-    const r = await searchRemote("나이키", fetchMock as typeof fetch);
+    const r = await searchRemote("나이키", { fetchFn: fetchMock as typeof fetch });
     expect(r.mode).toBe("lexical_only");
     expect(r.results).toHaveLength(1);
   });
@@ -47,7 +49,7 @@ describe("searchRemote — mode 계약", () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValue(res({ results: [], intent: EMPTY_INTENT, mode: "failed" }));
-    const r = await searchRemote("아무말", fetchMock as typeof fetch);
+    const r = await searchRemote("아무말", { fetchFn: fetchMock as typeof fetch });
     expect(r).toEqual({
       results: [],
       intent: EMPTY_INTENT,
@@ -55,18 +57,20 @@ describe("searchRemote — mode 계약", () => {
       titleTier: null,
       titleSalvage: false,
       titleDropped: false,
+      colorwayChips: [],
+      semanticShadow: null,
     });
   });
 
   it("네트워크 오류 → failed", async () => {
     const fetchMock = vi.fn().mockRejectedValue(new Error("net"));
-    const r = await searchRemote("x", fetchMock as typeof fetch);
+    const r = await searchRemote("x", { fetchFn: fetchMock as typeof fetch });
     expect(r.mode).toBe("failed");
   });
 
   it("mode가 없는 비정상 응답 → failed", async () => {
     const fetchMock = vi.fn().mockResolvedValue(res({ results: [] }));
-    const r = await searchRemote("x", fetchMock as typeof fetch);
+    const r = await searchRemote("x", { fetchFn: fetchMock as typeof fetch });
     expect(r.mode).toBe("failed");
   });
   it("titleTier를 패스스루한다(없으면 null)", async () => {
@@ -75,7 +79,7 @@ describe("searchRemote — mode 계약", () => {
       .mockResolvedValue(
         res({ results: [], intent: EMPTY_INTENT, mode: "full", titleTier: "and" }),
       );
-    const r = await searchRemote("드라이핏", fetchMock as typeof fetch);
+    const r = await searchRemote("드라이핏", { fetchFn: fetchMock as typeof fetch });
     expect(r.titleTier).toBe("and");
   });
 
@@ -85,13 +89,17 @@ describe("searchRemote — mode 계약", () => {
       .mockResolvedValue(
         res({ results: [], intent: EMPTY_INTENT, mode: "full", titleSalvage: true }),
       );
-    const r = await searchRemote("택티컬 티셔츠", fetchMock as typeof fetch);
+    const r = await searchRemote("택티컬 티셔츠", {
+      fetchFn: fetchMock as typeof fetch,
+    });
     expect(r.titleSalvage).toBe(true);
 
     const fetchMockNoField = vi
       .fn()
       .mockResolvedValue(res({ results: [], intent: EMPTY_INTENT, mode: "full" }));
-    const r2 = await searchRemote("드라이핏", fetchMockNoField as typeof fetch);
+    const r2 = await searchRemote("드라이핏", {
+      fetchFn: fetchMockNoField as typeof fetch,
+    });
     expect(r2.titleSalvage).toBe(false);
   });
 
@@ -101,13 +109,17 @@ describe("searchRemote — mode 계약", () => {
       .mockResolvedValue(
         res({ results: [], intent: EMPTY_INTENT, mode: "full", titleDropped: true }),
       );
-    const r = await searchRemote("저기 그거 있나요", fetchMock as typeof fetch);
+    const r = await searchRemote("저기 그거 있나요", {
+      fetchFn: fetchMock as typeof fetch,
+    });
     expect(r.titleDropped).toBe(true);
 
     const fetchMockNoField = vi
       .fn()
       .mockResolvedValue(res({ results: [], intent: EMPTY_INTENT, mode: "full" }));
-    const r2 = await searchRemote("드라이핏", fetchMockNoField as typeof fetch);
+    const r2 = await searchRemote("드라이핏", {
+      fetchFn: fetchMockNoField as typeof fetch,
+    });
     expect(r2.titleDropped).toBe(false);
   });
 });
