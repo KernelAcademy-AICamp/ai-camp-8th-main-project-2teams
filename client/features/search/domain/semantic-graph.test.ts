@@ -1,31 +1,22 @@
 // semantic-graph.test.ts
 import { describe, expect, it } from "vitest";
 
-import { parseLinkerProposal } from "./linker-proposal";
+import { compileAtomic } from "./compile-atomic";
 import { buildQueryFrame } from "./query-frame";
-import { resolveSemantic } from "./resolve-semantic";
 import { canonicalizeGraph, type ResolvedSemanticGraph } from "./semantic-graph";
 
 const build = (q: string) => {
   const frame = buildQueryFrame(q);
-  const p = parseLinkerProposal({
-    clauses: [
-      {
-        base: { refs: ["m03"], operator: "single" },
-        print: { refs: ["m01", "m02"], operator: "anyOf", operatorRef: "o01" },
-        placement: { refs: [], operator: "single" },
-        graphic: { refs: [], operator: "single" },
-        anchorRefs: ["a01"],
-      },
+  const r = compileAtomic(frame, {
+    assignments: [
+      { mentionRef: "m01", target: "print" },
+      { mentionRef: "m02", target: "print" },
+      { mentionRef: "m03", target: "base" },
     ],
-    alternatives: [{ clauseIndexes: [0] }],
-    external: [],
-    newMentions: [],
+    orGroups: [{ memberRefs: ["m01", "m02"], operatorRef: "o01" }],
   });
-  if (!p) throw new Error("fixture proposal 파싱 실패");
-  const g = resolveSemantic(frame, p);
-  if (!g) throw new Error("expected non-null graph");
-  return g;
+  if (!r.graph) throw new Error("expected non-null graph");
+  return r.graph;
 };
 
 describe("graphHash", () => {

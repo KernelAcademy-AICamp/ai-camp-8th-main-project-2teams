@@ -1,31 +1,22 @@
 import { describe, expect, it } from "vitest";
 
+import { compileAtomic } from "./compile-atomic";
 import { compileSemanticPlan } from "./compile-semantic-plan";
-import { parseLinkerProposal } from "./linker-proposal";
 import { buildQueryFrame } from "./query-frame";
-import { resolveSemantic } from "./resolve-semantic";
 import type { ResolvedSemanticGraph } from "./semantic-graph";
 
 const graph = () => {
   const f = buildQueryFrame("검은색이나 하얀색 무늬가 있는 빨간색 티셔츠");
-  const p = parseLinkerProposal({
-    clauses: [
-      {
-        base: { refs: ["m03"], operator: "single" },
-        print: { refs: ["m01", "m02"], operator: "anyOf", operatorRef: "o01" },
-        placement: { refs: [], operator: "single" },
-        graphic: { refs: [], operator: "single" },
-        anchorRefs: ["a01"],
-      },
+  const r = compileAtomic(f, {
+    assignments: [
+      { mentionRef: "m01", target: "print" },
+      { mentionRef: "m02", target: "print" },
+      { mentionRef: "m03", target: "base" },
     ],
-    alternatives: [{ clauseIndexes: [0] }],
-    external: [],
-    newMentions: [],
+    orGroups: [{ memberRefs: ["m01", "m02"], operatorRef: "o01" }],
   });
-  if (!p) throw new Error("fixture proposal 파싱 실패");
-  const g = resolveSemantic(f, p);
-  if (!g) throw new Error("fixture graph 해소 실패");
-  return g;
+  if (!r.graph) throw new Error("fixture graph 해소 실패");
+  return r.graph;
 };
 
 describe("compileSemanticPlan", () => {
