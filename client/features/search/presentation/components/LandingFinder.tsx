@@ -54,8 +54,12 @@ export default function LandingFinder() {
     const trimmed = value.trim();
     if (!trimmed || isPending) return;
 
+    // llm=off 모드(로고 토글) 유지 — URL 파라미터로 전파(스펙 결정 2).
+    const llmOff = new URLSearchParams(window.location.search).get("llm") === "off";
     startTransition(() => {
-      router.push(`/search?q=${encodeURIComponent(trimmed)}&src=${source}`);
+      router.push(
+        `/search?q=${encodeURIComponent(trimmed)}&src=${source}${llmOff ? "&llm=off" : ""}`,
+      );
     });
   };
 

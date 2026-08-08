@@ -1,6 +1,7 @@
-import Link from "next/link";
+import { Suspense } from "react";
 
 import HeroVideo from "@/components/HeroVideo";
+import BrandToggle from "@/features/search/presentation/components/BrandToggle";
 import LandingFinder from "@/features/search/presentation/components/LandingFinder";
 
 export default function LandingPage() {
@@ -14,9 +15,9 @@ export default function LandingPage() {
       <div className="tf-home__veil" aria-hidden="true" />
 
       <header className="tf-nav">
-        <Link href="/" className="tf-nav__brand">
-          티:파운드
-        </Link>
+        <Suspense fallback={<span className="tf-nav__brand">티:파운드</span>}>
+          <BrandToggle />
+        </Suspense>
       </header>
 
       <section className="tf-hero" aria-labelledby="hero-title">

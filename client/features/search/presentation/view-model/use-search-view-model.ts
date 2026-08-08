@@ -25,6 +25,9 @@ import {
 export interface SearchViewModel {
   loading: boolean;
   chips: IntentChip[];
+  semanticShadow: SearchOutcome["semanticShadow"];
+  /** 0건 구제로 스타일 조건(색·핏 등)이 완화되었는가 — UI 안내용. */
+  titleSalvage: boolean;
   results: Goods[];
   mode: SearchMode;
   searchId: string;
@@ -37,22 +40,35 @@ interface Parsed {
   intent: QueryIntent;
   results: Goods[];
   mode: SearchMode;
+  colorwayChips: IntentChip[];
+  semanticShadow: SearchOutcome["semanticShadow"];
+  titleSalvage: boolean;
 }
 const EMPTY_PARSED: Parsed = {
   query: "",
   intent: EMPTY_INTENT,
   results: [],
   mode: "full",
+  colorwayChips: [],
+  semanticShadow: null,
+  titleSalvage: false,
 };
 
 function parsedFrom(query: string, outcome: SearchOutcome): Parsed {
-  const { results, intent, mode } = outcome;
-  return { query, intent, results, mode };
+  const { results, intent, mode, colorwayChips, semanticShadow, titleSalvage } =
+    outcome;
+  return { query, intent, results, mode, colorwayChips, semanticShadow, titleSalvage };
 }
 
-export function useSearchViewModel(query: string, src: string | null): SearchViewModel {
+export function useSearchViewModel(
+  query: string,
+  src: string | null,
+  llmOff = false,
+): SearchViewModel {
+  // llm=off는 별도 캐시 키 — 모드 간 결과가 섞이면 안 된다(로고 토글 스펙).
+  const cacheKey = llmOff ? `llm-off::${query}` : query;
   // 캐시 적중 시 초기값으로 즉시 복원 — remount(상세→뒤로가기)에도 로딩 깜빡임 없이 결과를 보여준다.
-  const cached = getCachedSearch(query);
+  const cached = getCachedSearch(cacheKey);
   const [searchId, setSearchId] = useState(() => cached?.searchId ?? "");
   const [parsed, setParsed] = useState<Parsed>(() =>
     cached ? parsedFrom(query, cached.outcome) : EMPTY_PARSED,
@@ -72,7 +88,7 @@ export function useSearchViewModel(query: string, src: string | null): SearchVie
     // 캐시 적중 — 이미 이 세션에서 검색한 쿼리. 재검색·재-track 없이 결과만 복원한다.
     // (상세→뒤로가기로 remount될 때가 여기.) searchId도 재사용해 클릭 이벤트가 원래 검색에 묶인다.
     // 마이크로태스크로 미뤄 effect 본문의 동기 setState(연쇄 렌더)를 피한다 — fetch 경로와 동일 규약.
-    const hit = getCachedSearch(query);
+    const hit = getCachedSearch(cacheKey);
     if (hit) {
       void Promise.resolve().then(() => {
         if (!active) return;
@@ -84,12 +100,20 @@ export function useSearchViewModel(query: string, src: string | null): SearchVie
 
     const id = newSearchId();
     const startedAt = performance.now();
-    void searchRemote(query).then((outcome) => {
+    void searchRemote(query, { llmOff }).then((outcome) => {
       const { results, intent, mode, titleTier, titleSalvage, titleDropped } = outcome;
       if (!active) return;
-      setParsed({ query, intent, results, mode }); // 비동기 .then — set-state-in-effect 아님.
+      setParsed({
+        query,
+        intent,
+        results,
+        mode,
+        colorwayChips: outcome.colorwayChips,
+        semanticShadow: outcome.semanticShadow,
+        titleSalvage: outcome.titleSalvage,
+      }); // 비동기 .then
       setSearchId(id);
-      setCachedSearch(query, { outcome, searchId: id }); // failed는 내부에서 저장 안 됨
+      setCachedSearch(cacheKey, { outcome, searchId: id }); // failed는 내부에서 저장 안 됨
       track("search_performed", {
         search_id: id,
         query,
@@ -116,15 +140,17 @@ export function useSearchViewModel(query: string, src: string | null): SearchVie
     return () => {
       active = false;
     };
-  }, [query, src, attempt]);
+  }, [query, cacheKey, llmOff, src, attempt]);
 
   const hasQuery = query.trim().length > 0;
   const settled = hasQuery && parsed.query === query; // 검색 완료(현재 쿼리 반영)
   const loading = hasQuery && !settled;
 
+  // 컬러웨이 칩(서버 적용 해석)을 앞에 — LLM 칩과 다른 축이라 함께 보여도 중복 아님.
   const chips = useMemo<IntentChip[]>(
-    () => (settled ? queryIntentToChips(parsed.intent) : []),
-    [settled, parsed.intent],
+    () =>
+      settled ? [...parsed.colorwayChips, ...queryIntentToChips(parsed.intent)] : [],
+    [settled, parsed.colorwayChips, parsed.intent],
   );
   const results = useMemo<Goods[]>(
     () => (settled ? parsed.results : []),
@@ -133,5 +159,15 @@ export function useSearchViewModel(query: string, src: string | null): SearchVie
   const resultType = useMemo(() => deriveResultType(results), [results]);
   const mode: SearchMode = settled ? parsed.mode : "full";
 
-  return { loading, chips, results, mode, searchId, resultType, retry };
+  return {
+    loading,
+    chips,
+    semanticShadow: settled ? parsed.semanticShadow : null,
+    titleSalvage: settled && parsed.titleSalvage,
+    results,
+    mode,
+    searchId,
+    resultType,
+    retry,
+  };
 }

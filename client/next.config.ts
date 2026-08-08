@@ -2,6 +2,9 @@ import { withSentryConfig } from "@sentry/nextjs";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // 같은 네트워크의 폰·다른 기기에서 dev 서버 접속 허용(사파리 등에서 JS 자산 차단 방지).
+  // 프로덕션 빌드에는 영향 없음 — dev 전용 설정.
+  allowedDevOrigins: ["192.168.219.150"],
   images: {
     remotePatterns: [
       {
