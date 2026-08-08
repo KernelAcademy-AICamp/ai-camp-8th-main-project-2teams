@@ -28,4 +28,14 @@ describe("buildQueryFrame", () => {
     expect(f.anchors).toHaveLength(0);
     expect(f.operators).toHaveLength(0);
   });
+
+  it("부정어(말고)는 negation operator로 잡는다", () => {
+    const f = buildQueryFrame("검정 말고 흰색 티셔츠");
+    expect(f.operators.some((o) => o.kind === "negation")).toBe(true);
+  });
+
+  it("'아니면'은 negation으로 잡지 않는다(OR 의도, 부분문자열 오탐 방지)", () => {
+    const f = buildQueryFrame("검정 아니면 흰색 티셔츠");
+    expect(f.operators.some((o) => o.kind === "negation")).toBe(false);
+  });
 });

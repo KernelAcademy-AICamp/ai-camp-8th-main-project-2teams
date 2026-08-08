@@ -128,6 +128,59 @@ describe("compileAtomic — 무손실 검증", () => {
   });
 });
 
+describe("compileAtomic — targetAnchorRef soft(grounding 신호)", () => {
+  it("없는 anchor를 근거로 대도 assignment는 유효(경고만)", () => {
+    const r = compileAtomic(
+      frame(),
+      P(
+        [
+          { mentionRef: "m01", target: "print", targetAnchorRef: "a99" },
+          { mentionRef: "m02", target: "print" },
+          { mentionRef: "m03", target: "base" },
+        ],
+        [{ memberRefs: ["m01", "m02"], operatorRef: "o01" }],
+      ),
+    );
+    expect(r.disposition).toBe("valid_graph");
+    expect(r.unknownAnchorRefs).toContain("a99");
+  });
+
+  it("base인데 무늬 anchor를 근거로 들어도 raw 귀속이 맞으면 유효(경고만, 과잉거부 금지)", () => {
+    // anchor 인용이 종류 모순이어도 실행 의미(kind↔target)는 이미 field_kind로 가드됨.
+    const f = frame();
+    const 무늬 = f.anchors.find((a) => a.kind === "무늬");
+    const r = compileAtomic(
+      f,
+      P(
+        [
+          { mentionRef: "m01", target: "print" },
+          { mentionRef: "m02", target: "print" },
+          { mentionRef: "m03", target: "base", targetAnchorRef: 무늬?.id ?? "a01" },
+        ],
+        [{ memberRefs: ["m01", "m02"], operatorRef: "o01" }],
+      ),
+    );
+    expect(r.disposition).toBe("valid_graph");
+    expect(r.warnings?.some((w) => w.startsWith("anchor_incompatible"))).toBe(true);
+  });
+});
+
+describe("compileAtomic — 부정 안전거부(Shadow1 범위 밖)", () => {
+  it("부정어(말고)가 있으면 unsupported_capability로 안전거부", () => {
+    const f = buildQueryFrame("검정 바탕 말고 화이트 프린팅"); // m01검정 m02화이트, 말고=negation
+    // 모델이 부정을 긍정으로 오해한 제안이어도 결정적으로 범위 밖 처리
+    const r = compileAtomic(
+      f,
+      P([
+        { mentionRef: "m01", target: "base" },
+        { mentionRef: "m02", target: "print" },
+      ]),
+    );
+    expect(r.disposition).toBe("unsupported_capability");
+    expect(r.errors).toContain("negation");
+  });
+});
+
 describe("compileAtomic — external·unresolved·빈 clause", () => {
   const EQ = "노란색 신발에 어울리는 검정 무늬 하얀색 티셔츠"; // m01노란색 m02검정 m03하얀색 (operator 없음)
   const ef = () => buildQueryFrame(EQ);

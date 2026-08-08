@@ -11,12 +11,17 @@ import type { FrameMention, MentionKind, QueryFrame } from "./query-frame";
 import type { Cond, ResolvedClause, ResolvedSemanticGraph } from "./semantic-graph";
 import { canonicalizeGraph } from "./semantic-graph";
 
-export type AtomicDisposition = "valid_graph" | "valid_abstain" | "validation_error";
+export type AtomicDisposition =
+  "valid_graph" | "valid_abstain" | "validation_error" | "unsupported_capability";
 
 export interface CompileAtomicResult {
   disposition: AtomicDisposition;
   graph?: ResolvedSemanticGraph;
   errors: string[];
+  /** grounding 품질 경고(실행엔 무영향) — targetAnchorRef 누락·환각 등. */
+  warnings?: string[];
+  /** 모델이 제출했으나 프레임에 없는 anchor id(품질 신호). */
+  unknownAnchorRefs?: string[];
 }
 
 const KIND_OF_FIELD: Record<"base" | "print" | "graphic", MentionKind> = {
@@ -35,7 +40,17 @@ export function compileAtomic(
 ): CompileAtomicResult {
   const errors: string[] = [];
   const byId = new Map<string, FrameMention>(frame.mentions.map((m) => [m.id, m]));
-  const anchorIds = new Set(frame.anchors.map((a) => a.id));
+  const anchorById = new Map(frame.anchors.map((a) => [a.id, a]));
+  const warnings: string[] = [];
+  const unknownAnchorRefs: string[] = [];
+
+  // 0) 부정은 Shadow1 미지원 — 프레임에 부정어가 있으면 결정적으로 범위 밖 처리(안전거부).
+  //    모델이 부정을 긍정으로 오해해 valid_graph로 누출되는 것을 막는다(valid_abstain 아님:
+  //    모델이 스스로 abstain한 게 아니라 결정적 분석이 범위 밖으로 판정한 것).
+  if (frame.operators.some((o) => o.kind === "negation"))
+    return { disposition: "unsupported_capability", errors: ["negation"] };
+
+  // 부정어 조기반환 뒤라 남은 operator는 OR뿐 — 완전성 검사 대상.
   const opIds = new Set(frame.operators.map((o) => o.id));
 
   // 1) assignment 참조 실존·중복·완전성 + field↔kind
@@ -52,8 +67,23 @@ export function compileAtomic(
     } else if (a.target === "placement") {
       return fail(["placement_mention_unsupported"]); // placement mention kind 없음
     }
-    if (a.targetAnchorRef !== undefined && !anchorIds.has(a.targetAnchorRef))
-      return fail(["unknown_anchor_ref"]);
+    // targetAnchorRef는 실행 필드가 아니라 grounding 품질 신호(codex). 실행 의미는 mention의
+    // kind↔target(위 field_kind_mismatch)이 이미 결정한다. anchor 근거가 없거나 환각이거나
+    // 종류가 모순이어도 assignment는 유효로 두고 경고만 남긴다(조용한 삭제·과잉 거부 금지).
+    // 실측: 종류 모순을 hard reject하면 raw 귀속이 정확한 케이스도 anchor 인용 노이즈로 탈락.
+    if (a.targetAnchorRef !== undefined) {
+      const anchor = anchorById.get(a.targetAnchorRef);
+      if (!anchor) {
+        unknownAnchorRefs.push(a.targetAnchorRef);
+        warnings.push(`unknown_anchor:${a.mentionRef}`);
+      } else {
+        const incompatible =
+          (a.target === "base" &&
+            (anchor.kind === "print" || anchor.kind === "무늬")) ||
+          (a.target === "print" && anchor.kind === "garment");
+        if (incompatible) warnings.push(`anchor_incompatible:${a.mentionRef}`);
+      }
+    }
   }
   // 완전성: 모든 frame mention이 정확히 한 번 귀속돼야 한다.
   for (const m of frame.mentions)
@@ -173,5 +203,10 @@ export function compileAtomic(
   };
   const inventoryHash = JSON.stringify(frame.mentions.map((m) => [m.id, m.canon]));
   graph.graphHash = canonicalizeGraph(graph, inventoryHash);
-  return { disposition: "valid_graph", graph, errors };
+  return {
+    disposition: "valid_graph",
+    graph,
+    errors,
+    ...(warnings.length > 0 ? { warnings, unknownAnchorRefs } : {}),
+  };
 }

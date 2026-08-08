@@ -54,6 +54,8 @@ const PRINT_WORDS = ["프린팅", "프린트", "나염", "백프린팅"];
 const PATTERN_ANCHOR = ["무늬"];
 const PLACEMENT_WORDS = ["앞", "뒤", "소매", "등판", "올오버"];
 const OR_WORDS = ["이나", "또는", "혹은"];
+// 부정어 — Shadow1 미지원(범위 밖 안전거부용). "아니면"은 OR이므로 제외한다.
+const NEGATION_WORDS = ["말고", "제외", "아닌", "빼고"];
 
 interface Hit {
   start: number;
@@ -134,17 +136,21 @@ export function buildQueryFrame(query: string): QueryFrame {
   pushAnchors(PLACEMENT_WORDS, "placement_word");
 
   let oIdx = 1;
-  for (const w of OR_WORDS) {
-    for (const h of findAll(normalizedQuery, w)) {
-      operators.push({
-        id: `o${String(oIdx).padStart(2, "0")}`,
-        span: [h.start, h.end],
-        kind: "or",
-        surface: w,
-      });
-      oIdx++;
+  const pushOperators = (words: string[], kind: OperatorKind) => {
+    for (const w of words) {
+      for (const h of findAll(normalizedQuery, w)) {
+        operators.push({
+          id: `o${String(oIdx).padStart(2, "0")}`,
+          span: [h.start, h.end],
+          kind,
+          surface: w,
+        });
+        oIdx++;
+      }
     }
-  }
+  };
+  pushOperators(OR_WORDS, "or");
+  pushOperators(NEGATION_WORDS, "negation"); // Shadow1 범위 밖 — compileAtomic이 안전거부
 
   return {
     rawQuery: query,

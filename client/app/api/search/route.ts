@@ -142,7 +142,8 @@ interface SearchPayload {
       | Exclude<LinkerCallStatus, "parsed">
       | "valid_graph"
       | "valid_abstain"
-      | "validation_error";
+      | "validation_error"
+      | "unsupported_capability";
     modelId: string;
     promptVersion: string;
     latencyMs: number;
@@ -151,8 +152,11 @@ interface SearchPayload {
     rawJson?: unknown;
     /** 파싱된 경우: 검증 성패와 무관한 색/그래픽별 target 귀속(base/print 역전 측정용). */
     rawAssignments?: AtomicRawAssignment[];
-    /** validation_error일 때 원인 코드(무손실 진단). */
+    /** validation_error·unsupported일 때 원인 코드(무손실 진단). */
     compileErrors?: string[];
+    /** grounding 품질 경고(valid_graph_with_warnings) — targetAnchorRef 누락·환각. */
+    warnings?: string[];
+    unknownAnchorRefs?: string[];
     // 아래는 valid_graph일 때만 존재(검증 통과 후 컴파일 결과).
     printClauses?: SemanticPrintClause[];
     coverage?: number;
@@ -600,10 +604,24 @@ export async function POST(request: Request): Promise<Response> {
             ownership: ownershipPreview(linkerFrame, compiled.graph),
             external: compiled.graph.external,
             graphHash: compiled.graph.graphHash,
+            ...(compiled.warnings
+              ? {
+                  warnings: compiled.warnings,
+                  unknownAnchorRefs: compiled.unknownAnchorRefs,
+                }
+              : {}),
           };
         } else if (compiled.disposition === "valid_abstain") {
           // unresolved 포함 — 완전한 의미적 abstain(실행 부적격, 관측만).
           semanticLinkerShadow = { ...base, status: "valid_abstain", rawAssignments };
+        } else if (compiled.disposition === "unsupported_capability") {
+          // 결정적 분석이 Shadow1 범위 밖으로 판정(부정 등) — 안전거부. 실행 불가.
+          semanticLinkerShadow = {
+            ...base,
+            status: "unsupported_capability",
+            rawAssignments,
+            compileErrors: compiled.errors,
+          };
         } else {
           // 파싱은 됐으나 검증 거부 — 의미 오류(역전·누락·환각)를 관측만(실행 미반영).
           semanticLinkerShadow = {
