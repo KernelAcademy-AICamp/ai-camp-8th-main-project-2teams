@@ -35,9 +35,12 @@ export default function SearchResults() {
   const router = useRouter();
   const params = useSearchParams();
   const query = params.get("q") ?? "";
-  const vm = useSearchViewModel(query, params.get("src"));
+  const llmOff = params.get("llm") === "off"; // 로고 토글 모드(스펙: llm-toggle-logo)
+  const vm = useSearchViewModel(query, params.get("src"), llmOff);
   const go = (q: string, src = "refine") => {
-    router.push(`/search?q=${encodeURIComponent(q)}&src=${src}`);
+    router.push(
+      `/search?q=${encodeURIComponent(q)}&src=${src}${llmOff ? "&llm=off" : ""}`,
+    );
   };
 
   const settled = query.trim() !== "" && !vm.loading;
@@ -46,8 +49,8 @@ export default function SearchResults() {
   return (
     <div className="tf-page">
       <header className="tf-top">
-        <Link href="/" className="tf-top__brand">
-          티:파운드
+        <Link href={llmOff ? "/?llm=off" : "/"} className="tf-top__brand">
+          티:파운드{llmOff ? "(without llm)" : ""}
         </Link>
         <SearchBar key={query} initialValue={query} onSearch={go} />
       </header>
@@ -61,6 +64,23 @@ export default function SearchResults() {
           <section className="tf-parsed" aria-label="해석된 검색 조건">
             <IntentChips chips={vm.chips} />
             <span className="tf-parsed__count">{vm.results.length}개</span>
+          </section>
+        )}
+
+        {showParsed && vm.semanticShadow && (
+          <section className="tf-parsed" aria-label="의미 해석 (베타, 결과 미반영)">
+            <span className="tf-parsed__count">
+              의미 해석 β{vm.semanticShadow.applied ? "(정렬 반영)" : "(미반영)"}
+            </span>
+            {vm.semanticShadow.expressions.map((e, i) => (
+              <span key={i} className="tf-token" style={{ opacity: 0.55 }}>
+                {e.evidence} →{" "}
+                {e.candidates.length > 0 ? e.candidates.join("·") : "후보 없음"}
+                {e.target === "garment_base" && " (바탕)"}
+                {e.target === "print" && " (프린트)"}
+                {e.target === "external_context" && " (외부 맥락)"}
+              </span>
+            ))}
           </section>
         )}
 
@@ -163,9 +183,16 @@ export default function SearchResults() {
           }
           return (
             <>
+              {vm.titleSalvage && (
+                <p className="tf-note">
+                  일부 조건(색·핏 등)에 맞는 상품이 없어 조건을 완화해 보여드려요.
+                </p>
+              )}
               {vm.mode === "lexical_only" && (
                 <p className="tf-note">
-                  조건 분석이 불안정해 검색어와 직접 일치하는 결과만 보여드려요.
+                  {llmOff
+                    ? "AI 해석 없이, 문장에서 읽어낸 조건만으로 찾은 결과예요."
+                    : "조건 분석이 불안정해 검색어와 직접 일치하는 결과만 보여드려요."}
                 </p>
               )}
               <ResultList

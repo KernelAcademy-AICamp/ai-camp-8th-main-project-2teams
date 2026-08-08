@@ -17,7 +17,13 @@ export type ChipKind =
   | "fit"
   | "keyword"
   | "wear"
-  | "exclude";
+  | "review"
+  | "exclude"
+  // 컬러웨이 결속 검색(서버가 실제 적용한 해석 — colorway-chips.ts)
+  | "baseColor"
+  | "printColor"
+  | "placement"
+  | "graphic";
 
 export interface IntentChip {
   kind: ChipKind;
@@ -62,6 +68,9 @@ export function queryIntentToChips(intent: QueryIntent): IntentChip[] {
     for (const value of intent.wearChars[axis]) {
       chips.push({ kind: "wear", label: `${axis}:${value}` });
     }
+  }
+  for (const tag of intent.reviewTags) {
+    chips.push({ kind: "review", label: tag });
   }
   for (const { field } of STYLE_KINDS) {
     for (const value of intent.exclude[field]) {

@@ -12,7 +12,12 @@ const KIND_LABEL: Partial<Record<ChipKind, string>> = {
   material: "소재",
   fit: "핏",
   wear: "착용감",
+  review: "리뷰",
   exclude: "제외",
+  baseColor: "바탕",
+  printColor: "프린트",
+  placement: "위치",
+  graphic: "도안",
 };
 
 export default function IntentChips({ chips }: { chips: IntentChip[] }) {
@@ -26,7 +31,10 @@ export default function IntentChips({ chips }: { chips: IntentChip[] }) {
   return (
     <>
       {chips.map((c, i) => {
-        const swatch = c.kind === "color" ? COLOR_HEX[c.label] : undefined;
+        const swatch =
+          c.kind === "color" || c.kind === "baseColor" || c.kind === "printColor"
+            ? COLOR_HEX[c.label]
+            : undefined;
         const kindLabel = KIND_LABEL[c.kind];
         return (
           <span

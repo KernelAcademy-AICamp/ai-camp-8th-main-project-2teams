@@ -25,6 +25,7 @@ function goods(p: Partial<Goods> & { goodsNo: string }): Goods {
     url: "",
     thumbnail: "",
     wearChars: {},
+    reviewTags: [],
     sizeMeasures: [],
     ...p,
   };

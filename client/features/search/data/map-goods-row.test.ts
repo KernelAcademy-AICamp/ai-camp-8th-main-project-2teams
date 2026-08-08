@@ -25,6 +25,7 @@ const base: SearchGoodsRow = {
   url: "https://musinsa.com/goods/1085371",
   thumbnail: "t.jpg",
   wear_chars: null,
+  review_tags: null,
   size_measures: null,
 };
 
