@@ -16,6 +16,8 @@ function outcome(overrides: Partial<SearchOutcome> = {}): SearchOutcome {
     titleTier: null,
     titleSalvage: false,
     titleDropped: false,
+    colorwayChips: [],
+    semanticShadow: null,
     ...overrides,
   };
 }

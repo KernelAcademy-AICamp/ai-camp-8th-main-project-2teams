@@ -39,6 +39,7 @@ export interface Goods {
   thumbnail: string;
   // 착용감 축별 단일값. 상품은 축을 다 갖지 않으므로 partial(인덱스 접근 = string | undefined).
   wearChars: Partial<Record<string, string>>;
+  reviewTags: string[];
   sizeMeasures: SizeMeasureRow[]; // 사이즈 실측(cm). 검색 응답에선 비어있고(summary select), 상세에서 채움.
   // 색별 이미지 인덱스(오프라인 배치 산출). 서버 전용 — 표시 이미지 선택에만 쓰고
   // 응답 전 제거한다(클라이언트로 맵 전체를 보내지 않음). 상세에선 비어있음.

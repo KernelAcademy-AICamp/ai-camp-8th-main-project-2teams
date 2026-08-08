@@ -28,6 +28,7 @@ export interface QueryIntent {
   promote: (keyof StyleFilter)[]; // 소프트→하드 승격(값 하나라도 보유 요구)
   exclude: StyleFilter; // NOT 필터
   wearChars: WearCharsFilter; // 착용감 소프트 신호(촉감·두께·비침·신축성·계절)
+  reviewTags: string[]; // 리뷰 태그 소프트 신호(REVIEW_TAGS 어휘) — 하드필터 금지
   // lexical 레인 — 사전 safe alias로 resolve된 카탈로그 정확 브랜드명(LLM 출력 아님).
   brand?: string;
   // lexical 레인 — 브랜드·구조화 표현을 뺀 잔여 제목 토큰(LLM 출력 아님, 결정적 추출).
@@ -52,5 +53,6 @@ export const EMPTY_INTENT: QueryIntent = {
   promote: [],
   exclude: emptyStyle(),
   wearChars: emptyWear(),
+  reviewTags: [],
   sort: "relevance",
 };

@@ -14,6 +14,7 @@ export const WEIGHTS = {
   keyword: 3,
   title: 3,
   wear: 2,
+  reviewTag: 2, // 리뷰 태그 소프트 매칭(태그당, 상한 2개분)
 } as const;
 
 const ARRAY_KEYS = ["colors", "patterns", "materials", "fits"] as const;
@@ -49,6 +50,11 @@ export function styleScore(goods: Goods, intent: QueryIntent): number {
     return got !== undefined && intent.wearChars[axis].includes(got);
   });
   if (wearMatched) s += WEIGHTS.wear;
+  // 리뷰 태그(실착 후기 신호) — 태그당 가점, 나열 남용 방지 상한 2개분.
+  if (intent.reviewTags.length) {
+    const matched = intent.reviewTags.filter((t) => goods.reviewTags.includes(t));
+    s += Math.min(matched.length, 2) * WEIGHTS.reviewTag;
+  }
   return s;
 }
 

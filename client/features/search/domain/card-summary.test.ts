@@ -26,6 +26,7 @@ function goods(overrides: Partial<Goods> = {}): Goods {
     url: "",
     thumbnail: "",
     wearChars: {},
+    reviewTags: [],
     sizeMeasures: [],
     ...overrides,
   };

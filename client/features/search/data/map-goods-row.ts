@@ -32,6 +32,7 @@ export interface SearchGoodsRow {
   url: string | null;
   thumbnail: string | null;
   wear_chars: Record<string, string> | null;
+  review_tags: string[] | null;
   size_measures?: SizeMeasureRow[] | null;
   // 색별 이미지 인덱스(검색 summary select에서만 옴, 상세엔 없음). 서버 전용.
   color_images?: ColorImagesColumn | null;
@@ -61,6 +62,7 @@ export function mapGoodsRow(row: SearchGoodsRow): Goods {
     url: row.url ?? "",
     thumbnail: row.thumbnail ?? "",
     wearChars: row.wear_chars ?? {},
+    reviewTags: row.review_tags ?? [],
     sizeMeasures: row.size_measures ?? [],
     colorImages: row.color_images?.byColor ?? undefined,
   };

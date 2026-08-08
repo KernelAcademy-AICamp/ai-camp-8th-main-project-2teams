@@ -4,7 +4,9 @@
 // lexical_only는 결과 보존. 오류/타임아웃/비정상 응답 → failed 빈 결과.
 import type { Goods } from "@/features/catalog/domain/goods";
 import { EMPTY_INTENT, type QueryIntent } from "@/features/search/domain/query-intent";
+import type { IntentChip } from "@/features/search/domain/query-intent-chips";
 import type { SearchMode } from "@/features/search/domain/search-mode";
+import type { SemanticExpression } from "@/features/search/domain/validate-semantic";
 
 const SEARCH_TIMEOUT_MS = 9000;
 const MODES: readonly SearchMode[] = ["full", "lexical_only", "failed"];
@@ -16,6 +18,15 @@ export interface SearchOutcome {
   titleTier: string | null;
   titleSalvage: boolean;
   titleDropped: boolean;
+  /** 서버가 실제 적용한 컬러웨이 해석 칩(설계 §10). */
+  colorwayChips: IntentChip[];
+  /** LLM 의미 해석 — applied=true면 소프트 랭킹 반영, false면 관측만(없으면 null). */
+  semanticShadow: {
+    expressions: SemanticExpression[];
+    modelId: string;
+    latencyMs: number;
+    applied?: boolean;
+  } | null;
 }
 
 interface SearchApiResponse {
@@ -25,6 +36,13 @@ interface SearchApiResponse {
   titleTier?: string | null;
   titleSalvage?: boolean;
   titleDropped?: boolean;
+  colorwayChips?: IntentChip[];
+  semanticShadow?: {
+    expressions: SemanticExpression[];
+    modelId: string;
+    latencyMs: number;
+    applied?: boolean;
+  };
 }
 
 const FAILED: SearchOutcome = {
@@ -34,12 +52,21 @@ const FAILED: SearchOutcome = {
   titleTier: null,
   titleSalvage: false,
   titleDropped: false,
+  colorwayChips: [],
+  semanticShadow: null,
 };
+
+export interface SearchRemoteOptions {
+  /** 요청 단위 LLM off(설계 §8 내부 실험용) — 로고 토글 "without llm" 모드. */
+  llmOff?: boolean;
+  fetchFn?: typeof fetch;
+}
 
 export async function searchRemote(
   query: string,
-  fetchFn: typeof fetch = fetch,
+  options: SearchRemoteOptions = {},
 ): Promise<SearchOutcome> {
+  const { llmOff = false, fetchFn = fetch } = options;
   if (!query.trim()) return FAILED;
 
   const controller = new AbortController();
@@ -50,7 +77,7 @@ export async function searchRemote(
     const httpRes = await fetchFn("/api/search", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query }),
+      body: JSON.stringify(llmOff ? { query, llm: "off" } : { query }),
       signal: controller.signal,
     });
     if (!httpRes.ok) throw new Error(`search route ${String(httpRes.status)}`);
@@ -65,6 +92,8 @@ export async function searchRemote(
         titleTier: data.titleTier ?? null,
         titleSalvage: false,
         titleDropped: false,
+        colorwayChips: [],
+        semanticShadow: null,
       };
     }
     return {
@@ -74,6 +103,8 @@ export async function searchRemote(
       titleTier: data.titleTier ?? null,
       titleSalvage: data.titleSalvage ?? false,
       titleDropped: data.titleDropped ?? false,
+      colorwayChips: Array.isArray(data.colorwayChips) ? data.colorwayChips : [],
+      semanticShadow: data.semanticShadow ?? null,
     };
   } catch {
     return FAILED;

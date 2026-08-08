@@ -27,6 +27,7 @@ function row(over: Partial<SearchGoodsRow> = {}): SearchGoodsRow {
     url: "https://musinsa.com/goods/7",
     thumbnail: null,
     wear_chars: null,
+    review_tags: null,
     size_measures: null,
     ...over,
   };

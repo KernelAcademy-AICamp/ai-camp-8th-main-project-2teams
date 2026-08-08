@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Goods } from "@/features/catalog/domain/goods";
 import { EMPTY_INTENT, type QueryIntent } from "@/features/search/domain/query-intent";
-import { scoreRow, styleScore } from "@/features/search/domain/score-row";
+import { scoreRow, styleScore, WEIGHTS } from "@/features/search/domain/score-row";
 
 function goods(p: Partial<Goods>): Goods {
   return {
@@ -26,6 +26,7 @@ function goods(p: Partial<Goods>): Goods {
     url: "",
     thumbnail: "",
     wearChars: {},
+    reviewTags: [],
     sizeMeasures: [],
     ...p,
   };
@@ -168,5 +169,19 @@ describe("styleScore — titleTokens 가점", () => {
       titleTokens: ["드라이핏"],
     });
     expect(s).toBe(3 + 3); // keyword 3 + title 3
+  });
+
+  it("리뷰 태그 소프트 매칭: 태그당 가점, 상한 2개분", () => {
+    const g = goods({ reviewTags: ["냉감", "오버핏", "데일리"] });
+    const base = styleScore(g, EMPTY_INTENT);
+    const one = styleScore(g, { ...EMPTY_INTENT, reviewTags: ["냉감"] });
+    const three = styleScore(g, {
+      ...EMPTY_INTENT,
+      reviewTags: ["냉감", "오버핏", "데일리"],
+    });
+    expect(one - base).toBe(WEIGHTS.reviewTag);
+    expect(three - base).toBe(WEIGHTS.reviewTag * 2); // 상한 2
+    const none = styleScore(g, { ...EMPTY_INTENT, reviewTags: ["러닝"] });
+    expect(none - base).toBe(0);
   });
 });
