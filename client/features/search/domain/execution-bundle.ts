@@ -1,6 +1,7 @@
 // ExecutionBundle(설계 §3⑦, codex) — immutable BaseIntent 위에 OFF/semantic bundle을
 // 각각 독립 완성하고 하나만 commit(all-or-nothing). 이 모듈은 semantic bundle을 순수하게
 // 만든다(부수효과·DB 없음). BaseIntent는 절대 변형하지 않고 참조도 공유하지 않는다.
+import type { ColorwayExecutor } from "./colorway-lane";
 import type { ColorwaySearchPlan } from "./colorway-plan";
 import { extractTitleTokens } from "./extract-title-tokens";
 import type { QueryIntent } from "./query-intent";
@@ -51,6 +52,35 @@ export type SemanticEvaluation =
       latencyMs: number;
     }
   | { status: "failure"; stage: string; reason: string; latencyMs: number };
+
+/**
+ * semantic 실행계획을 DB executor로 평가(부수효과). Shadow2에선 본 조회에 주입하지 않고
+ * match 집합만 계산해 관측·rerank 시뮬레이션에 쓴다. 빈 Set=기술 성공, 예외만 failure.
+ * 실행 시간(now)은 호출부에서 주입해 결정성/테스트 용이성을 확보한다.
+ */
+export async function evaluateSemanticPlan(
+  plan: ColorwaySearchPlan,
+  executor: ColorwayExecutor,
+  now: () => number = Date.now,
+): Promise<SemanticEvaluation> {
+  const started = now();
+  try {
+    const matchedIds = await executor(plan);
+    return {
+      status: "success",
+      matchedIds,
+      truncated: false,
+      latencyMs: now() - started,
+    };
+  } catch (e) {
+    return {
+      status: "failure",
+      stage: "db",
+      reason: e instanceof Error ? e.message : "unknown",
+      latencyMs: now() - started,
+    };
+  }
+}
 
 export interface RerankSimulation<T> {
   reranked: T[];

@@ -25,6 +25,7 @@ import {
   type LinkerCallStatus,
   linkRelations,
 } from "@/features/search/data/relation-linker";
+import { adaptSemanticPlan } from "@/features/search/domain/adapt-semantic-plan";
 import {
   type AtomicRawAssignment,
   deriveAtomicRawAssignments,
@@ -53,6 +54,11 @@ import {
   isDecisiveLaneOn,
 } from "@/features/search/domain/decisive-lane";
 import { enrichIntent } from "@/features/search/domain/enrich-intent";
+import {
+  evaluateSemanticPlan,
+  simulateSemanticRerank,
+} from "@/features/search/domain/execution-bundle";
+import { executionEligible } from "@/features/search/domain/execution-eligible";
 import { extractExplicitFit } from "@/features/search/domain/extract-explicit-fit";
 import { extractExplicitGender } from "@/features/search/domain/extract-explicit-gender";
 import { extractExplicitPrice } from "@/features/search/domain/extract-explicit-price";
@@ -163,6 +169,21 @@ interface SearchPayload {
     ownership?: { claimedSpans: [number, number][]; suppressedFlatAxes: string[] };
     external?: { surface: string; span: [number, number] }[];
     graphHash?: string;
+    /** Shadow2 — 실행자격·DB 실평가·rerank 시뮬레이션 관측(응답 결과엔 미반영). */
+    shadow2?: {
+      eligible: boolean;
+      eligibleReason?: string;
+      adapterFailed?: boolean;
+      adaptedPlanKey?: string;
+      eval?: {
+        status: "success" | "failure";
+        matchCount?: number;
+        truncated?: boolean;
+        failureReason?: string;
+        latencyMs: number;
+      };
+      rerank?: { matchedCount: number; matchedInTopK: number };
+    };
   };
 }
 
@@ -595,6 +616,59 @@ export async function POST(request: Request): Promise<Response> {
         const compiled = compileAtomic(linkerFrame, attempt.proposal);
         if (compiled.disposition === "valid_graph" && compiled.graph) {
           const plan = compileSemanticPlan(compiled.graph);
+          // Shadow2 — 실행자격 판정 → 어댑터 → DB 실평가 → rerank 시뮬레이션(관측만, 본 조회 미주입).
+          const elig = executionEligible(compiled.graph, plan);
+          let shadow2: NonNullable<SearchPayload["semanticLinkerShadow"]>["shadow2"];
+          if (!elig.eligible) {
+            shadow2 = { eligible: false, eligibleReason: elig.reason };
+          } else {
+            const adapted = adaptSemanticPlan(plan.printClauses);
+            if (!adapted) {
+              shadow2 = { eligible: true, adapterFailed: true };
+            } else {
+              // 결정적 컬러웨이 executor와 동일 로직이지만 완전 별도(본 조회에 IN 미주입).
+              const semanticExecutor: ColorwayExecutor = async (p) => {
+                const q = supabase
+                  .from("search_goods")
+                  .select(`goods_no,${COLORWAY_COLUMNS}`)
+                  .limit(RESULT_LIMIT);
+                const { data, error } = await applyColorwayPrefilter(q, p);
+                if (error) throw new Error(error.message);
+                const rows = data as unknown as ColorwayProductRow[];
+                return new Set(refineColorwayRows(rows, p).map((r) => r.goods_no));
+              };
+              const evaluation = await evaluateSemanticPlan(adapted, semanticExecutor);
+              const rerank =
+                evaluation.status === "success"
+                  ? simulateSemanticRerank(withDisplay, evaluation.matchedIds)
+                  : undefined;
+              shadow2 = {
+                eligible: true,
+                adaptedPlanKey: adapted.planKey,
+                eval:
+                  evaluation.status === "success"
+                    ? {
+                        status: "success",
+                        matchCount: evaluation.matchedIds.size,
+                        truncated: evaluation.truncated,
+                        latencyMs: evaluation.latencyMs,
+                      }
+                    : {
+                        status: "failure",
+                        failureReason: evaluation.reason,
+                        latencyMs: evaluation.latencyMs,
+                      },
+                ...(rerank
+                  ? {
+                      rerank: {
+                        matchedCount: rerank.matchedCount,
+                        matchedInTopK: rerank.matchedInTopK,
+                      },
+                    }
+                  : {}),
+              };
+            }
+          }
           semanticLinkerShadow = {
             ...base,
             status: "valid_graph",
@@ -604,6 +678,7 @@ export async function POST(request: Request): Promise<Response> {
             ownership: ownershipPreview(linkerFrame, compiled.graph),
             external: compiled.graph.external,
             graphHash: compiled.graph.graphHash,
+            shadow2,
             ...(compiled.warnings
               ? {
                   warnings: compiled.warnings,

@@ -4,7 +4,11 @@ import { describe, expect, it } from "vitest";
 import { adaptSemanticPlan } from "./adapt-semantic-plan";
 import { compileAtomic } from "./compile-atomic";
 import { compileSemanticPlan } from "./compile-semantic-plan";
-import { buildSemanticBundle, simulateSemanticRerank } from "./execution-bundle";
+import {
+  buildSemanticBundle,
+  evaluateSemanticPlan,
+  simulateSemanticRerank,
+} from "./execution-bundle";
 import { buildQueryFrame } from "./query-frame";
 import { EMPTY_INTENT, type QueryIntent } from "./query-intent";
 import { deriveSemanticOwnership } from "./semantic-ownership";
@@ -87,5 +91,50 @@ describe("simulateSemanticRerank", () => {
     const r = simulateSemanticRerank(off, new Set());
     expect(r.reranked.map((x) => x.goodsNo)).toEqual(["1", "2", "3"]);
     expect(r.matchedCount).toBe(0);
+  });
+});
+
+describe("evaluateSemanticPlan", () => {
+  const plan = {
+    productBaseColors: [],
+    mustNotBaseColors: [],
+    printClauses: [],
+    planKey: "sem@x",
+    versions: { vocab: "v", rules: "r" },
+  };
+  let t = 0;
+  const now = () => (t += 10);
+
+  it("executor 성공 → success + matchedIds(빈 Set도 성공)", async () => {
+    t = 0;
+    const r = await evaluateSemanticPlan(
+      plan,
+      () => Promise.resolve(new Set([1, 2])),
+      now,
+    );
+    expect(r.status).toBe("success");
+    if (r.status === "success") {
+      expect([...r.matchedIds]).toEqual([1, 2]);
+      expect(r.latencyMs).toBe(10);
+    }
+  });
+
+  it("빈 Set은 실패가 아니라 성공", async () => {
+    const r = await evaluateSemanticPlan(
+      plan,
+      () => Promise.resolve(new Set()),
+      () => 0,
+    );
+    expect(r.status).toBe("success");
+  });
+
+  it("executor 예외 → failure(stage=db)", async () => {
+    const r = await evaluateSemanticPlan(
+      plan,
+      () => Promise.reject(new Error("db down")),
+      () => 0,
+    );
+    expect(r.status).toBe("failure");
+    if (r.status === "failure") expect(r.reason).toBe("db down");
   });
 });
