@@ -33,9 +33,16 @@ export function executionEligible(
   if (graph.unresolved.length > 0) return { eligible: false, reason: "unresolved" };
   if (graph.productBaseColors.length > 0)
     return { eligible: false, reason: "product_base_colors" }; // D7 경로는 별도
+  // external은 외부사물 명사 소비(A3) 전까지 실행 부적격 — 색만 빼고 명사가 titleTokens에
+  // 남으면 hypothetical effectiveIntent가 틀려 측정이 무의미해진다(codex).
+  if (graph.external.length > 0)
+    return { eligible: false, reason: "external_unsupported" };
 
   const clause = graph.clauses[0];
   if (clause.placement.length > 0) return { eligible: false, reason: "placement" };
+  // base-only(프린트/그래픽 결속 없음)는 D7 상품색 경로가 담당 — semantic prints 평가 금지.
+  if (clause.print.length === 0 && clause.graphic.length === 0)
+    return { eligible: false, reason: "base_only_d7" };
   if (clause.objectKind !== "any_object" || clause.existence !== "independent")
     return { eligible: false, reason: "non_default_object" };
 
