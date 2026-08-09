@@ -67,23 +67,6 @@ export default function SearchResults() {
           </section>
         )}
 
-        {showParsed && vm.semanticShadow && (
-          <section className="tf-parsed" aria-label="의미 해석 (베타, 결과 미반영)">
-            <span className="tf-parsed__count">
-              의미 해석 β{vm.semanticShadow.applied ? "(정렬 반영)" : "(미반영)"}
-            </span>
-            {vm.semanticShadow.expressions.map((e, i) => (
-              <span key={i} className="tf-token" style={{ opacity: 0.55 }}>
-                {e.evidence} →{" "}
-                {e.candidates.length > 0 ? e.candidates.join("·") : "후보 없음"}
-                {e.target === "garment_base" && " (바탕)"}
-                {e.target === "print" && " (프린트)"}
-                {e.target === "external_context" && " (외부 맥락)"}
-              </span>
-            ))}
-          </section>
-        )}
-
         {(() => {
           if (vm.loading) {
             return (
