@@ -224,6 +224,13 @@ body {
   color: rgba(255, 255, 255, 0.88);
 }
 
+/* type="search"가 붙이는 브라우저 기본 지우기(X) 버튼 제거 */
+.tf-search__input::-webkit-search-cancel-button,
+.tf-search__input::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
 /* 키보드 포커스 링 — outline:none 입력에 명시적 표시 (영상/반투명 배경 대비) */
 .tf-search__pill:has(.tf-search__input:focus-visible) {
   outline: 2px solid #fff;
