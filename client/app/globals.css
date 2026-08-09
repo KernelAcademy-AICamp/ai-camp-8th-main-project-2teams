@@ -22,6 +22,19 @@
 :root {
   /* 전 화면이 다크 — 스크롤바·오버스크롤·기본 폼 컨트롤을 다크로 맞춘다 */
   color-scheme: dark;
+
+  /* ── 리퀴드 글래스 토큰 ──────────────────────────────
+     블러는 역할별 3단. 값이 서로 다른 건 의도이고, 이름이 그 이유를 설명한다.
+     backdrop-filter 값 전체를 토큰으로 들고 있어야
+     prefers-reduced-transparency에서 `none` 한 줄로 완전히 끌 수 있다. */
+  --glass-saturate: 1.25;
+  --glass-blur-pane: 7px; /* 큰 유리 표면(검색 필) — 배경이 비쳐야 양끝 굴절이 읽힌다 */
+  --glass-blur-control: 8px; /* 작은 컨트롤 — 칩·아이콘 버튼·토큰·배너 */
+  --glass-blur-scrim: 18px; /* 스크롤 콘텐츠 위 헤더 스크림 — 가독성 확보 */
+
+  --glass-pane: blur(var(--glass-blur-pane)) saturate(var(--glass-saturate));
+  --glass-control: blur(var(--glass-blur-control)) saturate(var(--glass-saturate));
+  --glass-scrim: blur(var(--glass-blur-scrim)) saturate(var(--glass-saturate));
 }
 
 * {
@@ -175,8 +188,8 @@ body {
     inset 30px 0 34px -20px rgba(0, 0, 0, 0.5),
     inset -30px 0 34px -20px rgba(0, 0, 0, 0.5),
     0 26px 64px rgba(0, 0, 0, 0.5);
-  -webkit-backdrop-filter: blur(7px) saturate(1.25);
-  backdrop-filter: blur(7px) saturate(1.25);
+  -webkit-backdrop-filter: var(--glass-pane);
+  backdrop-filter: var(--glass-pane);
   transition:
     box-shadow 0.3s,
     background 0.3s;
@@ -251,8 +264,8 @@ body {
   opacity: 0;
   transform: scale(0.25);
   pointer-events: none;
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: var(--glass-control);
+  backdrop-filter: var(--glass-control);
   transition:
     opacity 0.22s,
     transform 0.25s cubic-bezier(0.5, 0, 0.7, 0.4),
@@ -312,8 +325,8 @@ body {
   opacity: 0;
   transform: scale(0.25);
   pointer-events: none;
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: var(--glass-control);
+  backdrop-filter: var(--glass-control);
   transition:
     opacity 0.22s,
     transform 0.25s cubic-bezier(0.5, 0, 0.7, 0.4),
@@ -491,8 +504,8 @@ body {
     rgba(11, 13, 16, 0.35) 62%,
     transparent
   );
-  -webkit-backdrop-filter: blur(18px);
-  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: var(--glass-scrim);
+  backdrop-filter: var(--glass-scrim);
   -webkit-mask-image: linear-gradient(180deg, #000 55%, transparent);
   mask-image: linear-gradient(180deg, #000 55%, transparent);
   pointer-events: none;
@@ -529,8 +542,8 @@ body {
     inset 24px 0 28px -16px rgba(0, 0, 0, 0.5),
     inset -24px 0 28px -16px rgba(0, 0, 0, 0.5),
     0 14px 40px rgba(0, 0, 0, 0.45);
-  -webkit-backdrop-filter: blur(7px) saturate(1.25);
-  backdrop-filter: blur(7px) saturate(1.25);
+  -webkit-backdrop-filter: var(--glass-pane);
+  backdrop-filter: var(--glass-pane);
   transition: background 0.25s;
 }
 
@@ -574,8 +587,8 @@ body {
     inset -8px 0 12px -8px rgba(255, 255, 255, 0.4);
   color: #fff;
   cursor: pointer;
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: var(--glass-control);
+  backdrop-filter: var(--glass-control);
   transition: background 0.2s;
   touch-action: manipulation;
 }
@@ -615,8 +628,8 @@ body {
   font-weight: 600;
   opacity: 0;
   transform: scale(0.25);
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: var(--glass-control);
+  backdrop-filter: var(--glass-control);
   animation: tf-droplet 0.6s cubic-bezier(0.3, 1.65, 0.4, 1) forwards;
   animation-delay: calc(var(--i, 0) * 0.09s);
 }
@@ -892,8 +905,8 @@ body {
   text-decoration: none;
   opacity: 0;
   transform: scale(0.25);
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: var(--glass-control);
+  backdrop-filter: var(--glass-control);
   animation: tf-droplet 0.6s cubic-bezier(0.3, 1.65, 0.4, 1) forwards;
   animation-delay: calc(var(--i, 0) * 0.09s + 0.45s);
   transition: background 0.2s;
@@ -921,8 +934,8 @@ body {
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.35);
   color: rgba(245, 245, 244, 0.75);
   font-size: 0.85rem;
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: var(--glass-control);
+  backdrop-filter: var(--glass-control);
 }
 
 .tf-token:focus-visible,
@@ -1018,8 +1031,8 @@ body {
     0 10px 26px rgba(0, 0, 0, 0.35);
   color: #f5f5f4;
   cursor: pointer;
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: var(--glass-control);
+  backdrop-filter: var(--glass-control);
   transition:
     background 0.2s,
     transform 0.15s;
@@ -1346,5 +1359,71 @@ body {
 
   .tf-back {
     transition: none;
+  }
+}
+
+/* ── 투명도 줄이기 폴백 ──────────────────────────────────
+   OS의 '투명도 줄이기'(macOS 손쉬운사용 / Windows 투명 효과 끄기)를 켠 사용자.
+   블러가 사라지면 반투명 표면(rgba white 0.05)은 뒤 콘텐츠가 그대로 비쳐
+   글씨가 읽히지 않으므로, 유리를 전부 불투명 서피스로 바꾼다.
+   backdrop-filter를 0이 아니라 `none`으로 꺼야 합성 레이어까지 정리된다. */
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --glass-pane: none;
+    --glass-control: none;
+    --glass-scrim: none;
+
+    --glass-solid: #17191d; /* 기본 유리 표면 */
+    --glass-solid-raised: #282b2d; /* 떠 있는 컨트롤(아이콘 버튼) */
+    --glass-solid-hover: #3c3d40;
+  }
+
+  /* 영상 배경 위 히어로 — 텍스트가 영상에 묻히지 않게 베일을 거의 불투명하게 */
+  .tf-home__veil {
+    background: rgba(11, 13, 16, 0.92);
+  }
+
+  .tf-search__pill,
+  .tf-chip,
+  .tf-pill,
+  .tf-token,
+  .tf-note,
+  .tf-relax button,
+  .tf-relax a {
+    background: var(--glass-solid);
+  }
+
+  .tf-search__btn,
+  .tf-pill__btn,
+  .tf-back {
+    background: var(--glass-solid-raised);
+  }
+
+  .tf-pill:focus-within,
+  .tf-relax button:hover,
+  .tf-relax button:focus-visible,
+  .tf-relax a:hover,
+  .tf-relax a:focus-visible {
+    background: var(--glass-solid-raised);
+  }
+
+  .tf-search__btn:hover,
+  .tf-search__btn:focus-visible,
+  .tf-search__btn:active,
+  .tf-pill__btn:hover,
+  .tf-pill__btn:focus-visible,
+  .tf-back:hover,
+  .tf-back:focus-visible {
+    background: var(--glass-solid-hover);
+  }
+
+  /* 스크롤 콘텐츠 위 헤더 — 페이드 마스크 대신 단색으로 끊는다.
+     아래로 뻗은 2.5rem은 페이드를 깔 자리였으므로, 불투명해지면
+     그 부분이 파싱 토큰 줄을 덮는다. 헤더 박스로 되돌린다. */
+  .tf-top::before {
+    inset: 0;
+    background: #0b0d10;
+    -webkit-mask-image: none;
+    mask-image: none;
   }
 }
