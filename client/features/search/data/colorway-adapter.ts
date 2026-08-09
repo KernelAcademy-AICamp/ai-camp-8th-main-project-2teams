@@ -21,7 +21,8 @@ export type PrintsContainment = Record<string, unknown>;
  */
 export function buildClauseContainment(clause: PrintClause): PrintsContainment | null {
   const obj: PrintsContainment = {};
-  if (clause.baseColors.length === 1) obj.base_color = clause.baseColors[0];
+  // 바탕색은 넣지 않는다(2026-08-10 역할 분리): 판정기가 base_colors를 상품 colors에
+  // "계열 매핑"해 판정하므로(차콜↔다크그레이) 원문 포함검사는 참 일치를 놓친다 — 재판정에 미룬다.
   if (clause.printColors.length === 1) {
     obj.colors = [clause.printColors[0]];
     obj.colors_status = "확인";

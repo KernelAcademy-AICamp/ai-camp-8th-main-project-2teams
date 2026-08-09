@@ -14,21 +14,21 @@ const grbcLike = {
   colors: ["화이트", "블랙", "그레이"],
   prints: [
     {
-      base_color: "화이트",
+      base_colors: ["화이트"],
       sides: ["앞"],
       graphic_types: ["레터링"],
       colors: ["그린"],
       colors_status: "확인",
     },
     {
-      base_color: "블랙",
+      base_colors: ["블랙"],
       sides: ["앞"],
       graphic_types: ["레터링"],
       colors: ["화이트"],
       colors_status: "확인",
     },
     {
-      base_color: "그레이",
+      base_colors: ["그레이"],
       sides: ["앞"],
       graphic_types: ["레터링"],
       colors: ["네이비"],
@@ -42,14 +42,14 @@ const frontBackProduct = {
   colors: ["블랙"],
   prints: [
     {
-      base_color: "블랙",
+      base_colors: ["블랙"],
       sides: ["앞"],
       graphic_types: ["로고"],
       colors: ["화이트"],
       colors_status: "확인",
     },
     {
-      base_color: "블랙",
+      base_colors: ["블랙"],
       sides: ["뒤"],
       graphic_types: ["캐릭터"],
       colors: ["레드"],
@@ -63,7 +63,7 @@ const frontOnlyProduct = {
   colors: ["블랙"],
   prints: [
     {
-      base_color: "블랙",
+      base_colors: ["블랙"],
       sides: ["앞"],
       graphic_types: ["로고"],
       colors: ["화이트"],
@@ -77,7 +77,7 @@ const unreadableProduct = {
   colors: ["블랙"],
   prints: [
     {
-      base_color: "블랙",
+      base_colors: ["블랙"],
       sides: ["뒤"],
       graphic_types: ["레터링"],
       colors: null,
@@ -91,14 +91,14 @@ const notPhotographedProduct = {
   colors: ["블랙", "백염"],
   prints: [
     {
-      base_color: "블랙",
+      base_colors: ["블랙"],
       sides: ["앞"],
       graphic_types: ["로고"],
       colors: ["그린"],
       colors_status: "확인",
     },
     {
-      base_color: "백염",
+      base_colors: ["백염"],
       sides: ["앞"],
       graphic_types: ["로고"],
       colors: null,
@@ -113,7 +113,7 @@ const sleevePatternOnly = {
   colors: ["화이트"],
   prints: [
     {
-      base_color: "화이트",
+      base_colors: ["화이트"],
       sides: [],
       graphic_types: ["배색"],
       colors: [],
@@ -127,7 +127,7 @@ const sleeveLogoProduct = {
   colors: ["블랙"],
   prints: [
     {
-      base_color: "블랙",
+      base_colors: ["블랙"],
       sides: ["소매"],
       graphic_types: ["로고"],
       colors: ["화이트"],
@@ -141,7 +141,7 @@ const allOverProduct = {
   colors: ["그린"],
   prints: [
     {
-      base_color: "그린",
+      base_colors: ["그린"],
       sides: ["소매", "앞", "뒤"],
       graphic_types: ["그래픽"],
       colors: ["화이트"],
@@ -157,15 +157,30 @@ const multiMatchProduct = {
   colors: ["블랙"],
   prints: [
     {
-      base_color: "블랙",
+      base_colors: ["블랙"],
       sides: ["앞"],
       graphic_types: ["레터링"],
       colors: ["화이트"],
       colors_status: "확인",
     },
     {
-      base_color: "블랙",
+      base_colors: ["블랙"],
       sides: ["뒤"],
+      graphic_types: ["로고"],
+      colors: ["화이트"],
+      colors_status: "확인",
+    },
+  ],
+};
+
+// 배색 라벨: 한 객체가 여러 바탕색을 공유한다(실데이터 — 컬러웨이 공통 프린트).
+const multiBaseProduct = {
+  goods_no: 800,
+  colors: ["블랙", "화이트"],
+  prints: [
+    {
+      base_colors: ["블랙", "화이트", "그레이", "핑크"],
+      sides: ["앞"],
       graphic_types: ["로고"],
       colors: ["화이트"],
       colors_status: "확인",
@@ -175,6 +190,7 @@ const multiMatchProduct = {
 
 const ALL = [
   grbcLike,
+  multiBaseProduct,
   frontBackProduct,
   frontOnlyProduct,
   unreadableProduct,
@@ -247,6 +263,60 @@ describe("colorway-evaluate: 진리표 8케이스", () => {
     // 부정이 상품 수준이 아니라 결속 객체 수준에도 적용된다는 증거.
     expect(got).not.toContain(100);
     expect(got).toContain(500); // 그린 컬러웨이 + 화이트 잉크 → 성립
+  });
+
+  it("배색 라벨(다바탕 원소): 판매자 colors에 매핑되는 바탕색으로만 결속이 성립한다", () => {
+    expect(evaluateColorwayPlan(ALL, plan("블랙 바탕에 화이트 로고 티"))).toContain(
+      800,
+    );
+    // 핑크는 라벨엔 있지만 이 단품 colors(블랙·화이트)에 없다 — 다른 컬러웨이 관측.
+    expect(evaluateColorwayPlan(ALL, plan("핑크 바탕 로고 티"))).not.toContain(800);
+    // 부정: 블랙을 빼도 다른 바탕색(화이트 등)으로 결속이 남는다 — 원소를 통째로 버리지 않는다.
+    expect(
+      evaluateColorwayPlan(ALL, plan("검정 바탕 말고 화이트 프린팅 티")),
+    ).toContain(800);
+  });
+
+  it("바탕색은 매핑 키(2026-08-10): 라벨 차콜 + 판매자 다크 그레이 → 그레이 바탕으로 성립", () => {
+    const charcoal = {
+      goods_no: 900,
+      colors: ["다크 그레이"],
+      prints: [
+        {
+          base_colors: ["차콜"],
+          sides: ["앞"],
+          graphic_types: ["레터링"],
+          colors: ["화이트"],
+          colors_status: "확인",
+        },
+      ],
+    };
+    const got = evaluateColorwayPlan(
+      [charcoal],
+      plan("그레이 바탕에 화이트 레터링 티"),
+    );
+    expect(got).toEqual([900]);
+  });
+
+  it("colors에 연결되지 않는 원소(다른 컬러웨이 관측)는 결속에 쓰지 않는다", () => {
+    // 화이트 단품인데 라벨은 블랙 컬러웨이 사진을 관측 — 이 단품의 근거가 아니다.
+    const otherColorway = {
+      goods_no: 901,
+      colors: ["화이트"],
+      prints: [
+        {
+          base_colors: ["블랙"],
+          sides: ["앞"],
+          graphic_types: ["로고"],
+          colors: ["레드"],
+          colors_status: "확인",
+        },
+      ],
+    };
+    expect(
+      evaluateColorwayPlan([otherColorway], plan("블랙 바탕에 빨간 로고 티")),
+    ).toEqual([]);
+    expect(evaluateColorwayPlan([otherColorway], plan("빨간 로고 티"))).toEqual([]);
   });
 
   it("빈 계획: 조건이 없으면 아무 상품도 필터하지 않는다(기존 경로 보존 신호)", () => {

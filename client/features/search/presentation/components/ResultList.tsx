@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import type { Goods } from "@/features/catalog/domain/goods";
 import { cardSummary } from "@/features/search/domain/card-summary";
+import type { IntentChip } from "@/features/search/domain/query-intent-chips";
 import { track } from "@/shared/analytics";
 import type { ResultType } from "@/shared/analytics-params";
 
@@ -11,15 +12,18 @@ export default function ResultList({
   goods,
   searchId,
   resultType,
+  chips = [],
 }: {
   goods: Goods[];
   searchId: string;
   resultType: ResultType;
+  // 해석된 검색 조건 — 호버 요약의 행 구성·순서가 질의를 따라간다.
+  chips?: IntentChip[];
 }) {
   return (
     <ul className="tf-grid">
       {goods.map((item, rank) => {
-        const summary = cardSummary(item);
+        const summary = cardSummary(item, chips);
         return (
           <li
             key={item.goodsNo}
@@ -53,12 +57,22 @@ export default function ResultList({
                 )}
                 {summary.length > 0 && (
                   <div className="tf-card__summary" aria-hidden="true">
-                    {summary.map((row) => (
-                      <div key={row.label} className="tf-card__summary-row">
-                        <span className="tf-card__summary-label">{row.label}</span>
-                        <span className="tf-card__summary-value">{row.value}</span>
-                      </div>
-                    ))}
+                    {summary.map((row) =>
+                      row.items ? (
+                        <div key={row.label} className="tf-card__summary-tags">
+                          {row.items.map((tag) => (
+                            <span key={tag} className="tf-card__summary-tag">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <div key={row.label} className="tf-card__summary-row">
+                          <span className="tf-card__summary-label">{row.label}</span>
+                          <span className="tf-card__summary-value">{row.value}</span>
+                        </div>
+                      ),
+                    )}
                   </div>
                 )}
               </div>

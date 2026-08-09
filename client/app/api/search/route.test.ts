@@ -43,6 +43,7 @@ function chainable(): unknown {
     "not",
     "order",
     "limit",
+    "range",
     "ilike",
   ]) {
     self[m] = (...args: unknown[]) => {

@@ -13,6 +13,10 @@ import {
   overflowState,
   wheelToHorizontal,
 } from "@/features/product-detail/domain/thumb-scroll";
+import {
+  groupPrintRows,
+  printDetailRows,
+} from "@/features/search/domain/print-summary";
 import { WEAR_AXES } from "@/features/search/domain/query-intent";
 import { track } from "@/shared/analytics";
 import { COLOR_HEX } from "@/shared/color-swatch";
@@ -140,6 +144,46 @@ function TokenGroup({
   );
 }
 
+// 프린트 관측 표 — 사이즈 실측표와 같은 tf-table 스타일. 컬러웨이 페어(바탕×잉크) 유지.
+// 같은 바탕은 rowSpan으로 한 번만 표기(컬러웨이 단위로 묶어 읽히게).
+function PrintTableView({ goods }: { goods: Goods }) {
+  const groups = groupPrintRows(printDetailRows(goods.prints ?? [], goods.colors));
+  if (groups.length === 0) return null;
+  return (
+    <div>
+      <div className="tf-label">프린트</div>
+      <div className="tf-table-wrap">
+        <table className="tf-table tf-table--print">
+          <thead>
+            <tr>
+              <th>바탕</th>
+              <th>위치</th>
+              <th>프린트</th>
+              <th>문구</th>
+            </tr>
+          </thead>
+          <tbody>
+            {groups.flatMap((g, gi) =>
+              g.rows.map((r, ri) => (
+                <tr key={`${gi}-${ri}`}>
+                  {ri === 0 && (
+                    <td className="tf-table__base" rowSpan={g.rows.length}>
+                      {g.base || "—"}
+                    </td>
+                  )}
+                  <td>{r.side}</td>
+                  <td>{r.print}</td>
+                  <td>{r.motif || "—"}</td>
+                </tr>
+              )),
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 function SizeTableView({ goods }: { goods: Goods }) {
   const table = buildSizeTable(goods.sizeMeasures);
   if (table.rows.length === 0 || table.cols.length === 0) return null;
@@ -243,7 +287,10 @@ export default function GoodsDetail({ goodsNo }: { goodsNo: string }) {
 
           <section className="tf-info">
             <div style={{ "--i": 0 } as React.CSSProperties}>
-              <p className="tf-info__brand">{goods.brand}</p>
+              <p className="tf-info__brand">
+                {goods.brand}
+                {goods.gender && ` · ${goods.gender}`}
+              </p>
               <h1 className="tf-info__title">{goods.title}</h1>
               <div className="tf-info__row">
                 <span className="tf-info__price">{goods.price.toLocaleString()}원</span>
@@ -262,24 +309,30 @@ export default function GoodsDetail({ goodsNo }: { goodsNo: string }) {
               <TokenGroup label="패턴" values={goods.patterns} />
             </div>
             <div style={{ "--i": 3 } as React.CSSProperties}>
-              <TokenGroup label="소재" values={goods.materials} />
+              <PrintTableView goods={goods} />
             </div>
             <div style={{ "--i": 4 } as React.CSSProperties}>
+              <TokenGroup label="소재" values={goods.materials} />
+            </div>
+            <div style={{ "--i": 5 } as React.CSSProperties}>
               <TokenGroup label="핏" values={goods.fits} />
             </div>
             {wear.length > 0 && (
-              <div style={{ "--i": 5 } as React.CSSProperties}>
+              <div style={{ "--i": 6 } as React.CSSProperties}>
                 <TokenGroup label="착용감" values={wear} />
               </div>
             )}
+            <div style={{ "--i": 7 } as React.CSSProperties}>
+              <TokenGroup label="리뷰 태그" values={goods.reviewTags} />
+            </div>
 
-            <div style={{ "--i": 6 } as React.CSSProperties}>
+            <div style={{ "--i": 8 } as React.CSSProperties}>
               <SizeTableView goods={goods} />
             </div>
 
             <a
               className="tf-cta"
-              style={{ "--i": 7 } as React.CSSProperties}
+              style={{ "--i": 9 } as React.CSSProperties}
               href={goods.url}
               target="_blank"
               rel="noreferrer noopener"
@@ -303,11 +356,11 @@ export default function GoodsDetail({ goodsNo }: { goodsNo: string }) {
                 />
               </svg>
             </a>
-            <p className="tf-subnote" style={{ "--i": 8 } as React.CSSProperties}>
+            <p className="tf-subnote" style={{ "--i": 10 } as React.CSSProperties}>
               무신사 상품 페이지로 이동합니다
             </p>
 
-            <div style={{ "--i": 9 } as React.CSSProperties}>
+            <div style={{ "--i": 11 } as React.CSSProperties}>
               {!reported ? (
                 <button
                   type="button"

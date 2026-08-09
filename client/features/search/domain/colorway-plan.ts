@@ -81,7 +81,7 @@ export function compileColorwayPlan(
   const printClauses: PrintClause[] = segments.map((seg) => {
     const inSeg = positives.filter((c) => c.segment === seg);
     return {
-      // ① 바탕색은 모든 묶음에 결속 — 같은 객체의 base_color 조건이 된다.
+      // ① 바탕색은 모든 묶음에 결속 — 같은 객체의 base_colors 조건이 된다.
       baseColors: basePositive,
       printColors: uniq(
         inSeg.filter((c) => c.target === "print").flatMap((c) => baseValues(c.values)),
