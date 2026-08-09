@@ -265,16 +265,58 @@ describe("colorway-evaluate: 진리표 8케이스", () => {
     expect(got).toContain(500); // 그린 컬러웨이 + 화이트 잉크 → 성립
   });
 
-  it("배색 라벨(다바탕 원소): 어느 바탕색으로 검색해도 결속이 성립한다", () => {
-    // 실데이터 회귀 — prints 원소의 바탕색은 base_colors "배열"이다(단수 base_color 아님).
+  it("배색 라벨(다바탕 원소): 판매자 colors에 매핑되는 바탕색으로만 결속이 성립한다", () => {
     expect(evaluateColorwayPlan(ALL, plan("블랙 바탕에 화이트 로고 티"))).toContain(
       800,
     );
-    expect(evaluateColorwayPlan(ALL, plan("핑크 바탕 로고 티"))).toContain(800);
+    // 핑크는 라벨엔 있지만 이 단품 colors(블랙·화이트)에 없다 — 다른 컬러웨이 관측.
+    expect(evaluateColorwayPlan(ALL, plan("핑크 바탕 로고 티"))).not.toContain(800);
     // 부정: 블랙을 빼도 다른 바탕색(화이트 등)으로 결속이 남는다 — 원소를 통째로 버리지 않는다.
     expect(
       evaluateColorwayPlan(ALL, plan("검정 바탕 말고 화이트 프린팅 티")),
     ).toContain(800);
+  });
+
+  it("바탕색은 매핑 키(2026-08-10): 라벨 차콜 + 판매자 다크 그레이 → 그레이 바탕으로 성립", () => {
+    const charcoal = {
+      goods_no: 900,
+      colors: ["다크 그레이"],
+      prints: [
+        {
+          base_colors: ["차콜"],
+          sides: ["앞"],
+          graphic_types: ["레터링"],
+          colors: ["화이트"],
+          colors_status: "확인",
+        },
+      ],
+    };
+    const got = evaluateColorwayPlan(
+      [charcoal],
+      plan("그레이 바탕에 화이트 레터링 티"),
+    );
+    expect(got).toEqual([900]);
+  });
+
+  it("colors에 연결되지 않는 원소(다른 컬러웨이 관측)는 결속에 쓰지 않는다", () => {
+    // 화이트 단품인데 라벨은 블랙 컬러웨이 사진을 관측 — 이 단품의 근거가 아니다.
+    const otherColorway = {
+      goods_no: 901,
+      colors: ["화이트"],
+      prints: [
+        {
+          base_colors: ["블랙"],
+          sides: ["앞"],
+          graphic_types: ["로고"],
+          colors: ["레드"],
+          colors_status: "확인",
+        },
+      ],
+    };
+    expect(
+      evaluateColorwayPlan([otherColorway], plan("블랙 바탕에 빨간 로고 티")),
+    ).toEqual([]);
+    expect(evaluateColorwayPlan([otherColorway], plan("빨간 로고 티"))).toEqual([]);
   });
 
   it("빈 계획: 조건이 없으면 아무 상품도 필터하지 않는다(기존 경로 보존 신호)", () => {

@@ -41,7 +41,10 @@ import {
   productColorOverride,
   runColorwayLane,
 } from "@/features/search/domain/colorway-lane";
-import { isEmptyColorwayPlan } from "@/features/search/domain/colorway-plan";
+import {
+  type ColorwaySearchPlan,
+  isEmptyColorwayPlan,
+} from "@/features/search/domain/colorway-plan";
 import { compileAtomic } from "@/features/search/domain/compile-atomic";
 import {
   compileSemanticPlan,
@@ -458,16 +461,32 @@ export async function POST(request: Request): Promise<Response> {
   // 4a) 컬러웨이 결속 실행을 본 쿼리보다 먼저 — 일치 goods_no를 본 쿼리 IN 필터로
   //     내려 후보 1000행 상한에 의한 누락을 막는다(교집합만으로는 후보 밖 상품을 놓친다).
   //     실행 실패는 필터 미적용 폴백(설계 §8.4).
-  let colorwayMatched: Set<number> | null = null;
-  if (colorwayLane && colorwayLane.plan.printClauses.length > 0) {
-    const executor: ColorwayExecutor = async (plan) => {
+  // 컬러웨이 사전필터 후보를 페이지로 전부 수집한다. 바탕색이 매핑 재판정(D8)으로
+  // 미뤄져 사전필터 후보가 라벨 전량에 근접할 수 있는데, PostgREST max_rows(1000) 상한을
+  // 한 번에 받으면 뒤쪽 후보의 참 일치를 조용히 놓친다 — 반드시 소진할 때까지 페이징.
+  const COLORWAY_PAGE = 1000;
+  const fetchColorwayCandidates = async (
+    plan: ColorwaySearchPlan,
+  ): Promise<ColorwayProductRow[]> => {
+    const rows: ColorwayProductRow[] = [];
+    for (let from = 0; ; from += COLORWAY_PAGE) {
       const base = supabase
         .from("search_goods")
         .select(`goods_no,${COLORWAY_COLUMNS}`)
-        .limit(RESULT_LIMIT);
+        .range(from, from + COLORWAY_PAGE - 1);
       const { data, error } = await applyColorwayPrefilter(base, plan);
       if (error) throw new Error(error.message);
-      const rows = data as unknown as ColorwayProductRow[];
+      const batch = data as unknown as ColorwayProductRow[];
+      rows.push(...batch);
+      if (batch.length < COLORWAY_PAGE) break;
+    }
+    return rows;
+  };
+
+  let colorwayMatched: Set<number> | null = null;
+  if (colorwayLane && colorwayLane.plan.printClauses.length > 0) {
+    const executor: ColorwayExecutor = async (plan) => {
+      const rows = await fetchColorwayCandidates(plan);
       return new Set(refineColorwayRows(rows, plan).map((r) => r.goods_no));
     };
     colorwayMatched = await runColorwayLane(executor, colorwayLane);
@@ -656,13 +675,7 @@ export async function POST(request: Request): Promise<Response> {
             } else {
               // 결정적 컬러웨이 executor와 동일 로직이지만 완전 별도(본 조회에 IN 미주입).
               const semanticExecutor: ColorwayExecutor = async (p) => {
-                const q = supabase
-                  .from("search_goods")
-                  .select(`goods_no,${COLORWAY_COLUMNS}`)
-                  .limit(RESULT_LIMIT);
-                const { data, error } = await applyColorwayPrefilter(q, p);
-                if (error) throw new Error(error.message);
-                const rows = data as unknown as ColorwayProductRow[];
+                const rows = await fetchColorwayCandidates(p);
                 return new Set(refineColorwayRows(rows, p).map((r) => r.goods_no));
               };
               const evaluation = await evaluateSemanticPlan(adapted, semanticExecutor);

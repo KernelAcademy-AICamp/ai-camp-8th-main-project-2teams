@@ -184,10 +184,9 @@ const QUERIES = [
 ];
 
 describe("colorway-adapter", () => {
-  it("포함 검사 객체: 단일 값만 넣고 다후보·printExists는 재판정으로 미룬다", () => {
+  it("포함 검사 객체: 단일 값만 넣고 바탕색(매핑 판정)·다후보·printExists는 재판정으로 미룬다", () => {
     const p = plan("블랙 바탕에 화이트 백프린팅");
     expect(buildClauseContainment(p.printClauses[0])).toEqual({
-      base_colors: ["블랙"],
       colors: ["화이트"],
       colors_status: "확인",
       sides: ["뒤"],

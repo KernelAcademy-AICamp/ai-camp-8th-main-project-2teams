@@ -9,8 +9,13 @@
 //  - 여러 객체·컬러웨이가 일치해도 상품은 한 번만 반환한다.
 //  - mustNotBaseColors: 결속 객체의 컬러웨이로 쓰일 수 없고, 상품 수준으로는 부정 색 외의
 //    컬러웨이가 하나라도 남아 있어야 한다(다컬러웨이 상품을 통째로 버리지 않는다).
+//  - 바탕색 역할 분리(2026-08-10 결정): 원소의 base_colors(사진 관측)는 값이 아니라
+//    "어느 컬러웨이의 관측인지"를 상품 colors(판매자 진실)에 잇는 매핑 키다.
+//    colors에 연결되지 않는 원소(다른 컬러웨이 관측)는 결속 판정에 쓰지 않고,
+//    바탕색 조건은 매핑된 판매자 색의 계열(foldColorKey)로 판정한다.
 
 import { DB_SIDES, toLegacyColorTerms } from "../data/colorway-vocab";
+import { foldColorKey, mapBaseToProductColors } from "./color-family";
 import type { ColorwaySearchPlan, PrintClause } from "./colorway-plan";
 
 /** m_raw_goods 행의 검색 관련 부분(jsonb prints 포함).
@@ -39,14 +44,26 @@ function elementSatisfies(
   el: PrintElement,
   clause: PrintClause,
   mustNotBase: readonly string[],
+  productColors: readonly string[],
 ): boolean {
-  // 부정 바탕색을 제외한 잔여 컬러웨이만 결속 후보다 — 다바탕(배색) 원소를 통째로 버리지 않는다.
   const bases = el.base_colors ?? [];
-  const eligibleBases = bases.filter((b) => !mustNotBase.includes(b));
-  if (mustNotBase.length > 0 && bases.length > 0 && eligibleBases.length === 0)
+  // 관측 바탕색을 판매자 색상에 연결. colors가 비면 정렬할 진실이 없으므로 관측 폴백.
+  const mapped =
+    productColors.length > 0
+      ? mapBaseToProductColors(bases, [...productColors])
+      : bases;
+  // 어느 컬러웨이에도 연결되지 않는 원소 = 다른 컬러웨이 관측 — 이 단품의 결속에 못 쓴다.
+  if (bases.length > 0 && productColors.length > 0 && mapped.length === 0) return false;
+
+  // 바탕색 조건은 계열 키로 판정(사진 톤 관측을 신뢰하지 않으므로 계열 단위가 정직한 정밀도).
+  const mappedKeys = mapped.map(foldColorKey);
+  const mustNotKeys = mustNotBase.map(foldColorKey);
+  // 부정 바탕색을 제외한 잔여 컬러웨이만 결속 후보다 — 다바탕(배색) 원소를 통째로 버리지 않는다.
+  const eligibleKeys = mappedKeys.filter((k) => !mustNotKeys.includes(k));
+  if (mustNotBase.length > 0 && mappedKeys.length > 0 && eligibleKeys.length === 0)
     return false;
-  const clauseBase: readonly string[] = clause.baseColors;
-  if (clauseBase.length > 0 && !intersects(clauseBase, eligibleBases)) return false;
+  const clauseKeys = clause.baseColors.map(foldColorKey);
+  if (clauseKeys.length > 0 && !intersects(clauseKeys, eligibleKeys)) return false;
 
   if (clause.printColors.length > 0) {
     // 확인 상태에서만 잉크색이 존재한다. 판독불가·미촬영(null)·없음([])은 성립 불가.
@@ -85,7 +102,8 @@ function clauseSatisfied(
   mustNotBase: readonly string[],
 ): boolean {
   const prints = row.prints ?? [];
-  return prints.some((el) => elementSatisfies(el, clause, mustNotBase));
+  const productColors = row.colors ?? [];
+  return prints.some((el) => elementSatisfies(el, clause, mustNotBase, productColors));
 }
 
 /** 상품 한 건이 계획을 충족하는가 — 충족 시에도 결과는 상품당 한 번이다. */
