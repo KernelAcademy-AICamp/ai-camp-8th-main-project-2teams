@@ -21,7 +21,8 @@ export type PrintsContainment = Record<string, unknown>;
  */
 export function buildClauseContainment(clause: PrintClause): PrintsContainment | null {
   const obj: PrintsContainment = {};
-  if (clause.baseColors.length === 1) obj.base_color = clause.baseColors[0];
+  // base_colors는 배열 포함 검사(⊇) — 단일 값일 때만 표현 가능한 superset 조건이다.
+  if (clause.baseColors.length === 1) obj.base_colors = [clause.baseColors[0]];
   if (clause.printColors.length === 1) {
     obj.colors = [clause.printColors[0]];
     obj.colors_status = "확인";

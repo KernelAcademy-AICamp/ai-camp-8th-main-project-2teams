@@ -83,21 +83,21 @@ const FIXTURES: ColorwayProductRow[] = [
     colors: ["화이트", "블랙", "그레이"],
     prints: [
       {
-        base_color: "화이트",
+        base_colors: ["화이트"],
         sides: ["앞"],
         graphic_types: ["레터링"],
         colors: ["그린"],
         colors_status: "확인",
       },
       {
-        base_color: "블랙",
+        base_colors: ["블랙"],
         sides: ["앞"],
         graphic_types: ["레터링"],
         colors: ["화이트"],
         colors_status: "확인",
       },
       {
-        base_color: "그레이",
+        base_colors: ["그레이"],
         sides: ["앞"],
         graphic_types: ["레터링"],
         colors: ["네이비"],
@@ -110,14 +110,14 @@ const FIXTURES: ColorwayProductRow[] = [
     colors: ["블랙"],
     prints: [
       {
-        base_color: "블랙",
+        base_colors: ["블랙"],
         sides: ["앞"],
         graphic_types: ["로고"],
         colors: ["화이트"],
         colors_status: "확인",
       },
       {
-        base_color: "블랙",
+        base_colors: ["블랙"],
         sides: ["뒤"],
         graphic_types: ["캐릭터"],
         colors: ["레드"],
@@ -130,7 +130,7 @@ const FIXTURES: ColorwayProductRow[] = [
     colors: ["블랙"],
     prints: [
       {
-        base_color: "블랙",
+        base_colors: ["블랙"],
         sides: ["뒤"],
         graphic_types: ["레터링"],
         colors: null,
@@ -143,7 +143,7 @@ const FIXTURES: ColorwayProductRow[] = [
     colors: ["화이트"],
     prints: [
       {
-        base_color: "화이트",
+        base_colors: ["화이트"],
         sides: [],
         graphic_types: ["배색"],
         colors: [],
@@ -156,7 +156,7 @@ const FIXTURES: ColorwayProductRow[] = [
     colors: ["그린"],
     prints: [
       {
-        base_color: "그린",
+        base_colors: ["그린"],
         sides: ["소매", "앞", "뒤"],
         graphic_types: ["그래픽"],
         colors: ["화이트"],
@@ -187,7 +187,7 @@ describe("colorway-adapter", () => {
   it("포함 검사 객체: 단일 값만 넣고 다후보·printExists는 재판정으로 미룬다", () => {
     const p = plan("블랙 바탕에 화이트 백프린팅");
     expect(buildClauseContainment(p.printClauses[0])).toEqual({
-      base_color: "블랙",
+      base_colors: ["블랙"],
       colors: ["화이트"],
       colors_status: "확인",
       sides: ["뒤"],

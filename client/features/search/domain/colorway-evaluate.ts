@@ -21,9 +21,10 @@ export interface ColorwayProductRow {
   prints: PrintElement[] | null;
 }
 
-/** m_raw_goods.prints 배열 원소 — 컬러웨이 × 프린트 객체. */
+/** m_raw_goods.prints 배열 원소 — 컬러웨이 × 프린트 객체.
+ * base_colors는 배열 — 여러 컬러웨이가 같은 프린트를 공유하면 한 원소에 함께 라벨된다. */
 export interface PrintElement {
-  base_color: string;
+  base_colors: string[] | null;
   sides: string[];
   graphic_types?: string[] | null;
   colors?: string[] | null;
@@ -39,9 +40,13 @@ function elementSatisfies(
   clause: PrintClause,
   mustNotBase: readonly string[],
 ): boolean {
-  if (mustNotBase.includes(el.base_color)) return false;
+  // 부정 바탕색을 제외한 잔여 컬러웨이만 결속 후보다 — 다바탕(배색) 원소를 통째로 버리지 않는다.
+  const bases = el.base_colors ?? [];
+  const eligibleBases = bases.filter((b) => !mustNotBase.includes(b));
+  if (mustNotBase.length > 0 && bases.length > 0 && eligibleBases.length === 0)
+    return false;
   const clauseBase: readonly string[] = clause.baseColors;
-  if (clauseBase.length > 0 && !clauseBase.includes(el.base_color)) return false;
+  if (clauseBase.length > 0 && !intersects(clauseBase, eligibleBases)) return false;
 
   if (clause.printColors.length > 0) {
     // 확인 상태에서만 잉크색이 존재한다. 판독불가·미촬영(null)·없음([])은 성립 불가.
