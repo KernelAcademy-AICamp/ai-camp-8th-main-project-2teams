@@ -1,4 +1,5 @@
 // 무신사 상품 도메인 엔티티 — search_goods 뷰 컬럼과 짝. 프레임워크 독립 순수 타입.
+import type { PrintElement } from "@/features/search/domain/colorway-evaluate";
 import type {
   ColorImages,
   DisplayImage,
@@ -46,4 +47,7 @@ export interface Goods {
   colorImages?: ColorImages;
   // 서버가 검색 의도 색으로 고른 표시 이미지(교체 대상일 때만). 없으면 thumbnail 사용.
   displayImage?: DisplayImage;
+  // 프린트 관측(컬러웨이×프린트 객체). 상세 조회 전용 — 검색 summary 응답엔 없음
+  // (카드 호버는 프린트를 보이지 않으므로 경량화를 위해 select에서 제외).
+  prints?: PrintElement[];
 }

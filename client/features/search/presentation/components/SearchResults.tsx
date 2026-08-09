@@ -182,6 +182,7 @@ export default function SearchResults() {
                 goods={vm.results}
                 searchId={vm.searchId}
                 resultType={vm.resultType}
+                chips={vm.chips}
               />
             </>
           );
