@@ -243,7 +243,10 @@ export default function GoodsDetail({ goodsNo }: { goodsNo: string }) {
 
           <section className="tf-info">
             <div style={{ "--i": 0 } as React.CSSProperties}>
-              <p className="tf-info__brand">{goods.brand}</p>
+              <p className="tf-info__brand">
+                {goods.brand}
+                {goods.gender && ` · ${goods.gender}`}
+              </p>
               <h1 className="tf-info__title">{goods.title}</h1>
               <div className="tf-info__row">
                 <span className="tf-info__price">{goods.price.toLocaleString()}원</span>
@@ -272,14 +275,17 @@ export default function GoodsDetail({ goodsNo }: { goodsNo: string }) {
                 <TokenGroup label="착용감" values={wear} />
               </div>
             )}
-
             <div style={{ "--i": 6 } as React.CSSProperties}>
+              <TokenGroup label="리뷰 태그" values={goods.reviewTags} />
+            </div>
+
+            <div style={{ "--i": 7 } as React.CSSProperties}>
               <SizeTableView goods={goods} />
             </div>
 
             <a
               className="tf-cta"
-              style={{ "--i": 7 } as React.CSSProperties}
+              style={{ "--i": 8 } as React.CSSProperties}
               href={goods.url}
               target="_blank"
               rel="noreferrer noopener"
@@ -303,11 +309,11 @@ export default function GoodsDetail({ goodsNo }: { goodsNo: string }) {
                 />
               </svg>
             </a>
-            <p className="tf-subnote" style={{ "--i": 8 } as React.CSSProperties}>
+            <p className="tf-subnote" style={{ "--i": 9 } as React.CSSProperties}>
               무신사 상품 페이지로 이동합니다
             </p>
 
-            <div style={{ "--i": 9 } as React.CSSProperties}>
+            <div style={{ "--i": 10 } as React.CSSProperties}>
               {!reported ? (
                 <button
                   type="button"

@@ -1,4 +1,4 @@
-// 카드 호버 요약 — Goods에서 비교에 쓸 핵심 속성(색·핏·소재·착용감)을 표시 행으로.
+// 카드 호버 요약 — Goods에서 비교에 쓸 핵심 속성(색·패턴·핏·소재·착용감·성별)을 표시 행으로.
 // 순수 함수(프레임워크 독립). 값이 있는 축만, 고정 순서로 반환하고 길이를 제한한다.
 import type { Goods } from "@/features/catalog/domain/goods";
 import { WEAR_AXES } from "@/features/search/domain/query-intent";
@@ -27,6 +27,7 @@ export function cardSummary(goods: Goods): SummaryRow[] {
   };
 
   push("색", goods.colors);
+  push("패턴", goods.patterns);
   push("핏", goods.fits);
   push("소재", goods.materials);
 
@@ -36,6 +37,8 @@ export function cardSummary(goods: Goods): SummaryRow[] {
     return v && v.trim() !== "" ? [`${axis} ${v}`] : [];
   });
   push("착용감", wear);
+
+  push("성별", [goods.gender]);
 
   return rows;
 }

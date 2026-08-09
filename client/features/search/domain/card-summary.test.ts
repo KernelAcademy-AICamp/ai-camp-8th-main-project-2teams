@@ -33,18 +33,29 @@ function goods(overrides: Partial<Goods> = {}): Goods {
 }
 
 describe("cardSummary — 카드 호버 요약 행", () => {
-  it("색·핏·소재·착용감을 이 순서로 반환", () => {
+  it("색·패턴·핏·소재·착용감·성별을 이 순서로 반환", () => {
     const rows = cardSummary(
       goods({
         colors: ["블랙"],
+        patterns: ["그래픽"],
         fits: ["오버핏"],
         materials: ["코튼"],
         wearChars: { 두께: "두꺼움" },
+        gender: "남성",
       }),
     );
-    expect(rows.map((r) => r.label)).toEqual(["색", "핏", "소재", "착용감"]);
+    expect(rows.map((r) => r.label)).toEqual([
+      "색",
+      "패턴",
+      "핏",
+      "소재",
+      "착용감",
+      "성별",
+    ]);
     expect(rows[0]).toEqual({ label: "색", value: "블랙" });
-    expect(rows[3]).toEqual({ label: "착용감", value: "두께 두꺼움" });
+    expect(rows[1]).toEqual({ label: "패턴", value: "그래픽" });
+    expect(rows[4]).toEqual({ label: "착용감", value: "두께 두꺼움" });
+    expect(rows[5]).toEqual({ label: "성별", value: "남성" });
   });
 
   it("값이 없는 축은 생략", () => {
