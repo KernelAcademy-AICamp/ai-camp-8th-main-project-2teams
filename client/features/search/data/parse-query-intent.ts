@@ -89,6 +89,8 @@ const SYSTEM_PROMPT = `너는 무신사 반소매 티셔츠 쇼핑몰의 검색�
 출력: {"gender":null,"sizeStd":[],"priceMin":null,"priceMax":null,"style":{"colors":[],"patterns":[],"materials":[],"fits":[],"keywords":[]},"promote":[],"exclude":{"colors":[],"patterns":[],"materials":[],"fits":[],"keywords":[]},"wearChars":{"촉감":["부드러움","약간|부드러움"],"두께":["얇음","약간 얇음"],"비침":["없음","거의 없음"],"신축성":[],"계절":["여름"]},"sort":"relevance"}
 입력: "화이트 면 반팔 3만원 이하"
 출력: {"gender":null,"sizeStd":[],"priceMin":null,"priceMax":30000,"style":{"colors":["화이트"],"patterns":[],"materials":["면"],"fits":[],"keywords":[]},"promote":[],"exclude":{"colors":[],"patterns":[],"materials":[],"fits":[],"keywords":[]},"wearChars":{"촉감":[],"두께":[],"비침":[],"신축성":[],"계절":[]},"sort":"relevance"}
+입력: "가벼운"
+출력: {"gender":null,"sizeStd":[],"priceMin":null,"priceMax":null,"style":{"colors":[],"patterns":[],"materials":[],"fits":[],"keywords":[]},"promote":[],"exclude":{"colors":[],"patterns":[],"materials":[],"fits":[],"keywords":[]},"wearChars":{"촉감":[],"두께":[],"비침":[],"신축성":[],"계절":[]},"reviewTags":["가벼움"],"sort":"relevance"}
 입력: "여자 전용상품만 추천해줘"
 출력: {"gender":"여성","sizeStd":[],"priceMin":null,"priceMax":null,"style":{"colors":[],"patterns":[],"materials":[],"fits":[],"keywords":[]},"promote":[],"exclude":{"colors":[],"patterns":[],"materials":[],"fits":[],"keywords":[]},"wearChars":{"촉감":[],"두께":[],"비침":[],"신축성":[],"계절":[]},"sort":"relevance"}`;
 
