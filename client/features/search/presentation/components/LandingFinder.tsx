@@ -5,10 +5,14 @@ import { useEffect, useRef, useState, useTransition } from "react";
 
 import { SearchIcon, SpinnerIcon } from "./icons";
 
+// 첫 화면에서 "이렇게 물어보면 된다"를 가르치는 예시. 셋이 서로 다른 축을 보여준다
+// — 위치 / 바탕색×프린트색 / 도안 유형. 통제 어휘(colorway-vocab) 밖의 색을 쓰면
+// 프린트색으로 안 잡히고 제목 검색어로 흘러 0건이 되므로, 캐논 색·별칭만 쓴다.
+// 바꿀 때는 실제로 결과가 나오는지 확인할 것(과거 "시안"이 0건을 반환했다).
 const QUICK_QUERIES = [
   "등판에 오렌지 프린트가 있는 흰 티",
-  "블루 그래픽 오버핏 반팔티",
-  "검정 바탕 시안 프린팅 티",
+  "검정 바탕 옐로우 프린팅 티",
+  "흰 바탕 검정 그래픽 티",
 ] as const;
 
 export default function LandingFinder() {

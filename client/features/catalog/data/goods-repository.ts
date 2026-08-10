@@ -9,7 +9,7 @@ import { supabase } from "./supabase-client";
 const DETAIL_COLUMNS =
   "goods_no,style_key,title,brand,category,gender,season,color,colors,patterns," +
   "materials,fits,sizes,size_free,size_std,price,review_count,review_score,gallery," +
-  "url,thumbnail,wear_chars,size_measures";
+  "url,thumbnail,wear_chars,review_tags,size_measures,prints";
 
 async function fetchByGoodsNo(goodsNo: string): Promise<SearchGoodsRow | null> {
   const { data, error } = await supabase
