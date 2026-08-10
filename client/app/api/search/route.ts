@@ -30,10 +30,12 @@ import {
   type AtomicRawAssignment,
   deriveAtomicRawAssignments,
 } from "@/features/search/domain/atomic-proposal";
+import { mapBaseToProductColors } from "@/features/search/domain/color-family";
 import { colorwayPlanToChips } from "@/features/search/domain/colorway-chips";
 import type { ColorwayProductRow } from "@/features/search/domain/colorway-evaluate";
 import {
   applyColorwayMatches,
+  colorwayDisplayColors,
   type ColorwayExecutor,
   colorwayOwnedFilters,
   isColorwayLaneOn,
@@ -607,12 +609,29 @@ export async function POST(request: Request): Promise<Response> {
   //   · results 순서·랭킹·mode엔 영향 없음(순수 후처리).
   //   · 색별 이미지 맵(colorImages)은 응답에서 제거하고 고른 1장(displayImage)만 내려보낸다.
   const finalIntent = respIntent();
+  // 결속 계획이 소유해 intent에서 빠진 바탕색도 사진 선택엔 넘긴다(레인 색 우선).
+  // 계획의 캐논 색은 상품 colors(판매자 표기)로 계열 스냅해서 넘긴다 — 판정은 차콜↔다크 그레이를
+  // 같은 계열로 묶어 잡는데 사진 인덱스 키는 판매자 표기라, 캐논 그대로면 계열로 걸린 상품은
+  // 전부 교체에 실패한다(D8: 색 값의 진실은 상품 colors).
+  const laneDisplay = colorwayLane ? colorwayDisplayColors(colorwayLane) : null;
+  const snapToSeller = (canon: string[], productColors: string[]): string[] =>
+    productColors.length > 0 ? mapBaseToProductColors(canon, productColors) : canon;
   const withDisplay: Goods[] = results.map((g) => {
     const displayImage =
       pickColorImage(
         g.colorImages,
-        finalIntent.style.colors,
-        finalIntent.exclude.colors,
+        [
+          ...new Set([
+            ...snapToSeller(laneDisplay?.colors ?? [], g.colors),
+            ...finalIntent.style.colors,
+          ]),
+        ],
+        [
+          ...new Set([
+            ...snapToSeller(laneDisplay?.excludeColors ?? [], g.colors),
+            ...finalIntent.exclude.colors,
+          ]),
+        ],
       ) ?? undefined;
     return { ...g, colorImages: undefined, displayImage };
   });

@@ -581,6 +581,128 @@ describe("POST /api/search — llm=off 요청 단위 override(로고 토글)", (
   });
 });
 
+describe("POST /api/search — 결속 질의의 표시 이미지 색 매칭", () => {
+  // 결속(프린트) 계획이 있으면 바탕색이 intent.style.colors에서 제거된다(D4 소유권).
+  // 그 제거가 표시 이미지 선택기까지 굶겨서, 검정 질의인데 다른 색 사진이 나가면 안 된다.
+  const rowWithBlackImage = {
+    goods_no: 2082059,
+    style_key: null,
+    title: "베이직 세미 오버핏 로고 티셔츠",
+    brand: null,
+    category: null,
+    gender: null,
+    season: null,
+    color: null,
+    colors: ["블랙", "화이트", "카키"],
+    patterns: ["단색"],
+    materials: null,
+    fits: null,
+    sizes: null,
+    size_free: null,
+    size_std: null,
+    price: 19000,
+    review_count: 10,
+    review_score: 4,
+    url: null,
+    thumbnail: "https://img/카키.jpg",
+    wear_chars: null,
+    review_tags: null,
+    color_images: {
+      byColor: {
+        블랙: { url: "https://img/블랙.jpg", src: "option", status: "auto_high" },
+      },
+    },
+    prints: [
+      {
+        base_colors: ["블랙"],
+        sides: ["앞"],
+        graphic_types: ["레터링"],
+        colors: ["화이트"],
+        colors_status: "확인",
+      },
+    ],
+  };
+
+  it("바탕색 결속 질의도 그 색 사진으로 교체한다(색 단독 질의와 동일)", async () => {
+    dbResult.mockReturnValue({ data: [rowWithBlackImage], error: null });
+    const { body } = await post("검정 티인데 프린팅 있는 것", { llm: "off" });
+    const results = (body as { results: { displayImage?: { color: string } }[] })
+      .results;
+    expect(results).toHaveLength(1);
+    expect(results[0].displayImage).toEqual({
+      url: "https://img/블랙.jpg",
+      color: "블랙",
+    });
+  });
+
+  // 판정은 계열로(차콜↔다크 그레이) 매칭하는데 사진 인덱스 키는 판매자 표기다.
+  // 계획의 캐논 색을 그대로 넘기면 계열로 걸린 상품은 전부 사진 교체에 실패한다(D8).
+  const rowWithFamilyColor = {
+    ...rowWithBlackImage,
+    goods_no: 5269955,
+    title: "에어스트레치 머슬핏 하프 슬리브",
+    colors: ["다크 그레이"],
+    thumbnail: "https://img/화이트.jpg",
+    color_images: {
+      byColor: {
+        "다크 그레이": {
+          url: "https://img/다크그레이.jpg",
+          src: "option",
+          status: "auto_high",
+        },
+      },
+    },
+    prints: [
+      {
+        base_colors: ["차콜"],
+        sides: ["앞"],
+        graphic_types: ["레터링"],
+        colors: ["화이트"],
+        colors_status: "확인",
+      },
+    ],
+  };
+
+  it("계열로 매칭된 상품은 판매자 표기 사진으로 교체한다(차콜→다크 그레이)", async () => {
+    dbResult.mockReturnValue({ data: [rowWithFamilyColor], error: null });
+    const { body } = await post("차콜 바탕에 프린팅 있는 티", { llm: "off" });
+    const results = (body as { results: { displayImage?: { color: string } }[] })
+      .results;
+    expect(results).toHaveLength(1);
+    expect(results[0].displayImage).toEqual({
+      url: "https://img/다크그레이.jpg",
+      color: "다크 그레이",
+    });
+  });
+
+  it("레인이 제외한 바탕색은 LLM이 그 색을 요청해도 사진으로 쓰지 않는다", async () => {
+    // 결과가 실제로 남는 행이어야 단언이 의미를 갖는다(빈 배열 순회 = 무의미한 통과).
+    // 프린트 원소를 화이트 바탕으로 둬서 "블랙 바탕 말고" 계획을 통과시킨다.
+    const row = {
+      ...rowWithBlackImage,
+      prints: [
+        {
+          base_colors: ["화이트"],
+          sides: ["앞"],
+          graphic_types: ["레터링"],
+          colors: ["블랙"],
+          colors_status: "확인",
+        },
+      ],
+    };
+    vi.stubEnv("SEARCH_COLORWAY_LANE", "on");
+    parseMock.mockResolvedValue({
+      intent: { ...EMPTY_INTENT, style: { ...EMPTY_INTENT.style, colors: ["블랙"] } },
+      degraded: false,
+    });
+    dbResult.mockReturnValue({ data: [row], error: null });
+    const { body } = await post("블랙 바탕 말고 프린팅 있는 티");
+    const results = (body as { results: { displayImage?: unknown }[] }).results;
+    expect(results).toHaveLength(1);
+    expect(results[0].displayImage).toBeUndefined();
+  });
+});
+
 describe("POST /api/search — 착용감 신호 제목 폐기 구제(바캉스 케이스)", () => {
   it("제목 전멸 + 착용감 신호만 있으면 제목을 폐기하고 재시도한다", async () => {
     parseMock.mockResolvedValue({
