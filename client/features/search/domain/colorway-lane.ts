@@ -132,6 +132,29 @@ export function colorwayOwnedFilters(
   return { colors: [...colors], stripAllPatterns: !hasExplicitPattern };
 }
 
+/**
+ * 표시 이미지(색 매칭 썸네일) 선택용 바탕색 — 하드필터 소유권과 무관하게 계획에서 뽑는다.
+ * D4 소유권(colorwayOwnedFilters)은 "결속을 이중 하드필터로 걸지 않기" 위한 규칙이라
+ * intent.style.colors를 비운다. 그 규칙을 조언 층(사진 고르기)까지 적용하면 "검정 프린팅 티"
+ * 질의가 다른 색 사진을 내보낸다 — 조언 층은 계획의 바탕색을 직접 받는다.
+ * 잉크색(printColors)은 옷 색이 아니므로 넣지 않는다.
+ */
+export function colorwayDisplayColors(lane: ColorwayLane): {
+  colors: string[];
+  excludeColors: string[];
+} {
+  const colors = new Set<string>();
+  for (const c of lane.plan.productBaseColors)
+    toLegacyColorTerms(c).forEach((t) => colors.add(t));
+  for (const clause of lane.plan.printClauses)
+    for (const c of clause.baseColors)
+      toLegacyColorTerms(c).forEach((t) => colors.add(t));
+  return {
+    colors: [...colors],
+    excludeColors: lane.plan.mustNotBaseColors.flatMap(toLegacyColorTerms),
+  };
+}
+
 /** 어댑터 실행 함수 타입 — route가 supabase 어댑터를 주입한다(테스트는 대역 주입). */
 export type ColorwayExecutor = (plan: ColorwaySearchPlan) => Promise<Set<number>>;
 
