@@ -1,3 +1,13 @@
+## [0.2.12](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/compare/v0.2.11...v0.2.12) (2026-08-10)
+
+### Features
+
+* 유리 표면 토큰화 및 투명도 줄이기 폴백 추가 ([#54](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/issues/54)) ([9c98e63](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/commit/9c98e63eac194fee118dea4511007417eb740181))
+* 컬러웨이 바탕색 매핑(D8)·상세 프린트 표·호버 리뷰 칩 ([#55](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/issues/55)) ([04ff33f](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/commit/04ff33f4dc42363f92056120d8a60a5567659baf))
+
+### Bug Fixes
+
+* 결속 질의 색 매칭 썸네일 복구 + 판매자 표기 스냅 ([#56](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/issues/56)) ([9d3b1f4](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/commit/9d3b1f4985ae9d940f58b8e632578075ef632072))
 ## [0.2.11](https://github.com/KernelAcademy-AICamp/ai-camp-8th-main-project-2teams/compare/v0.2.10...v0.2.11) (2026-08-08)
 
 ### Features
