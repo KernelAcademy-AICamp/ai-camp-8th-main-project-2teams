@@ -46,7 +46,7 @@ const SYSTEM_PROMPT = `너는 무신사 반소매 티셔츠 쇼핑몰의 검색�
   "wearChars": {                // 착용감. 각 배열은 아래 목록에서만. 없으면 []. 촉감·두께·비침·신축성·계절을 말할 때만. (핏은 위 style.fits로)
     "촉감": string[], "두께": string[], "비침": string[], "신축성": string[], "계절": string[]
   },
-  "reviewTags": string[],       // 아래 리뷰 태그 목록에서만. 사용자의 용도·활동·품질·핏 표현과 맞는 태그(소프트 선호). 없으면 []
+  "reviewTags": string[],       // 아래 리뷰 태그 목록에서만. 사용자의 용도·활동·품질·핏·디자인 인상 표현과 맞는 태그. 없으면 []
   "sort": "relevance" | "price_asc" | "review_count"
 }
 
@@ -68,7 +68,7 @@ const SYSTEM_PROMPT = `너는 무신사 반소매 티셔츠 쇼핑몰의 검색�
 - promote: 강한 강제("무조건 검정만")일 때만 해당 키. 아니면 [].
 - keywords: "티","반팔","티셔츠","옷","상의" 같은 일반어와 색은 넣지 마라.
 - 리뷰태그: ${REVIEW_TAGS.join(", ")}
-- reviewTags: 사용자의 용도(러닝·골프·커플티·홈웨어 등)·품질(프린팅 튼튼함·보풀 등)·핏·착용감 표현을 위 리뷰태그 목록 값으로 매핑(여러 개 가능). 확신 없으면 넣지 마라.
+- reviewTags: 사용자의 용도(러닝·골프·커플티·홈웨어 등)·품질(프린팅 튼튼함·보풀 등)·핏·착용감·디자인 인상(디자인귀여움·색상예쁨 등) 표현을 위 리뷰태그 목록 값으로 매핑(여러 개 가능). 표현의 뜻과 태그의 뜻이 직접 대응할 때만 넣어라. 하나의 표현으로 여러 태그를 끌어오지 말고, 그 표현에 가장 가까운 하나만 골라라. 확신 없으면 넣지 마라.
 - wearChars: 사용자의 착용감 표현(부드러운·도톰한·쫀쫀한·비침없는 등)을 위 목록 값으로 매핑. 정도를 아우르면 인접값도 함께(예 "부드러운"→촉감:["부드러움","약간|부드러움"]). 값은 목록과 정확히 일치. 언급 없으면 전부 [].
 - 계절은 "봄/여름"이 명시되거나 "시원한"(→여름)일 때만. "두꺼운·부드러운·오버핏"만으로 계절을 추측해 넣지 마라.
 - ⚠️환각 절대 금지: 사용자가 **명시하지 않은** 색·소재·사이즈·패턴·핏·가격은 넣지 마라. 성별만 말했으면 gender만 채우고 나머지는 전부 빈 값/null. 예 "여자 전용상품만"→gender:"여성"이고 sizeStd·colors·materials 등은 모두 비운다("여자"에서 사이즈 90이나 색을 유추하지 마라). "무지 반팔"→patterns:["단색"]뿐, 색 지어내지 마라.
@@ -89,6 +89,8 @@ const SYSTEM_PROMPT = `너는 무신사 반소매 티셔츠 쇼핑몰의 검색�
 출력: {"gender":null,"sizeStd":[],"priceMin":null,"priceMax":null,"style":{"colors":[],"patterns":[],"materials":[],"fits":[],"keywords":[]},"promote":[],"exclude":{"colors":[],"patterns":[],"materials":[],"fits":[],"keywords":[]},"wearChars":{"촉감":["부드러움","약간|부드러움"],"두께":["얇음","약간 얇음"],"비침":["없음","거의 없음"],"신축성":[],"계절":["여름"]},"sort":"relevance"}
 입력: "화이트 면 반팔 3만원 이하"
 출력: {"gender":null,"sizeStd":[],"priceMin":null,"priceMax":30000,"style":{"colors":["화이트"],"patterns":[],"materials":["면"],"fits":[],"keywords":[]},"promote":[],"exclude":{"colors":[],"patterns":[],"materials":[],"fits":[],"keywords":[]},"wearChars":{"촉감":[],"두께":[],"비침":[],"신축성":[],"계절":[]},"sort":"relevance"}
+입력: "가벼운"
+출력: {"gender":null,"sizeStd":[],"priceMin":null,"priceMax":null,"style":{"colors":[],"patterns":[],"materials":[],"fits":[],"keywords":[]},"promote":[],"exclude":{"colors":[],"patterns":[],"materials":[],"fits":[],"keywords":[]},"wearChars":{"촉감":[],"두께":[],"비침":[],"신축성":[],"계절":[]},"reviewTags":["가벼움"],"sort":"relevance"}
 입력: "여자 전용상품만 추천해줘"
 출력: {"gender":"여성","sizeStd":[],"priceMin":null,"priceMax":null,"style":{"colors":[],"patterns":[],"materials":[],"fits":[],"keywords":[]},"promote":[],"exclude":{"colors":[],"patterns":[],"materials":[],"fits":[],"keywords":[]},"wearChars":{"촉감":[],"두께":[],"비침":[],"신축성":[],"계절":[]},"sort":"relevance"}`;
 
