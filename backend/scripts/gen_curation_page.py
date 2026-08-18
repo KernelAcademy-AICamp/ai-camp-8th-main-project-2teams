@@ -19,6 +19,9 @@ from pathlib import Path
 import psycopg
 
 OUT = Path(__file__).parent / "큐레이션화면.html"
+# 화면(client)이 읽는 같은 데이터. 목업 HTML과 한 번에 같이 쓴다 — 둘이 어긋나면 안 된다.
+JSON_OUT = (Path(__file__).resolve().parents[2]
+            / "client/features/curation/data/curations.json")
 ENV = Path(__file__).resolve().parents[1] / ".env.local"
 TOP_N = 9   # ponytail: 상위 9개만 노출. 상품마다 NOTES를 손으로 쓰는 비용이 크다.
 
@@ -680,9 +683,11 @@ def main():
         data = build(cur, load(cur))
     js = JS.replace("__DATA__", json.dumps(data, ensure_ascii=False, separators=(",", ":")))
     OUT.write_text(PAGE % (CSS, js), encoding="utf-8")
+    JSON_OUT.write_text(json.dumps(data, ensure_ascii=False, indent=1) + "\n",
+                        encoding="utf-8")
     for c in data:
         print(f"{c['n']:>7,}건  {c['title']}")
-    print(f"→ {OUT}")
+    print(f"→ {OUT}\n→ {JSON_OUT}")
 
 
 if __name__ == "__main__":
